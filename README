@@ -1,7 +1,7 @@
 General Information
 ===================
-This is a prototype of deduplication system, named destor.
-Destor is an experimental tool that may help implementing great ideas.
+This is a prototype of a deduplication system, named destor.
+The destor is an experimental tool that may help implementing great ideas.
 
 Features
 ========
@@ -53,7 +53,7 @@ make uninstall
 
 Running
 =======
-If compile and install are successful, executable files, named destor, should be moved to /usr/local/bin by default.
+If compile and install are successful, executable files, destor, should be moved to /usr/local/bin by default.
 You can create a config file, destor.config, in where you run destor.
 A sample destor.config is in scripts directory,
 and many scripts for experiment are also there.
@@ -71,19 +71,19 @@ destor has provided four types of services:
 
 Configure
 =========
-The configure file of destor, named destor.config, is a little complicated.
-Actually it offers several parameters of deduplication system, such as index type(ram, ddfs etc.), cache type(LRU or Nearly-Optimal), rewriting algorithms(NO, CFL or CBR) etc.
-1.INDEX_TYPE : indicates the fingerprint index. Destor support RAM, DDFS, EXBIN, SILO currently;
-2.READ_CACHE_TYPE : the cache for read, destor now support LRU and OPT;
-3.REWRITE : indicates whether using rewriting algorithm, destor support NO, CFL and CBR.
-4.There are other parameters, be careful.
+The configure file of destor, destor.config, is a little complicated.
+Actually it offers several parameters of deduplication system, such as index type(RAM, DDFS, etc.), cache type(LRU, OPT and ASM), rewriting algorithms(NO, CFL, CBR, etc.) and so on.
+1.INDEX_TYPE : indicates the type of the fingerprint index. The destor supports RAM, DDFS, EXBIN, SILO currently;
+2.READ_CACHE_TYPE : the cache for recovery, and the destor now supports LRU, OPT and ASM;
+3.REWRITE : indicates whether using rewriting algorithm, and the destor supports NO, CFL, CBR, CAP, HBR etc.
+4.There are many parameters for these algorithms, be careful.
 
 Bugs
 ====
-1. Don't backup directories with extreme long path. If the dir tree of your dataset is complicated, you can use concat.py to concatenate all files into a single file. 
+1. Don't backup directories with extremely long path. If the dir tree of your dataset is complicated, you can use concat.py to concatenate all files into a single file. 
 2. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
-3. Do NOT backup extreme large dataset with a huger number of chunk than 2^31.
-4. Do NOT support concurrent backup/restore.
+3. Does NOT backup extremely large dataset with a huger number of chunk than 2^31.
+4. Does NOT support concurrent backup/restore.
 5. If working path in destor.config is modified, the rebuild script in scripts folder must be modified too.
 
 Author
