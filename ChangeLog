@@ -1,0 +1,38 @@
+v1.0
+The destor consists of ram-based index, DDFS-based index, LRU cache, 
+cfl-monitor, typical dedup, selective dedup, and pipeline.
+And it can offer backup/recovery services.  v1.1
+The destor has implemented nearly optimal replacement cache,
+which can accelerate the recovering of jobs that are suffered from internal
+fragmentation.
+The config file of server and its corresponding functions has been changed.
+
+v1.2
+A new monitor called container_usage_monitor is implemented.
+It can collect more details on container fragmentation
+than cfl_monitor.
+
+v2.0
+destor_client has been removed, so destor is no longer C/S architecture.
+
+v2.1
+Context-based rewritting algorithm has been implemented.
+
+v2.2
+New feature, Extreme Binning without file-level dedup, is added.
+
+v2.3
+New feature, SiLo is added.
+
+v2.4
+Make it more easy to use.
+
+v2.5
+New feature, history-based rewriting algorithm (HBR) and CBR-assisted HBR.
+
+v2.6
+New features, capping rewriting algorithm and forward assembly area technology, have been added.
+
+v2.7
+capping-assisted HBR has been added.
+
