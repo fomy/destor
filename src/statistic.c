@@ -80,24 +80,24 @@ int free_destor_stat() {
 }
 
 void print_destor_stat() {
-	puts("=== the statistics of server ===");
+	puts("#=== the statistics of server ===");
 
-	printf("the number of chunks: %ld\n", destor_stat->number_of_chunks);
-	printf("the number of duplicated chunks: %ld\n",
+	printf("#the number of chunks: %ld\n", destor_stat->number_of_chunks);
+	printf("#the number of duplicated chunks: %ld\n",
 			destor_stat->number_of_dup_chunks);
 
-	printf("the data amount: %ld\n", destor_stat->data_amount);
-	printf("consumed capacity for unique chunks: %ld\n",
+	printf("#the data amount: %ld\n", destor_stat->data_amount);
+	printf("#consumed capacity for unique chunks: %ld\n",
 			destor_stat->consumed_capacity);
-	printf("saved capacity due to dedup: %ld\n", destor_stat->saved_capacity);
-    printf("dedup efficiency: %.3f\n", ((double)destor_stat->saved_capacity)/destor_stat->data_amount);
+	printf("#saved capacity due to dedup: %ld\n", destor_stat->saved_capacity);
+    printf("#dedup efficiency: %.3f\n", ((double)destor_stat->saved_capacity)/destor_stat->data_amount);
 
-    printf("zero chunk count: %d\n", destor_stat->zero_chunk_count);
-    printf("zero chunk amount: %ld\n", destor_stat->zero_chunk_amount);
+    printf("#zero chunk count: %d\n", destor_stat->zero_chunk_count);
+    printf("#zero chunk amount: %ld\n", destor_stat->zero_chunk_amount);
 
-    printf("rewritten chunk count: %d\n", destor_stat->rewritten_chunk_count);
-    printf("rewritten chunk amount: %ld\n", destor_stat->rewritten_chunk_amount);
-	puts("=== the statistics of server ===");
+    printf("#rewritten chunk count: %d\n", destor_stat->rewritten_chunk_count);
+    printf("#rewritten chunk amount: %ld\n", destor_stat->rewritten_chunk_amount);
+	puts("#=== the statistics of server ===");
 }
 
 int update_destor_stat() {
