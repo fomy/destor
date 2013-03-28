@@ -47,8 +47,7 @@ static void rewrite_container(Jcr *jcr){
         fchunk->next = 0;
         if(waiting_chunk->container_id == TMP_CONTAINER_ID){
             Chunk *chunk = container_get_chunk(container_tmp, &waiting_chunk->hash);
-            memcpy(&chunk->delegate, &waiting_chunk->delegate, sizeof(Fingerprint));
-            free_chunk(waiting_chunk);
+            memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
             while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
                 int32_t nid = seal_container(jcr->write_buffer);
                 if(nid < TMP_CONTAINER_ID){
@@ -61,21 +60,23 @@ static void rewrite_container(Jcr *jcr){
             }
             jcr->rewritten_chunk_count++;
             jcr->rewritten_chunk_amount += chunk->length;
-            index_insert(&chunk->hash, jcr->write_buffer->id, &chunk->delegate);
             fchunk->container_id = jcr->write_buffer->id;
             free_chunk(chunk);
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
         }
+        index_insert(&waiting_chunk->hash, jcr->write_buffer->id, &waiting_chunk->feature, TRUE);
         update_cfl(monitor, fchunk->container_id, fchunk->length);
         sync_queue_push(jcr->fingerchunk_queue, fchunk);
+        free_chunk(waiting_chunk);
         waiting_chunk = queue_pop(waiting_chunk_queue);
     }
 }
 
 static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
+    BOOL update = FALSE;
     new_chunk->container_id = TMP_CONTAINER_ID;
-    ContainerId cid = index_search(&new_chunk->hash, &new_chunk->delegate);
+    ContainerId cid = index_search(&new_chunk->hash, &new_chunk->feature);
     if(cid != TMP_CONTAINER_ID){
         /* existed */
         if(container_tmp->chunk_num != 0
@@ -98,6 +99,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                         fchunk->container_id = container_tmp->id;
                     }
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
+                    index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, FALSE);
                     sync_queue_push(jcr->fingerchunk_queue, fchunk);
                     free_chunk(waiting_chunk);
                     waiting_chunk = queue_pop(waiting_chunk_queue);
@@ -128,7 +130,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
             set_container_id(jcr->write_buffer);
         } 
         new_chunk->container_id = jcr->write_buffer->id;
-        index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->delegate);
+        /*index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature);*/
         if(queue_size(waiting_chunk_queue) == 0){
             FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
             fchunk->container_id = new_chunk->container_id;
@@ -137,6 +139,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
             fchunk->next = 0;
             free_chunk(new_chunk);
             update_cfl(monitor, fchunk->container_id, fchunk->length);
+            index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, TRUE);
             sync_queue_push(jcr->fingerchunk_queue, fchunk);
         }else{
             free(new_chunk->data);
@@ -153,7 +156,8 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
     memcpy(&fchunk->fingerprint, &new_chunk->hash, sizeof(Fingerprint));
     fchunk->next = 0;
 
-    fchunk->container_id = index_search(&new_chunk->hash, &new_chunk->delegate);
+    BOOL update = FALSE;
+    fchunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);
     if(fchunk->container_id != TMP_CONTAINER_ID){
         jcr->dedup_size += fchunk->length;
         jcr->number_of_dup_chunks++;
@@ -172,9 +176,11 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
             set_container_id(jcr->write_buffer);
         }
         fchunk->container_id = jcr->write_buffer->id;
-        index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->delegate);
+        /*index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->feature);*/
+        update = TRUE;
     }
     update_cfl(monitor, fchunk->container_id, fchunk->length);
+    index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->feature, update);
     sync_queue_push(jcr->fingerchunk_queue, fchunk);
     free_chunk(new_chunk);
 }

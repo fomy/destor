@@ -12,7 +12,7 @@ struct silo_block_tag{
     /* fingerprint to container id */
     GHashTable *LHTable;
     /* rep_fingers of all segments in this block */
-    GHashTable* delegate_table;//for write_buffer
+    GHashTable* feature_table;//for write_buffer
     //Fingerprint current_segment;//for read_cache
     int32_t id;
     int32_t size;

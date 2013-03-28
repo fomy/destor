@@ -62,7 +62,7 @@ static BOOL stream_context_push(StreamContext* stream_context, Chunk *chunk){
         /* stream context is full */
         return FALSE;
     }
-    chunk->container_id = index_search(&chunk->hash, &chunk->delegate);
+    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
     if(chunk->container_id != TMP_CONTAINER_ID){
         int* cntnr_usg = g_hash_table_lookup(stream_context->container_usage_map, &chunk->container_id);
         if(cntnr_usg == 0){
@@ -249,6 +249,7 @@ void *cbr_filter(void* arg){
             utility_buckets_update(buckets, 0);
         }
 
+        BOOL update = FALSE;
         if(decision_chunk->duplicate == FALSE){
             while (container_add_chunk(jcr->write_buffer, decision_chunk)
                     == CONTAINER_FULL) {
@@ -259,8 +260,9 @@ void *cbr_filter(void* arg){
                 set_container_id(jcr->write_buffer);
             }
             decision_chunk->container_id = jcr->write_buffer->id;
-            index_insert(&decision_chunk->hash, decision_chunk->container_id,
-                    &decision_chunk->delegate);
+            /*index_insert(&decision_chunk->hash, decision_chunk->container_id,*/
+                    /*&decision_chunk->feature);*/
+            update = TRUE;
         }else{
             jcr->dedup_size += decision_chunk->length;
             ++jcr->number_of_dup_chunks;
@@ -273,6 +275,8 @@ void *cbr_filter(void* arg){
         TIMER_END(jcr->filter_time, b1, e1);
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
+            index_insert(&decision_chunk->hash, decision_chunk->container_id,
+                    &decision_chunk->feature, update);
         sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
         free_chunk(decision_chunk);
     }
@@ -283,6 +287,7 @@ void *cbr_filter(void* arg){
     /* process the remaining chunks in stream context */
     Chunk *remaining_chunk = stream_context_pop(stream_context);
     while(remaining_chunk){
+        BOOL update = FALSE;
         if(rewriting_algorithm == HBR_CBR_REWRITING &&
                 remaining_chunk->container_id != TMP_CONTAINER_ID){ 
             if(historical_sparse_containers &&
@@ -305,8 +310,9 @@ void *cbr_filter(void* arg){
                 set_container_id(jcr->write_buffer);
             }    
             remaining_chunk->container_id = jcr->write_buffer->id;
-            index_insert(&remaining_chunk->hash, remaining_chunk->container_id,
-                    &remaining_chunk->delegate);
+            /*index_insert(&remaining_chunk->hash, remaining_chunk->container_id,*/
+                    /*&remaining_chunk->feature);*/
+            update = TRUE;
         }else{
             jcr->dedup_size += remaining_chunk->length;
             ++jcr->number_of_dup_chunks;
@@ -317,6 +323,8 @@ void *cbr_filter(void* arg){
         memcpy(&new_fchunk->fingerprint, &remaining_chunk->hash, sizeof(Fingerprint));
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
+            index_insert(&remaining_chunk->hash, remaining_chunk->container_id,
+                    &remaining_chunk->feature, update);
         sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
         free_chunk(remaining_chunk);
         remaining_chunk = stream_context_pop(stream_context);

@@ -61,19 +61,27 @@ ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
     }
 }
 
-void index_insert(Fingerprint* fingerprint, ContainerId container_id, void* eigenvalue){
+void index_insert(Fingerprint* fingerprint, ContainerId container_id, 
+        void* feature, BOOL update){
+    /* The update determines wheter update except in SILO */
     switch(fingerprint_index_type){
         case RAM_INDEX:
-            ram_index_insert(fingerprint, container_id);
+            if(update){
+                ram_index_insert(fingerprint, container_id);
+            }
             break;
         case DDFS_INDEX:
-            ddfs_index_insert(fingerprint, container_id);
+            if(update){
+                ddfs_index_insert(fingerprint, container_id);
+            }
             break;
         case EXBIN_INDEX:
-            extreme_binning_insert(fingerprint, container_id, eigenvalue);
+            if(update){
+                extreme_binning_insert(fingerprint, container_id, feature);
+            }
             break;
         case SILO_INDEX:
-            silo_insert(fingerprint, container_id, eigenvalue);
+            silo_insert(fingerprint, container_id, feature);
             break;
         default:
             printf("%s, %d: Wrong index type!\n",__FILE__,__LINE__);

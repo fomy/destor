@@ -177,6 +177,7 @@ void* simply_filter(void* arg){
     historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
     ContainerUsageMonitor* monitor =container_usage_monitor_new();
     while (TRUE) {
+        BOOL update = FALSE;
         Chunk* chunk = sync_queue_pop(prepare_queue);
 
         TIMER_DECLARE(b1, e1);
@@ -191,7 +192,7 @@ void* simply_filter(void* arg){
         new_fchunk->length = chunk->length;
         memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
 
-        new_fchunk->container_id = index_search(&chunk->hash, &chunk->delegate);
+        new_fchunk->container_id = index_search(&chunk->hash, &chunk->feature);
         if (new_fchunk->container_id != TMP_CONTAINER_ID) {
             if(rewriting_algorithm == HBR_REWRITING && historical_sparse_containers!=0 && 
                     g_hash_table_lookup(historical_sparse_containers, &new_fchunk->container_id) != NULL){
@@ -207,7 +208,8 @@ void* simply_filter(void* arg){
                     set_container_id(jcr->write_buffer);
                 }
                 new_fchunk->container_id = jcr->write_buffer->id; 
-                index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->delegate);
+                /*index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature);*/
+                update = TRUE;
                 jcr->rewritten_chunk_count++;
                 jcr->rewritten_chunk_amount += new_fchunk->length;
             }else{
@@ -226,10 +228,12 @@ void* simply_filter(void* arg){
                 set_container_id(jcr->write_buffer);
             }
             new_fchunk->container_id = jcr->write_buffer->id; 
-            index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->delegate);
+            /*index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature);*/
+            update = TRUE;
         }
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
+        index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature, update);
         sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
         TIMER_END(jcr->filter_time, b1, e1);
         free_chunk(chunk);
@@ -297,13 +301,13 @@ void free_chunk(Chunk* chunk){
 /* prepare thread for extreme binning */
 /*
  * buffer all fingers of one file(free data part of chunks),
- * select the delegate.
+ * select the feature.
  */
 void* exbin_prepare(void *arg){
     Jcr *jcr = (Jcr*)arg;
     Recipe *processing_recipe = 0;
-    Fingerprint current_delegate;
-    memset(&current_delegate, 0xff, sizeof(Fingerprint));
+    Fingerprint current_feature;
+    memset(&current_feature, 0xff, sizeof(Fingerprint));
     Queue *buffered_chunk_queue = queue_new();
     while(TRUE){
         Chunk *chunk = sync_queue_pop(hash_queue);
@@ -320,12 +324,12 @@ void* exbin_prepare(void *arg){
             lseek(processing_recipe->fd, 0, SEEK_SET);
             while(queue_size(buffered_chunk_queue)){
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
-                memcpy(&buffered_chunk->delegate, &current_delegate, sizeof(Fingerprint));
+                memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 buffered_chunk->data = malloc(buffered_chunk->length);
                 read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
                 sync_queue_push(prepare_queue, buffered_chunk);
             }
-            memset(current_delegate, 0xff, sizeof(Fingerprint));
+            memset(current_feature, 0xff, sizeof(Fingerprint));
 
             close(processing_recipe->fd);
             sync_queue_push(jcr->completed_files_queue, processing_recipe);
@@ -337,8 +341,8 @@ void* exbin_prepare(void *arg){
         /* TO-DO */
         free(chunk->data);
         chunk->data = 0;
-        if(memcmp(&current_delegate, &chunk->hash, sizeof(Fingerprint))>0){
-            memcpy(&current_delegate, &chunk->hash, sizeof(Fingerprint));
+        if(memcmp(&current_feature, &chunk->hash, sizeof(Fingerprint))>0){
+            memcpy(&current_feature, &chunk->hash, sizeof(Fingerprint));
         }
         processing_recipe->chunknum++;
         processing_recipe->filesize += chunk->length;
@@ -358,8 +362,8 @@ extern int32_t silo_item_size;
 void* silo_prepare(void *arg){
     Jcr *jcr = (Jcr*)arg;
     Recipe *processing_recipe = 0;
-    Fingerprint current_delegate;
-    memset(&current_delegate, 0xff, sizeof(Fingerprint));
+    Fingerprint current_feature;
+    memset(&current_feature, 0xff, sizeof(Fingerprint));
     Queue *buffered_chunk_queue = queue_new();
     int32_t current_segment_size = 0;
     while(TRUE){
@@ -369,7 +373,7 @@ void* silo_prepare(void *arg){
                 /* process remaing chunks */
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
                 while(buffered_chunk){
-                    memcpy(&buffered_chunk->delegate, &current_delegate, sizeof(Fingerprint));
+                    memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                     sync_queue_push(prepare_queue, buffered_chunk);
                     buffered_chunk = queue_pop(buffered_chunk_queue);
                 }
@@ -395,15 +399,15 @@ void* silo_prepare(void *arg){
             /* segment is full, push it */
             Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
             while(buffered_chunk){
-                memcpy(&buffered_chunk->delegate, &current_delegate, sizeof(Fingerprint));
+                memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 sync_queue_push(prepare_queue, buffered_chunk);
                 buffered_chunk = queue_pop(buffered_chunk_queue);
             }
             current_segment_size = 0;
-            memset(&current_delegate, 0xff, sizeof(Fingerprint));
+            memset(&current_feature, 0xff, sizeof(Fingerprint));
         }
-        if(memcmp(&current_delegate, &chunk->hash, sizeof(Fingerprint)) > 0){
-            memcpy(&current_delegate, &chunk->hash, sizeof(Fingerprint));
+        if(memcmp(&current_feature, &chunk->hash, sizeof(Fingerprint)) > 0){
+            memcpy(&current_feature, &chunk->hash, sizeof(Fingerprint));
         }
         processing_recipe->chunknum++;
         processing_recipe->filesize += chunk->length;

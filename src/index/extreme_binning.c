@@ -13,10 +13,10 @@
 const static int64_t bvolume_head_size = 20;
 const static int64_t level_factor = 512;
 
-/* rep_finger and size */
+/* feature and size */
 const static int32_t bin_head_size = 24;
 
-/* rep_finger:bin_address pairs */
+/* feature:bin_address pairs */
 static GHashTable *primary_index;
 static BinVolume *bin_volume_array[BIN_LEVEL_COUNT];
 /* 
@@ -89,12 +89,12 @@ static BOOL bin_volume_destroy(BinVolume *bvol){
 /*
  * addr == 0 means this is really a new bin.
  */
-static Bin *bin_new(int64_t addr, Fingerprint *rep_finger){
+static Bin *bin_new(int64_t addr, Fingerprint *feature){
     Bin *nbin = (Bin*)malloc(sizeof(Bin));
 
     nbin->address = addr;
     nbin->dirty = FALSE;
-    memcpy(&nbin->rep_finger, rep_finger, sizeof(Fingerprint));
+    memcpy(&nbin->feature, feature, sizeof(Fingerprint));
 
     nbin->fingers = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
             free, free);
@@ -141,7 +141,7 @@ static int64_t write_bin_to_volume(Bin *bin){
     char *buffer = malloc(level_to_size(new_level));
     ser_declare;
     ser_begin(buffer, 0);
-    ser_bytes(&bin->rep_finger, sizeof(Fingerprint));
+    ser_bytes(&bin->feature, sizeof(Fingerprint));
     ser_int32(g_hash_table_size(bin->fingers));
 
     GHashTableIter iter;
@@ -195,12 +195,12 @@ static Bin* read_bin_from_volume(int64_t address){
 
     unser_declare;
     unser_begin(buffer, 0);
-    Fingerprint rep_finger;
+    Fingerprint feature;
     int32_t chunk_num;
-    unser_bytes(&rep_finger, sizeof(Fingerprint));
+    unser_bytes(&feature, sizeof(Fingerprint));
     unser_int32(chunk_num);
 
-    Bin *bin = bin_new(address, &rep_finger);
+    Bin *bin = bin_new(address, &feature);
     int i;
     for(i=0; i<chunk_num; ++i){
         Fingerprint *finger = (Fingerprint*)malloc(sizeof(Fingerprint));
@@ -238,9 +238,9 @@ BOOL extreme_binning_init(){
     int i = 0;
     for(; i<item_num; ++i){
         PrimaryItem *item = (PrimaryItem*)malloc(sizeof(PrimaryItem));
-        read(fd, &item->rep_finger, sizeof(Fingerprint));
+        read(fd, &item->feature, sizeof(Fingerprint));
         read(fd, &item->bin_addr, sizeof(item->bin_addr));
-        g_hash_table_insert(primary_index, &item->rep_finger, item);
+        g_hash_table_insert(primary_index, &item->feature, item);
     }
     close(fd);
 
@@ -257,11 +257,11 @@ void extreme_binning_destroy(){
     if(current_bin){
         int64_t new_addr = write_bin_to_volume(current_bin);
         if(new_addr != current_bin->address){
-            PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->rep_finger);
+            PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->feature);
             if(item == NULL){
                 item = (PrimaryItem*)malloc(sizeof(PrimaryItem));
-                memcpy(&item->rep_finger, &current_bin->rep_finger, sizeof(Fingerprint));
-                g_hash_table_insert(primary_index, &item->rep_finger, item);
+                memcpy(&item->feature, &current_bin->feature, sizeof(Fingerprint));
+                g_hash_table_insert(primary_index, &item->feature, item);
             }
             item->bin_addr = new_addr;
         }
@@ -286,7 +286,7 @@ void extreme_binning_destroy(){
     g_hash_table_iter_init(&iter, primary_index);
     while(g_hash_table_iter_next(&iter, &key, &value)){
         PrimaryItem* item = (PrimaryItem*)value;
-        write(fd, &item->rep_finger, sizeof(Fingerprint));
+        write(fd, &item->feature, sizeof(Fingerprint));
         write(fd, &item->bin_addr, sizeof(item->bin_addr));
     }
     close(fd);
@@ -300,32 +300,32 @@ void extreme_binning_destroy(){
 }
 
 ContainerId extreme_binning_search(Fingerprint *fingerprint,
-        Fingerprint *rep_finger){
+        Fingerprint *feature){
     if((current_bin == 0)|| 
-            (memcmp(&current_bin->rep_finger, rep_finger, sizeof(Fingerprint)) != 0)){
+            (memcmp(&current_bin->feature, feature, sizeof(Fingerprint)) != 0)){
         /* write current_bin to volume */
         if(current_bin){
             int64_t new_addr = write_bin_to_volume(current_bin);
             if(new_addr != current_bin->address){
-                PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->rep_finger);
+                PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->feature);
                 if(item == NULL){
                     item = (PrimaryItem*)malloc(sizeof(PrimaryItem));
-                    memcpy(&item->rep_finger, &current_bin->rep_finger, sizeof(Fingerprint));
-                    g_hash_table_insert(primary_index, &item->rep_finger, item);
+                    memcpy(&item->feature, &current_bin->feature, sizeof(Fingerprint));
+                    g_hash_table_insert(primary_index, &item->feature, item);
                 }
                 item->bin_addr = new_addr;
             }
             bin_free(current_bin);
         }
-        /* read bin according to rep_finger */
-        PrimaryItem* item = g_hash_table_lookup(primary_index, rep_finger);
+        /* read bin according to feature */
+        PrimaryItem* item = g_hash_table_lookup(primary_index, feature);
         if(item){
             current_bin = read_bin_from_volume(item->bin_addr);
-            if(memcmp(current_bin->rep_finger, rep_finger, sizeof(Fingerprint))!=0){
+            if(memcmp(current_bin->feature, feature, sizeof(Fingerprint))!=0){
                 puts("error");
             }
         }else{
-            current_bin = bin_new(0, rep_finger);
+            current_bin = bin_new(0, feature);
         }
     }
 
@@ -338,31 +338,31 @@ ContainerId extreme_binning_search(Fingerprint *fingerprint,
 }
 
 void extreme_binning_insert(Fingerprint *finger, ContainerId container_id,
-        Fingerprint* rep_finger){
+        Fingerprint* feature){
     Fingerprint *new_finger = (Fingerprint*)malloc(sizeof(Fingerprint));
     memcpy(new_finger, finger, sizeof(Fingerprint));
     ContainerId* new_id = (ContainerId*)malloc(sizeof(ContainerId));
     *new_id = container_id;
 
-    if(memcmp(&current_bin->rep_finger, rep_finger, sizeof(Fingerprint)) != 0){
+    if(memcmp(&current_bin->feature, feature, sizeof(Fingerprint)) != 0){
         /* it's possible with cfl_filter */
         int64_t new_addr = write_bin_to_volume(current_bin);
         if(new_addr != current_bin->address){
-            PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->rep_finger);
+            PrimaryItem* item = g_hash_table_lookup(primary_index, &current_bin->feature);
             if(item == NULL){
                 item = (PrimaryItem*)malloc(sizeof(PrimaryItem));
-                memcpy(&item->rep_finger, &current_bin->rep_finger, sizeof(Fingerprint));
-                g_hash_table_insert(primary_index, &item->rep_finger, item);
+                memcpy(&item->feature, &current_bin->feature, sizeof(Fingerprint));
+                g_hash_table_insert(primary_index, &item->feature, item);
             }
             item->bin_addr = new_addr;
         }
         bin_free(current_bin);
-        /* read bin according to rep_finger */
-        PrimaryItem* item = g_hash_table_lookup(primary_index, rep_finger);
+        /* read bin according to feature */
+        PrimaryItem* item = g_hash_table_lookup(primary_index, feature);
         if(item){
             current_bin = read_bin_from_volume(item->bin_addr);
         }else{
-            current_bin = bin_new(0, rep_finger);
+            current_bin = bin_new(0, feature);
         }
     }
     g_hash_table_insert(current_bin->fingers, new_finger, new_id);

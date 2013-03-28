@@ -40,7 +40,7 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
     if((cap_segment.size + chunk->length) > capping_segment_size){
         return FALSE;
     }
-    chunk->container_id = index_search(&chunk->hash, &chunk->delegate);
+    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
     if(rewriting_algorithm == HBR_CAP_REWRITING && 
             chunk->container_id != TMP_CONTAINER_ID){
         if(historical_sparse_containers && 
@@ -120,7 +120,7 @@ void *cap_filter(void* arg){
     set_container_id(jcr->write_buffer);
 
     cap_segment_init();
-    
+
     Chunk *chunk = 0, *remaining = 0;
     ContainerRecord tmp_record;
     BOOL stream_end = FALSE;
@@ -159,6 +159,7 @@ void *cap_filter(void* arg){
                     chunk->duplicate = FALSE;
                 }
 
+                BOOL update = FALSE;
                 if(chunk->duplicate == FALSE){
                     while(container_add_chunk(jcr->write_buffer, chunk)
                             == CONTAINER_FULL){
@@ -169,8 +170,9 @@ void *cap_filter(void* arg){
                         set_container_id(jcr->write_buffer);
                     }
                     chunk->container_id = jcr->write_buffer->id;
-                    index_insert(&chunk->hash, chunk->container_id,
-                            &chunk->delegate);
+                    /*index_insert(&chunk->hash, chunk->container_id,*/
+                    /*&chunk->feature);*/
+                    update = TRUE;
                 }else{
                     jcr->dedup_size += chunk->length;
                     ++jcr->number_of_dup_chunks;
@@ -182,6 +184,8 @@ void *cap_filter(void* arg){
                 memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
                 container_usage_monitor_update(monitor, new_fchunk->container_id,
                         &new_fchunk->fingerprint, new_fchunk->length);
+                index_insert(&chunk->hash, chunk->container_id,
+                        &chunk->feature, update);
                 sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
 
                 free_chunk(chunk);

@@ -15,7 +15,7 @@ struct bin_volume_tag{
 };
 
 struct bin_tag{
-    Fingerprint rep_finger;
+    Fingerprint feature;
     /* fingerprint-container_id map */
     GHashTable *fingers;
     int64_t address;
@@ -23,14 +23,14 @@ struct bin_tag{
 };
 
 struct primary_item_tag{
-    Fingerprint rep_finger;
+    Fingerprint feature;
     int64_t bin_addr;
 };
 
 BOOL extreme_binning_init();
 void extreme_binning_destroy();
 ContainerId extreme_binning_search(Fingerprint *fingerprint,
-        Fingerprint *rep_finger);
+        Fingerprint *feature);
 void extreme_binning_insert(Fingerprint *finger, 
-        ContainerId container_id, Fingerprint* delegate);
+        ContainerId container_id, Fingerprint* feature);
 #endif

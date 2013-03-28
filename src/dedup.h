@@ -25,7 +25,7 @@ struct chunk_tag {
 	BOOL duplicate;
 	Fingerprint hash;
     /* for SiLo and Extreme Binning */
-    Fingerprint delegate;
+    Fingerprint feature;
     ContainerId container_id;
 };
 
