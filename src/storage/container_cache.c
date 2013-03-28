@@ -110,7 +110,11 @@ Container *container_cache_insert_container(ContainerCache *cc,
         {
             GSequence* container_list = g_hash_table_lookup(cc->map, &fingers[i]);
             /* remove the specified container from list */
-            g_sequence_remove(g_sequence_lookup(container_list, evictor, container_cmp_des, NULL));
+            GSequenceIter *iter = g_sequence_lookup(container_list, evictor, container_cmp_des, NULL);
+            if(iter)
+                g_sequence_remove(iter);
+            else
+                dprint("Error! The sequence does not contain the container.");
             if(g_sequence_get_length(container_list) == 0){
                 g_hash_table_remove(cc->map, &fingers[i]);
             }

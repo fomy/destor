@@ -113,6 +113,7 @@ BOOL ddfs_index_init(){
     close(fd);
 
     dirty = FALSE;
+    return TRUE;
 }
 
 void ddfs_index_flush(){

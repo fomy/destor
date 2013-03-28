@@ -206,9 +206,9 @@ Container *read_container_meta_only(ContainerId id) {
             SEEK_SET);
     int len = read(container_volume.file_descriptor, buff, CONTAINER_DES_SIZE+CONTAINER_MAX_META_SIZE);
     if(len!=(CONTAINER_DES_SIZE+CONTAINER_MAX_META_SIZE)){
-        /*pthread_mutex_unlock(&container_volume.mutex);*/
-        /*return 0;*/
-        dprint("rarely happen!");
+        pthread_mutex_unlock(&container_volume.mutex);
+        dprint("The read container for DDFS cache has not been written yet!");
+        return 0;
     }
 
     pthread_mutex_unlock(&container_volume.mutex);
