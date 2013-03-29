@@ -175,8 +175,7 @@ static void utility_buckets_update(UtilityBuckets *buckets, double rewrite_utili
 /* ----------------------------------------------------------------------------*/
 void *cbr_filter(void* arg){
     Jcr *jcr = (Jcr*)arg;
-    jcr->write_buffer = container_new_full();
-    set_container_id(jcr->write_buffer);
+    jcr->write_buffer = create_container();
 
     /*BOOL exist = FALSE;*/
 
@@ -254,14 +253,11 @@ void *cbr_filter(void* arg){
             while (container_add_chunk(jcr->write_buffer, decision_chunk)
                     == CONTAINER_FULL) {
                 Container *container = jcr->write_buffer;
-                int32_t id = seal_container(container);
-                sync_queue_push(container_queue, container);
-                jcr->write_buffer = container_new_full();
-                set_container_id(jcr->write_buffer);
+                seal_container(container);
+                /*sync_queue_push(container_queue, container);*/
+                jcr->write_buffer = create_container();
             }
             decision_chunk->container_id = jcr->write_buffer->id;
-            /*index_insert(&decision_chunk->hash, decision_chunk->container_id,*/
-                    /*&decision_chunk->feature);*/
             update = TRUE;
         }else{
             jcr->dedup_size += decision_chunk->length;
@@ -304,14 +300,11 @@ void *cbr_filter(void* arg){
             while (container_add_chunk(jcr->write_buffer, remaining_chunk)
                     == CONTAINER_FULL) {
                 Container *container = jcr->write_buffer;
-                int32_t id = seal_container(container);
-                sync_queue_push(container_queue, container);
-                jcr->write_buffer = container_new_full();
-                set_container_id(jcr->write_buffer);
+                seal_container(container);
+                /*sync_queue_push(container_queue, container);*/
+                jcr->write_buffer = create_container();
             }    
             remaining_chunk->container_id = jcr->write_buffer->id;
-            /*index_insert(&remaining_chunk->hash, remaining_chunk->container_id,*/
-                    /*&remaining_chunk->feature);*/
             update = TRUE;
         }else{
             jcr->dedup_size += remaining_chunk->length;
@@ -333,11 +326,7 @@ void *cbr_filter(void* arg){
 
     Container *container = jcr->write_buffer;
     jcr->write_buffer = 0;
-    if(seal_container(container) != TMP_CONTAINER_ID){
-        sync_queue_push(container_queue, container);
-    }else{
-        container_free_full(container);
-    }
+    seal_container(container);
 
     Container *signal = container_new_meta_only();
     signal->id = STREAM_END;

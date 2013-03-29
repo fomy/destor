@@ -171,8 +171,7 @@ void * simply_prepare(void *arg){
 /*The typical dedup.*/
 void* simply_filter(void* arg){
     Jcr* jcr = (Jcr*) arg;
-    jcr->write_buffer = container_new_full();
-    set_container_id(jcr->write_buffer);
+    jcr->write_buffer = create_container();
     GHashTable* historical_sparse_containers = 0;
     historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
     ContainerUsageMonitor* monitor =container_usage_monitor_new();
@@ -203,12 +202,10 @@ void* simply_filter(void* arg){
                         == CONTAINER_FULL) {
                     Container *container = jcr->write_buffer;
                     int32_t id = seal_container(container);
-                    sync_queue_push(container_queue, container);
-                    jcr->write_buffer = container_new_full();
-                    set_container_id(jcr->write_buffer);
+                    /*sync_queue_push(container_queue, container);*/
+                    jcr->write_buffer = create_container();
                 }
                 new_fchunk->container_id = jcr->write_buffer->id; 
-                /*index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature);*/
                 update = TRUE;
                 jcr->rewritten_chunk_count++;
                 jcr->rewritten_chunk_amount += new_fchunk->length;
@@ -223,12 +220,10 @@ void* simply_filter(void* arg){
                     == CONTAINER_FULL) {
                 Container *container = jcr->write_buffer;
                 int32_t id = seal_container(container);
-                sync_queue_push(container_queue, container);
-                jcr->write_buffer = container_new_full();
-                set_container_id(jcr->write_buffer);
+                /*sync_queue_push(container_queue, container);*/
+                jcr->write_buffer = create_container();
             }
             new_fchunk->container_id = jcr->write_buffer->id; 
-            /*index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature);*/
             update = TRUE;
         }
         container_usage_monitor_update(monitor, new_fchunk->container_id,
@@ -241,13 +236,9 @@ void* simply_filter(void* arg){
 
     Container *container = jcr->write_buffer;
     jcr->write_buffer = 0;
-    if(seal_container(container) != TMP_CONTAINER_ID){
-        sync_queue_push(container_queue, container);
-    }else{
-        /* empty container */
-        container_free_full(container);
-    }
+    seal_container(container);
 
+    /* kill the append_thread */
     Container *signal = container_new_meta_only();
     signal->id = STREAM_END;
     sync_queue_push(container_queue, signal);
@@ -273,23 +264,23 @@ void* simply_filter(void* arg){
  * Handle containers in container_queue.
  * When a container buffer is full, we push it into container_queue.
  */
-void* append_thread(void *arg){
-    Jcr* psJcr= (Jcr*)arg;
-    while(TRUE){
-        Container *container = sync_queue_pop(container_queue);
-        if(container->id == STREAM_END){
-            /* backup job finish */
-            container_free_full(container);
-            break;
-        }
-        struct timeval begin, end;
-        gettimeofday(&begin, 0);
-        append_container(container);
-        gettimeofday(&end, 0);
-        psJcr->write_time += (end.tv_sec - begin.tv_sec)*1000000 + end.tv_usec - begin.tv_usec;
-        container_free_full(container);
-    }
-}
+/*void* append_thread(void *arg){*/
+    /*Jcr* jcr= (Jcr*)arg;*/
+    /*while(TRUE){*/
+        /*Container *container = sync_queue_pop(container_queue);*/
+        /*if(container->id == STREAM_END){*/
+            /*[> backup job finish <]*/
+            /*container_free_full(container);*/
+            /*break;*/
+        /*}*/
+        /*struct timeval begin, end;*/
+        /*gettimeofday(&begin, 0);*/
+        /*append_container(container);*/
+        /*gettimeofday(&end, 0);*/
+        /*jcr->write_time += (end.tv_sec - begin.tv_sec)*1000000 + end.tv_usec - begin.tv_usec;*/
+        /*container_free_full(container);*/
+    /*}*/
+/*}*/
 
 void free_chunk(Chunk* chunk){
     if(chunk->data && chunk->length>0)

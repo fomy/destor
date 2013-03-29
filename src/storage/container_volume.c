@@ -6,9 +6,12 @@
 #include "container.h"
 #include "container_volume.h"
 #include "../index/index.h"
+#include "../jcr.h"
 
 
 extern char working_path[];
+/* container queue */
+extern SyncQueue* container_queue;
 
 ContainerVolume container_volume;
 
@@ -57,17 +60,23 @@ int destroy_container_volume() {
     return SUCCESS;
 }
 
-void set_container_id(Container *container){
+static void set_container_id(Container *container){
     container->id = container_volume.container_num;
 }
 
-/*
- * update fingerprints in this container to index
- * */
-int32_t seal_container(Container *container){
+Container *create_container(){
+    Container *new_one = container_new_full();
+    set_container_id(new_one);
+    return new_one;
+}
+
+int32_t seal_container(Container* container){
     int32_t chunknum = container_get_chunk_num(container);
-    if(chunknum == 0)
-        return -1;
+    if(chunknum){
+        container_free_full(container);
+        return TMP_CONTAINER_ID;
+    }
+    sync_queue_push(container_queue, container);
     container_volume.container_num++;
     return container->id;
 }
@@ -241,28 +250,24 @@ Container* read_container(ContainerId id) {
 }
 
 /*
- * enable_data_cache = FALSE
+ * Handle containers in container_queue.
+ * When a container buffer is full, we push it into container_queue.
  */
-/*Chunk* read_chunk_directly(Container *container, Fingerprint *hash) {*/
-    /*Chunk *result = (Chunk*) malloc(sizeof(Chunk));*/
-    /*ContainerMetaEntry *cm = container_lookup(container, hash);*/
-    /*if (!cm) {*/
-        /*puts("Error: Failed to read record directly!");*/
-        /*return 0;*/
-    /*}*/
-    /*off_t offset = 4;*/
-    /*offset += container->id * CONTAINER_SIZE;*/
-    /*offset += container->chunk_num * CONTAINER_META_ENTRY_SIZE + CONTAINER_DES_SIZE;*/
-    /*offset += cm->offset;*/
-    /*pthread_mutex_lock(&container_volume.mutex);*/
-    /*lseek(container_volume.file_descriptor, offset, SEEK_SET);*/
-    /*result->data = malloc(cm->length);*/
-    /*result->length = read(container_volume.file_descriptor, result->data,*/
-            /*cm->length);*/
-    /*pthread_mutex_unlock(&container_volume.mutex);*/
-    /*if (result->length != cm->length)*/
-        /*puts("Error: Failed to read record data!");*/
-    /*memcpy(&result->hash, hash, sizeof(Fingerprint));*/
-    /*check_chunk(result);*/
-    /*return result;*/
-/*}*/
+void* append_thread(void *arg){
+    Jcr* jcr= (Jcr*)arg;
+    while(TRUE){
+        Container *container = sync_queue_pop(container_queue);
+        if(container->id == STREAM_END){
+            /* backup job finish */
+            container_free_full(container);
+            break;
+        }
+        struct timeval begin, end;
+        gettimeofday(&begin, 0);
+        append_container(container);
+        gettimeofday(&end, 0);
+        jcr->write_time += (end.tv_sec - begin.tv_sec)*1000000 + end.tv_usec - begin.tv_usec;
+        container_free_full(container);
+    }
+}
+

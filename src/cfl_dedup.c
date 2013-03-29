@@ -49,14 +49,10 @@ static void rewrite_container(Jcr *jcr){
             Chunk *chunk = container_get_chunk(container_tmp, &waiting_chunk->hash);
             memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
             while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
-                int32_t nid = seal_container(jcr->write_buffer);
-                if(nid < TMP_CONTAINER_ID){
-                    dprint("failed to seal container");
-                }
-                sync_queue_push(container_queue, jcr->write_buffer);
+                seal_container(jcr->write_buffer);
+                /*sync_queue_push(container_queue, jcr->write_buffer);*/
 
-                jcr->write_buffer = container_new_full();
-                set_container_id(jcr->write_buffer);
+                jcr->write_buffer = create_container();
             }
             jcr->rewritten_chunk_count++;
             jcr->rewritten_chunk_amount += chunk->length;
@@ -120,14 +116,10 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                 == CONTAINER_FULL) {
             Container *container = jcr->write_buffer;
 
-            int32_t nid = seal_container(container);
-            if(nid < TMP_CONTAINER_ID){
-                dprint("failed to seal container");
-            }
-            sync_queue_push(container_queue, container);
+            seal_container(container);
+            /*sync_queue_push(container_queue, container);*/
 
-            jcr->write_buffer = container_new_full();
-            set_container_id(jcr->write_buffer);
+            jcr->write_buffer = create_container();
         } 
         new_chunk->container_id = jcr->write_buffer->id;
         /*index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature);*/
@@ -166,14 +158,10 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
                 == CONTAINER_FULL) {
             Container *container = jcr->write_buffer;
 
-            int32_t nid = seal_container(container);
-            if(nid < TMP_CONTAINER_ID){
-                dprint("failed to seal container");
-            }
-            sync_queue_push(container_queue, container);
+            seal_container(container);
+            /*sync_queue_push(container_queue, container);*/
 
-            jcr->write_buffer = container_new_full();
-            set_container_id(jcr->write_buffer);
+            jcr->write_buffer = create_container();
         }
         fchunk->container_id = jcr->write_buffer->id;
         /*index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->feature);*/
@@ -202,8 +190,7 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
 /* ----------------------------------------------------------------------------*/
 void *cfl_filter(void* arg){
     Jcr* jcr = (Jcr*) arg;
-    jcr->write_buffer = container_new_full();
-    set_container_id(jcr->write_buffer);
+    jcr->write_buffer = create_container();
     monitor = cfl_monitor_new(read_cache_size, cfl_require);
     while(TRUE){
         Chunk* new_chunk = sync_queue_pop(prepare_queue);
@@ -302,11 +289,7 @@ void *cfl_filter(void* arg){
 
     /* Append write_buffer */
     Container *container = jcr->write_buffer;
-    if(seal_container(container) != TMP_CONTAINER_ID){
-        sync_queue_push(container_queue, container);
-    }else{
-        container_free_full(container);
-    }
+    seal_container(container);
     jcr->write_buffer = 0;
 
     Container *signal = container_new_meta_only();
