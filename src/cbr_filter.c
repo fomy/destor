@@ -101,6 +101,7 @@ static Chunk* stream_context_pop(StreamContext* stream_context){
 static Chunk* stream_context_init(StreamContext* stream_context){
     Chunk *chunk = sync_queue_pop(prepare_queue);
     while(chunk->length != STREAM_END){
+        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         if(stream_context_push(stream_context, chunk)==FALSE){
             break;
         }
@@ -196,6 +197,8 @@ void *cbr_filter(void* arg){
         if(stream_context_push(stream_context, tail) == TRUE){
             TIMER_END(jcr->filter_time, b1, e1);
             tail = sync_queue_pop(prepare_queue);
+            if(tail->length != STREAM_END)
+                tail->container_id = index_search(&tail->hash, &tail->feature);
         }
         TIMER_BEGIN(b1);
         double rewrite_utility = -1;

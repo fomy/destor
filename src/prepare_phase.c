@@ -41,7 +41,7 @@ void * simply_prepare(void *arg){
         /* TO-DO */
         processing_recipe->chunknum++;
         processing_recipe->filesize += chunk->length;
-        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+        /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
         sync_queue_push(prepare_queue, chunk);
     }
     return NULL;
@@ -76,7 +76,7 @@ void* exbin_prepare(void *arg){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 buffered_chunk->data = malloc(buffered_chunk->length);
                 read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
-                buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
+                /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
                 sync_queue_push(prepare_queue, buffered_chunk);
             }
             memset(current_feature, 0xff, sizeof(Fingerprint));
@@ -123,7 +123,7 @@ void* silo_prepare(void *arg){
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
                 while(buffered_chunk){
                     memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
-                    buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
+                    /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
                     sync_queue_push(prepare_queue, buffered_chunk);
                     buffered_chunk = queue_pop(buffered_chunk_queue);
                 }
@@ -150,7 +150,7 @@ void* silo_prepare(void *arg){
             Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
             while(buffered_chunk){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
-                buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
+                /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
                 sync_queue_push(prepare_queue, buffered_chunk);
                 buffered_chunk = queue_pop(buffered_chunk_queue);
             }

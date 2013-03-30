@@ -36,14 +36,15 @@ void* simply_filter(void* arg){
             free_chunk(chunk);
             break;
         }
+        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+
         /* init FingerChunk */
         FingerChunk *new_fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
         new_fchunk->container_id = TMP_CONTAINER_ID;
         new_fchunk->length = chunk->length;
         memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
-
-        /*new_fchunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
         new_fchunk->container_id = chunk->container_id;
+
         if (new_fchunk->container_id != TMP_CONTAINER_ID) {
             if(rewriting_algorithm == HBR_REWRITING && historical_sparse_containers!=0 && 
                     g_hash_table_lookup(historical_sparse_containers, &new_fchunk->container_id) != NULL){

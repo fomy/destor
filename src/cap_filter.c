@@ -129,13 +129,17 @@ void *cap_filter(void* arg){
 
     while(TRUE){
         chunk = sync_queue_pop(prepare_queue);
+
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
         if(chunk->length == STREAM_END){
             free_chunk(chunk);
             chunk = 0;
             stream_end = TRUE;
+        }else{
+            chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         }
+
         if(stream_end == TRUE || cap_segment_push(jcr, chunk) == FALSE){
             /* segment is full */
             remaining = chunk;
