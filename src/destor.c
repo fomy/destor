@@ -60,12 +60,12 @@ struct option long_options[] = {
 void print_help(){
     puts("GENERAL USAGE");
     puts("\tstart a backup job");
-    puts("\t\t./destor protected_path");
+    puts("\t\t./destor <protected_path>");
     puts("\tstart a restore job");
-    puts("\t\t./destor -rJOB_ID target_path");
+    puts("\t\t./destor -r<JOB_ID> <target_path>");
     puts("\tprint state of destor");
     puts("\t\t./destor -s");
-    puts("\tprint help");
+    puts("\tprint this");
     puts("\t\t./destor -h");
     puts("OPTIONS");
     puts("\t--restore or -r");
@@ -74,30 +74,30 @@ void print_help(){
     puts("\t\tprint the state of destor.");
     puts("\t--help or -h");
     puts("\t\tprint this.");
-    puts("\t--index");
+    puts("\t--index=[RAM|DDFS|EXBIN|SILO]");
     puts("\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO.");
-    puts("\t--cache");
+    puts("\t--cache=[LRU|ASM|OPT]");
     puts("\t\tAssign read cache type. IT now support LRU, OPT.");
-    puts("\t--cache_size");
-    puts("\t\tAssign read cache size.");
-    puts("\t--rewrite");
-    puts("\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, HBR and HBR_CBR.");
-    puts("\t--usage");
-    puts("\t\tSet usage threshold.");
-    puts("\t--rewrite_limit");
-    puts("\t\tSet rewrite_limit.");
-    puts("\t--min_utility");
-    puts("\t\tSet minimal_rewrite_utility.");
-    puts("\t--window_size");
-    puts("\t\tSet stream_context_size in CBR.");
-    puts("\t--stream_context_size");
-    puts("\t\tSet size of slide window for OPT cache.");
-    puts("\t--capping_t");
-    puts("\t\tSet T for capping.");
-    puts("\t--capping_segment_size");
-    puts("\t\tSet segment size for capping.");
+    puts("\t--cache_size=[number of containers]");
+    puts("\t\tAssign read cache size, e.g. --cache_size=100.");
+    puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP]");
+    puts("\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
+    puts("\t--usage=[usage threshold of container,]");
+    puts("\t\tSet usage threshold, e.g. --usage=0.7.");
+    puts("\t--rewrite_limit=[rewrite limit for CBR]");
+    puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
+    puts("\t--min_utility=[minimal rewrite utility for CBR]");
+    puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
+    puts("\t--window_size=[size of the slide window for OPT]");
+    puts("\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
+    puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
+    puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
+    puts("\t--capping_t=[T for CAP]");
+    puts("\t\tSet T for capping, e.g. --T=16.");
+    puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
+    puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
     puts("\t--disable_writing");
-    puts("\t\tdisable writing during the recovery.");
+    puts("\t\tdisable writing files during the recovery.");
 }
 
 int main(int argc, char **argv) {

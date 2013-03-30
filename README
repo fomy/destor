@@ -69,6 +69,13 @@ destor has provided four types of services:
 4. help
     destor -h
 
+There are several options for destor.
+1.backup options
+    --index=[RAM|DDFS|EXBIN|SILO]
+    --rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP]
+2.restore options
+    --cache=[LRU|ASM|OPT]
+
 Configure
 =========
 The configure file of destor, destor.config, is a little complicated.
