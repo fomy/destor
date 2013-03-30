@@ -45,6 +45,10 @@ void index_destroy(){
     }
 }
 
+/*
+ * Call index_search() to obtain the container id of the chunk.
+ * It should be called immediately after poping a chunk.
+ */
 ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
     switch(fingerprint_index_type){
         case RAM_INDEX:
@@ -61,6 +65,11 @@ ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
     }
 }
 
+/*
+ * Update index.
+ * It should be called before pushing a chunk into fchunk_queue in filter phase.
+ * The update parameter indicates whether the container_id is new.
+ */
 void index_insert(Fingerprint* fingerprint, ContainerId container_id, 
         void* feature, BOOL update){
     /* The update determines wheter update except in SILO */

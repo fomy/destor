@@ -65,6 +65,9 @@ void set_value(char *pname, char *pvalue){
             printf("%s, %d: unknown cache type\n",__FILE__,__LINE__);
         }
     }
+    else if(strcmp(pname, "ENABLE_WRITING") == 0){
+        enable_writing = atoi(pvalue) == 0 ? FALSE : TRUE;
+    }
     /*else if(strcmp(pname, "ENABLE_DATA_CACHE") == 0){*/
         /*enable_data_cache = atoi(pvalue);*/
     /*}*/
