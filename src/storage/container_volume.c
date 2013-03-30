@@ -72,7 +72,7 @@ Container *create_container(){
 
 int32_t seal_container(Container* container){
     int32_t chunknum = container_get_chunk_num(container);
-    if(chunknum){
+    if(chunknum == 0){
         container_free_full(container);
         return TMP_CONTAINER_ID;
     }
