@@ -62,7 +62,7 @@ static BOOL stream_context_push(StreamContext* stream_context, Chunk *chunk){
         /* stream context is full */
         return FALSE;
     }
-    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+    /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
     if(chunk->container_id != TMP_CONTAINER_ID){
         int* cntnr_usg = g_hash_table_lookup(stream_context->container_usage_map, &chunk->container_id);
         if(cntnr_usg == 0){
@@ -271,7 +271,7 @@ void *cbr_filter(void* arg){
         TIMER_END(jcr->filter_time, b1, e1);
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
-            index_insert(&decision_chunk->hash, decision_chunk->container_id,
+        index_insert(&decision_chunk->hash, decision_chunk->container_id,
                     &decision_chunk->feature, update);
         sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
         free_chunk(decision_chunk);

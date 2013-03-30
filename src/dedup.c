@@ -163,6 +163,7 @@ void * simply_prepare(void *arg){
         /* TO-DO */
         processing_recipe->chunknum++;
         processing_recipe->filesize += chunk->length;
+        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         sync_queue_push(prepare_queue, chunk);
     }
     return NULL;
@@ -191,7 +192,7 @@ void* simply_filter(void* arg){
         new_fchunk->length = chunk->length;
         memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
 
-        new_fchunk->container_id = index_search(&chunk->hash, &chunk->feature);
+        /*new_fchunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
         if (new_fchunk->container_id != TMP_CONTAINER_ID) {
             if(rewriting_algorithm == HBR_REWRITING && historical_sparse_containers!=0 && 
                     g_hash_table_lookup(historical_sparse_containers, &new_fchunk->container_id) != NULL){
@@ -260,28 +261,6 @@ void* simply_filter(void* arg){
     return NULL;
 }
 
-/*
- * Handle containers in container_queue.
- * When a container buffer is full, we push it into container_queue.
- */
-/*void* append_thread(void *arg){*/
-    /*Jcr* jcr= (Jcr*)arg;*/
-    /*while(TRUE){*/
-        /*Container *container = sync_queue_pop(container_queue);*/
-        /*if(container->id == STREAM_END){*/
-            /*[> backup job finish <]*/
-            /*container_free_full(container);*/
-            /*break;*/
-        /*}*/
-        /*struct timeval begin, end;*/
-        /*gettimeofday(&begin, 0);*/
-        /*append_container(container);*/
-        /*gettimeofday(&end, 0);*/
-        /*jcr->write_time += (end.tv_sec - begin.tv_sec)*1000000 + end.tv_usec - begin.tv_usec;*/
-        /*container_free_full(container);*/
-    /*}*/
-/*}*/
-
 void free_chunk(Chunk* chunk){
     if(chunk->data && chunk->length>0)
         free(chunk->data);
@@ -318,6 +297,7 @@ void* exbin_prepare(void *arg){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 buffered_chunk->data = malloc(buffered_chunk->length);
                 read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
+                buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
                 sync_queue_push(prepare_queue, buffered_chunk);
             }
             memset(current_feature, 0xff, sizeof(Fingerprint));
@@ -365,6 +345,7 @@ void* silo_prepare(void *arg){
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
                 while(buffered_chunk){
                     memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                    buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
                     sync_queue_push(prepare_queue, buffered_chunk);
                     buffered_chunk = queue_pop(buffered_chunk_queue);
                 }
@@ -391,6 +372,7 @@ void* silo_prepare(void *arg){
             Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
             while(buffered_chunk){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);
                 sync_queue_push(prepare_queue, buffered_chunk);
                 buffered_chunk = queue_pop(buffered_chunk_queue);
             }

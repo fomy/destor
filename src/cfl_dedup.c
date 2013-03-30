@@ -45,7 +45,7 @@ static void rewrite_container(Jcr *jcr){
         fchunk->length = waiting_chunk->length;
         memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
         fchunk->next = 0;
-        if(waiting_chunk->container_id == TMP_CONTAINER_ID){
+        if(waiting_chunk->container_id == container_tmp->id){
             Chunk *chunk = container_get_chunk(container_tmp, &waiting_chunk->hash);
             memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
             while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
@@ -71,12 +71,12 @@ static void rewrite_container(Jcr *jcr){
 
 static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
     BOOL update = FALSE;
-    new_chunk->container_id = TMP_CONTAINER_ID;
-    ContainerId cid = index_search(&new_chunk->hash, &new_chunk->feature);
-    if(cid != TMP_CONTAINER_ID){
+    /*new_chunk->container_id = TMP_CONTAINER_ID;*/
+    /*ContainerId cid = index_search(&new_chunk->hash, &new_chunk->feature);*/
+    if(new_chunk->container_id != TMP_CONTAINER_ID){
         /* existed */
         if(container_tmp->chunk_num != 0
-                && container_tmp->id != cid){
+                && container_tmp->id != new_chunk->container_id){
             /* determining whether rewrite container_tmp */
             if(container_get_usage(container_tmp) < container_usage_threshold){
                 /* rewrite */
@@ -89,13 +89,16 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                     fchunk->length = waiting_chunk->length;
                     memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
                     fchunk->next = 0;
-                    if(fchunk->container_id == TMP_CONTAINER_ID){
+                    if(fchunk->container_id == container_tmp->id){
                         jcr->dedup_size += fchunk->length;
                         jcr->number_of_dup_chunks++;
-                        fchunk->container_id = container_tmp->id;
+                        /*fchunk->container_id = container_tmp->id;*/
+                        update = FALSE;
+                    }else{
+                        update = TRUE;
                     }
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
-                    index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, FALSE);
+                    index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, update);
                     sync_queue_push(jcr->fingerchunk_queue, fchunk);
                     free_chunk(waiting_chunk);
                     waiting_chunk = queue_pop(waiting_chunk_queue);
@@ -105,11 +108,11 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
             container_tmp = container_new_full();
         }
         if(container_add_chunk(container_tmp, new_chunk)==CONTAINER_FULL){
-            printf("%s, %d: container_tmp is full\n",__FILE__,__LINE__);
+            dprint("error!container_tmp is full!");
         }
         free(new_chunk->data);
         new_chunk->data = 0;
-        container_tmp->id = cid;
+        container_tmp->id = new_chunk->container_id;
         queue_push(waiting_chunk_queue, new_chunk);
     } else {
         while (container_add_chunk(jcr->write_buffer, new_chunk)
@@ -149,7 +152,8 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
     fchunk->next = 0;
 
     BOOL update = FALSE;
-    fchunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);
+    /*fchunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);*/
+    fchunk->container_id = new_chunk->container_id;
     if(fchunk->container_id != TMP_CONTAINER_ID){
         jcr->dedup_size += fchunk->length;
         jcr->number_of_dup_chunks++;

@@ -40,7 +40,7 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
     if((cap_segment.size + chunk->length) > capping_segment_size){
         return FALSE;
     }
-    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+    /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
     if(rewriting_algorithm == HBR_CAP_REWRITING && 
             chunk->container_id != TMP_CONTAINER_ID){
         if(historical_sparse_containers && 
