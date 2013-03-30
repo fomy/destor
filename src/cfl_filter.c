@@ -203,7 +203,7 @@ void *cfl_filter(void* arg){
             free_chunk(new_chunk);
             break;
         }
-        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+        new_chunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);
 
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
