@@ -108,7 +108,7 @@ void* fixed_chunk(void *arg){
             TIMER_BEGIN(b);
 
             /*new_chunk->length = chunk_data(leftbuf + left_offset, leftlen);*/
-            new_chunk->length = chunk_size;
+            new_chunk->length = chunk_size > leftlen ? leftlen : chunk_size;
 
             TIMER_END(jcr->chunk_time, b, e);
 
