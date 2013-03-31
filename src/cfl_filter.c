@@ -60,7 +60,7 @@ static void rewrite_container(Jcr *jcr){
                 fchunk->container_id = jcr->write_buffer->id;
                 free_chunk(chunk);
             }else{
-                dprint("NOT a error! The container_tmp points to the write buffer.");
+                dprint("NOT an error! The container_tmp points to the write buffer.");
             }
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
@@ -93,7 +93,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                     fchunk->length = waiting_chunk->length;
                     memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
                     fchunk->next = 0;
-                    if(fchunk->container_id == container_tmp->id){
+                    if(container_get_chunk(container_tmp, &fchunk->fingerprint)){
                         jcr->dedup_size += fchunk->length;
                         jcr->number_of_dup_chunks++;
                         /*fchunk->container_id = container_tmp->id;*/
@@ -219,6 +219,7 @@ void *cfl_filter(void* arg){
                 monitor->enable_selective = FALSE;
                 Chunk *chunk = queue_pop(waiting_chunk_queue);
                 if(chunk){
+                    /* It happens when the rewritten container improves CFL, */
                     chunk->container_id = container_tmp->id;
                     FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
                     fchunk->container_id = chunk->container_id;
@@ -227,6 +228,7 @@ void *cfl_filter(void* arg){
                     fchunk->next = 0;
                     free_chunk(chunk);    
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
+                    index_insert(&chunk->hash, chunk->container_id, &chunk->feature, FALSE);
                     sync_queue_push(jcr->fingerchunk_queue, fchunk);
                 }
                 if(queue_size(waiting_chunk_queue)!=0){
@@ -264,6 +266,7 @@ void *cfl_filter(void* arg){
             //rewrite container_tmp
             rewrite_container(jcr);
         } else {
+            BOOL update = FALSE;
             Chunk* waiting_chunk = queue_pop(waiting_chunk_queue);
             while(waiting_chunk){
                 FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
@@ -271,12 +274,16 @@ void *cfl_filter(void* arg){
                 fchunk->length = waiting_chunk->length;
                 memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
                 fchunk->next = 0;
-                if(fchunk->container_id == TMP_CONTAINER_ID){
+                if(container_get_chunk(container_tmp, fchunk->fingerprint)){
                     jcr->dedup_size += fchunk->length;
                     jcr->number_of_dup_chunks++;
-                    fchunk->container_id = container_tmp->id;
+                    /*fchunk->container_id = container_tmp->id;*/
+                    update = FALSE;
+                }else{
+                    update = TRUE;
                 }
                 update_cfl(monitor, fchunk->container_id, fchunk->length);
+                index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, update);
                 sync_queue_push(jcr->fingerchunk_queue, fchunk);
                 free_chunk(waiting_chunk);
                 waiting_chunk = queue_pop(waiting_chunk_queue);

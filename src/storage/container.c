@@ -147,12 +147,12 @@ ContainerMetaEntry* container_lookup(Container *container, Fingerprint* finger) 
 
 Chunk* container_get_chunk(Container* container, Fingerprint *hash) {
 	if (!container->data) {
-		dprint("Failed to get a chunk!");
+        dprint("Failed to get a chunk!");
 		return NULL;
 	}
 	ContainerMetaEntry *cm = container_lookup(container, hash);
 	if (!cm) {
-		dprint("Failed to get a chunk!");
+		/*dprint("Failed to get a chunk!");*/
 		return NULL;
 	}
 	Chunk *chunk = (Chunk*) malloc(sizeof(Chunk));
