@@ -65,7 +65,7 @@ static void rewrite_container(Jcr *jcr){
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
         }
-        index_insert(&waiting_chunk->hash, jcr->write_buffer->id, &waiting_chunk->feature, TRUE);
+        index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, TRUE);
         update_cfl(monitor, fchunk->container_id, fchunk->length);
         sync_queue_push(jcr->fingerchunk_queue, fchunk);
         free_chunk(waiting_chunk);
@@ -102,7 +102,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                         update = TRUE;
                     }
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
-                    index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, update);
+                    index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, update);
                     sync_queue_push(jcr->fingerchunk_queue, fchunk);
                     free_chunk(waiting_chunk);
                     waiting_chunk = queue_pop(waiting_chunk_queue);
