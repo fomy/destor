@@ -15,7 +15,7 @@
 
 extern int32_t silo_segment_size;//KB
 extern int32_t silo_block_size;//MB
-extern uint32_t rabin_chunk_size;
+extern uint32_t chunk_size;
 extern char working_path[];
 /* silo_x_size/average chunk size */
 int32_t silo_segment_hash_size;
@@ -115,9 +115,9 @@ static SiloBlock* read_block_from_volume(int32_t block_id){
 
 BOOL silo_init(){
     silo_segment_hash_size = silo_segment_size*1024/
-        (rabin_chunk_size+1)*silo_item_size;
+        chunk_size*silo_item_size;
     silo_block_hash_size = silo_block_size*1024*1024/
-        (rabin_chunk_size+1)*silo_item_size;
+        chunk_size*silo_item_size;
 
     char filename[256];
     /* init SHTable */

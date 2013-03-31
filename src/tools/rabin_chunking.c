@@ -3,7 +3,7 @@
 #include <stdint.h>/*uint32_t*/
 #include <stdlib.h> /*size_t*/
 #include <string.h>/*memset*/
-#include "chunking.h"
+#include "rabin_chunking.h"
 
 #define SLIDE(m,fingerprint,bufPos,buf) do{	\
 	    unsigned char om;   \
@@ -39,20 +39,9 @@ size_t _cur_pos;
   
 unsigned int _num_chunks;
 
-uint32_t rabin_chunk_size = 8191;
-//UINT32 max_chunk_size = 2048;
-//UINT32 min_chunk_size = 65536;
-
-//UINT32 max_chunk_size = 65536*100;
-//UINT32 min_chunk_size = 200;
-UINT32 max_chunk_size = MAX_CHUNK_SIZE;
-UINT32 min_chunk_size = MIN_CHUNK_SIZE;
-
-//static const unsigned chunk_size = 8191; //32768;//8198
-//static unsigned min_size_suppress;
-//static unsigned max_size_suppress;
-
-//UCHAR chunk[70000];
+extern uint32_t chunk_size;
+extern uint32_t max_chunk_size;
+extern uint32_t min_chunk_size;
 
 const char bytemsb[0x100] = {
   0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -288,27 +277,11 @@ int chunk_data(unsigned char *p, int n)
 		return n;
 	else
 		i=min_chunk_size;
-	//windows_reset(); && !((fingerprint & rabin_chunk_size) == BREAKMARK_VALUE && i >= min_chunk_size) 
-    //    && i <= max_chunk_size
 	while(i<=n  )
 	{
 	
 		SLIDE(p[i-1],fingerprint,bufPos,buf);
-		//fingerprint+=p[i-1];
-		//if(i>32)
-		//	fingerprint-=p[i-1];
-		/* 
-		if (++bufPos >= size)  
-        	bufPos = 0;				
-        om = buf[bufPos];		
-        buf[bufPos] = p[i-1];		 
-		fingerprint ^= U[om];	 
-		x = fingerprint >> shift;  
-		fingerprint <<= 8;		   
-		fingerprint |= p[i-1];		  
-		fingerprint ^= T[x];	 
-		 */
-		if (((fingerprint & rabin_chunk_size) == BREAKMARK_VALUE && i >= min_chunk_size) 
+		if (((fingerprint & (chunk_size-1)) == BREAKMARK_VALUE && i >= min_chunk_size) 
         || i >= max_chunk_size || i == n) {
 			break;
 		}
