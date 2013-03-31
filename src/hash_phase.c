@@ -18,8 +18,6 @@ gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2)
 
 void* sha1_hash(void* arg) {
     Jcr *jcr = (Jcr*) arg;
-    char zeros[64*1024];
-    bzero(zeros, 64*1024);
     while (TRUE) {
         Chunk *chunk = sync_queue_pop(chunk_queue);
         if (chunk->length == STREAM_END) {
@@ -28,12 +26,6 @@ void* sha1_hash(void* arg) {
         }else if(chunk->length == FILE_END){
             sync_queue_push(hash_queue, chunk);
             continue;
-        }
-        if(memcmp(zeros, chunk->data, chunk->length) == 0){
-            if(chunk->length != 64*1024)
-                puts("unusual zero chunk");
-            jcr->zero_chunk_count++;
-            jcr->zero_chunk_amount += chunk->length;
         }
 
         TIMER_DECLARE(b, e);

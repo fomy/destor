@@ -6,7 +6,7 @@
 
 /* chunk_size must be a power of 2 */
 uint32_t chunk_size = 8192;
-uint32_t max_chunk_size = 65526;
+uint32_t max_chunk_size = 65536;
 uint32_t min_chunk_size = 2048;
 
 /* output of read_thread */
@@ -23,6 +23,8 @@ void* rabin_chunk(void *arg) {
 
     Jcr *jcr = (Jcr*) arg;
 
+    char zeros[max_chunk_size];
+    bzero(zeros, max_chunk_size);
     while (TRUE) {
         Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
         new_chunk->duplicate = FALSE;
@@ -55,6 +57,12 @@ void* rabin_chunk(void *arg) {
             memcpy(new_chunk->data, leftbuf + left_offset, new_chunk->length);
             leftlen -= new_chunk->length;
             left_offset += new_chunk->length;
+
+            if(memcmp(zeros, new_chunk->data, new_chunk->length) == 0){
+                jcr->zero_chunk_count++;
+                jcr->zero_chunk_amount += new_chunk->length;
+            }
+
             sync_queue_push(chunk_queue, new_chunk);
         } else {
             if (signal == FILE_END) {
@@ -83,6 +91,8 @@ void* fixed_chunk(void *arg){
 
     Jcr *jcr = (Jcr*) arg;
 
+    char zeros[chunk_size];
+    bzero(zeros, chunk_size);
     while (TRUE) {
         Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
         new_chunk->duplicate = FALSE;
@@ -116,6 +126,10 @@ void* fixed_chunk(void *arg){
             memcpy(new_chunk->data, leftbuf + left_offset, new_chunk->length);
             leftlen -= new_chunk->length;
             left_offset += new_chunk->length;
+            if(memcmp(zeros, new_chunk->data, new_chunk->length) == 0){
+                jcr->zero_chunk_count++;
+                jcr->zero_chunk_amount += new_chunk->length;
+            }
             sync_queue_push(chunk_queue, new_chunk);
         } else {
             if (signal == FILE_END) {

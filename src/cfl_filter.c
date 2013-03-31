@@ -47,17 +47,21 @@ static void rewrite_container(Jcr *jcr){
         fchunk->next = 0;
         if(waiting_chunk->container_id == container_tmp->id){
             Chunk *chunk = container_get_chunk(container_tmp, &waiting_chunk->hash);
-            memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
-            while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
-                seal_container(jcr->write_buffer);
-                /*sync_queue_push(container_queue, jcr->write_buffer);*/
+            if(chunk){
+                memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
+                while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
+                    seal_container(jcr->write_buffer);
+                    /*sync_queue_push(container_queue, jcr->write_buffer);*/
 
-                jcr->write_buffer = create_container();
+                    jcr->write_buffer = create_container();
+                }
+                jcr->rewritten_chunk_count++;
+                jcr->rewritten_chunk_amount += chunk->length;
+                fchunk->container_id = jcr->write_buffer->id;
+                free_chunk(chunk);
+            }else{
+                dprint("NOT a error! The container_tmp points to the write buffer.");
             }
-            jcr->rewritten_chunk_count++;
-            jcr->rewritten_chunk_amount += chunk->length;
-            fchunk->container_id = jcr->write_buffer->id;
-            free_chunk(chunk);
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
         }
