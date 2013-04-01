@@ -21,13 +21,13 @@ extern DestorStat *destor_stat;
 extern int rewriting_algorithm;
 extern int fingerprint_index_type;
 
-extern int start_read_phase(Jcr*);
-extern void stop_read_phase();
 int backup(Jcr* jcr);
 
+extern int start_read_phase(Jcr*);
+extern void stop_read_phase();
 
-/* chunk queue */
-SyncQueue* chunk_queue;
+extern int start_chunk_phase(Jcr*);
+extern void stop_chunk_phase();
 
 /* hash queue */
 SyncQueue* hash_queue;
@@ -160,15 +160,13 @@ int backup_server(char *path) {
 }
 
 int backup(Jcr* jcr) {
-    pthread_t chunk_t, hash_t, prepare_t, filter_t, append_t;
-    chunkAlg_init();
-    chunk_queue = sync_queue_new(100);
+    pthread_t hash_t, prepare_t, filter_t, append_t;
     hash_queue = sync_queue_new(100);
     prepare_queue = sync_queue_new(100);
     container_queue = sync_queue_new(100);
 
     start_read_phase(jcr);
-    pthread_create(&chunk_t, NULL, rabin_chunk, jcr);
+    start_chunk_phase(jcr);
     pthread_create(&hash_t, NULL, sha1_hash, jcr);
     switch(fingerprint_index_type){
         case RAM_INDEX:
@@ -247,13 +245,12 @@ int backup(Jcr* jcr) {
     }
 
     stop_read_phase();
-    pthread_join(chunk_t, NULL);
+    stop_chunk_phase();
     pthread_join(hash_t, NULL);
     pthread_join(prepare_t, NULL);
     pthread_join(filter_t, NULL);
     pthread_join(append_t, NULL);
 
-    sync_queue_free(chunk_queue, 0);
     sync_queue_free(hash_queue, 0);
     sync_queue_free(prepare_queue, 0);
     sync_queue_free(container_queue, 0);

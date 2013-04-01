@@ -4,16 +4,43 @@
 #include "tools/rabin_chunking.h"
 #include "tools/sync_queue.h"
 
+extern int recv_data(DataBuffer** data_buffer);
+
 /* chunk_size must be a power of 2 */
 uint32_t chunk_size = 8192;
 uint32_t max_chunk_size = 65536;
 uint32_t min_chunk_size = 2048;
 
-extern int recv_data(DataBuffer** data_buffer);
 /* chunk queue */
-extern SyncQueue* chunk_queue;
+static SyncQueue* chunk_queue;
+static pthread_t chunk_t;
 
-void* rabin_chunk(void *arg) {
+static void send_chunk(Chunk* chunk){
+    sync_queue_push(chunk_queue, chunk);
+}
+
+static void send_signal(int signal){
+    Chunk *chunk = (Chunk*) malloc(sizeof(Chunk));
+    chunk->length = signal;
+    sync_queue_push(chunk_queue, chunk);
+}
+
+int recv_chunk(Chunk **new_chunk){
+    Chunk *chunk = sync_queue_pop(chunk_queue);
+    if(chunk->length == FILE_END){
+        /*free_chunk(chunk);*/
+        *new_chunk = chunk;
+        return FILE_END;
+    }else if(chunk->length == STREAM_END){
+        /*free_chunk(chunk);*/
+        *new_chunk = chunk;
+        return STREAM_END;
+    }
+    *new_chunk = chunk;
+    return SUCCESS;
+}
+
+static void* rabin_chunk_thread(void *arg) {
     int leftlen = 0;
     int left_offset = 0;
     unsigned char leftbuf[READ_BUFFER_SIZE + max_chunk_size];
@@ -61,19 +88,18 @@ void* rabin_chunk(void *arg) {
                 jcr->zero_chunk_amount += new_chunk->length;
             }
 
-            sync_queue_push(chunk_queue, new_chunk);
+            send_chunk(new_chunk);
         } else {
             if (signal == FILE_END) {
                 leftlen = 0;
                 left_offset = 0;
                 signal = 0;
                 windows_reset();
-                new_chunk->length = FILE_END;
-                sync_queue_push(chunk_queue, new_chunk);
+                free(new_chunk);
+                send_signal(FILE_END);
             } else if(signal == STREAM_END) {
-                new_chunk->length = STREAM_END;
-                new_chunk->data = 0;
-                sync_queue_push(chunk_queue, new_chunk);
+                free(new_chunk);
+                send_signal(STREAM_END);
                 break;
             }
         }
@@ -81,7 +107,7 @@ void* rabin_chunk(void *arg) {
     return NULL;
 }
 
-void* fixed_chunk(void *arg){
+static void* fixed_chunk_thread(void *arg){
     int leftlen = 0;
     int left_offset = 0;
     unsigned char leftbuf[READ_BUFFER_SIZE + chunk_size];
@@ -145,4 +171,14 @@ void* fixed_chunk(void *arg){
         }
     }
     return NULL;
+}
+
+int start_chunk_phase(Jcr* jcr){
+    chunkAlg_init();
+    chunk_queue = sync_queue_new(100);
+    pthread_create(&chunk_t, NULL, rabin_chunk_thread, jcr);
+}
+
+void stop_chunk_phase(){
+    pthread_join(chunk_t, NULL);
 }

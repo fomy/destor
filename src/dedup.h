@@ -29,7 +29,7 @@ struct chunk_tag {
     ContainerId container_id;
 };
 
-void* rabin_chunk(void *arg);
+
 void* sha1_hash(void *arg);
 void* simply_prepare(void *arg);
 void* simply_filter(void *arg);

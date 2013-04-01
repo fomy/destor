@@ -3,9 +3,7 @@
 #include "jcr.h"
 #include "tools/sync_queue.h"
 
-/* chunk queue */
-extern SyncQueue* chunk_queue;
-
+extern int recv_chunk(Chunk** chunk);
 /* hash queue */
 extern SyncQueue* hash_queue;
 
@@ -19,11 +17,12 @@ gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2)
 void* sha1_hash(void* arg) {
     Jcr *jcr = (Jcr*) arg;
     while (TRUE) {
-        Chunk *chunk = sync_queue_pop(chunk_queue);
-        if (chunk->length == STREAM_END) {
+        Chunk *chunk = NULL;
+        int signal = recv_chunk(&chunk);
+        if (signal == STREAM_END) {
             sync_queue_push(hash_queue, chunk);
             break;
-        }else if(chunk->length == FILE_END){
+        }else if(signal == FILE_END){
             sync_queue_push(hash_queue, chunk);
             continue;
         }
