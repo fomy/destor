@@ -41,15 +41,6 @@ struct jcr{
     SyncQueue *waiting_files_queue;
     SyncQueue *fingerchunk_queue;
 
-    /*
-     * Do NOT use write_buffer as a part of index,
-     * such as using container_contains() to filter duplicates further.
-     * Our statistics only measure the efficiency of index and rewriting algorithms.
-     * Even some duplicates may be found while adding to container,
-     * we ignore it.
-     * So the container volume may seems inconsistency with statistics.
-     */
-    Container* write_buffer;
     ContainerCache *read_cache;
     OptimalContainerCache *read_opt_cache;
     Container *asm_buffer;

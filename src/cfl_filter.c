@@ -17,13 +17,9 @@ extern double cfl_require;
 
 extern double container_usage_threshold;
 
-/* input */
-/* hash queue */
-extern SyncQueue* prepare_queue;
+extern int recv_feature(Chunk **chunk);
 
-/* output */
-/* container queue */
-extern SyncQueue* container_queue;
+extern ContainerId save_chunk(Chunk *chunk);
 
 static Container* container_tmp;
 
@@ -49,15 +45,9 @@ static void rewrite_container(Jcr *jcr){
             Chunk *chunk = container_get_chunk(container_tmp, &waiting_chunk->hash);
             if(chunk){
                 memcpy(&chunk->feature, &waiting_chunk->feature, sizeof(Fingerprint));
-                while(container_add_chunk(jcr->write_buffer, chunk) == CONTAINER_FULL){
-                    seal_container(jcr->write_buffer);
-                    /*sync_queue_push(container_queue, jcr->write_buffer);*/
-
-                    jcr->write_buffer = create_container();
-                }
+                fchunk->container_id = save_chunk(chunk);
                 jcr->rewritten_chunk_count++;
                 jcr->rewritten_chunk_amount += chunk->length;
-                fchunk->container_id = jcr->write_buffer->id;
                 free_chunk(chunk);
             }else{
                 dprint("NOT an error! The container_tmp points to the write buffer.");
@@ -75,8 +65,6 @@ static void rewrite_container(Jcr *jcr){
 
 static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
     BOOL update = FALSE;
-    /*new_chunk->container_id = TMP_CONTAINER_ID;*/
-    /*ContainerId cid = index_search(&new_chunk->hash, &new_chunk->feature);*/
     if(new_chunk->container_id != TMP_CONTAINER_ID){
         /* existed */
         if(container_tmp->chunk_num != 0
@@ -119,17 +107,8 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
         container_tmp->id = new_chunk->container_id;
         queue_push(waiting_chunk_queue, new_chunk);
     } else {
-        while (container_add_chunk(jcr->write_buffer, new_chunk)
-                == CONTAINER_FULL) {
-            Container *container = jcr->write_buffer;
+        save_chunk(new_chunk);
 
-            seal_container(container);
-            /*sync_queue_push(container_queue, container);*/
-
-            jcr->write_buffer = create_container();
-        } 
-        new_chunk->container_id = jcr->write_buffer->id;
-        /*index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature);*/
         if(queue_size(waiting_chunk_queue) == 0){
             FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
             fchunk->container_id = new_chunk->container_id;
@@ -156,23 +135,12 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
     fchunk->next = 0;
 
     BOOL update = FALSE;
-    /*fchunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);*/
     fchunk->container_id = new_chunk->container_id;
     if(fchunk->container_id != TMP_CONTAINER_ID){
         jcr->dedup_size += fchunk->length;
         jcr->number_of_dup_chunks++;
     }else{
-        while (container_add_chunk(jcr->write_buffer, new_chunk)
-                == CONTAINER_FULL) {
-            Container *container = jcr->write_buffer;
-
-            seal_container(container);
-            /*sync_queue_push(container_queue, container);*/
-
-            jcr->write_buffer = create_container();
-        }
-        fchunk->container_id = jcr->write_buffer->id;
-        /*index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->feature);*/
+        fchunk->container_id = save_chunk(new_chunk);
         update = TRUE;
     }
     update_cfl(monitor, fchunk->container_id, fchunk->length);
@@ -198,16 +166,15 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
 /* ----------------------------------------------------------------------------*/
 void *cfl_filter(void* arg){
     Jcr* jcr = (Jcr*) arg;
-    jcr->write_buffer = create_container();
     monitor = cfl_monitor_new(read_cache_size, cfl_require);
     while(TRUE){
-        Chunk* new_chunk = sync_queue_pop(prepare_queue);
+        Chunk* new_chunk = NULL;
+        int signal = recv_feature(&new_chunk);
 
-        if (new_chunk->length == STREAM_END) {
+        if (signal == STREAM_END) {
             free_chunk(new_chunk);
             break;
         }
-        new_chunk->container_id = index_search(&new_chunk->hash, &new_chunk->feature);
 
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
@@ -303,14 +270,7 @@ void *cfl_filter(void* arg){
     fc_sig->container_id = STREAM_END;
     sync_queue_push(jcr->fingerchunk_queue, fc_sig);
 
-    /* Append write_buffer */
-    Container *container = jcr->write_buffer;
-    seal_container(container);
-    jcr->write_buffer = 0;
-
-    Container *signal = container_new_meta_only();
-    signal->id = STREAM_END;
-    sync_queue_push(container_queue, signal);
+    save_chunk(NULL);
 
     print_cfl(monitor);
     cfl_monitor_free(monitor);

@@ -9,13 +9,6 @@ extern int recv_chunk(Chunk** chunk);
 static SyncQueue* hash_queue;
 static pthread_t hash_t;
 
-gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2)
-{
-    if (memcmp(k1, k2, sizeof(Fingerprint)) == 0)
-        return TRUE;
-    return FALSE;
-}
-
 static void send_hash(Chunk* chunk){
     sync_queue_push(hash_queue, chunk);
 }
@@ -23,11 +16,9 @@ static void send_hash(Chunk* chunk){
 int recv_hash(Chunk **new_chunk){
     Chunk *chunk = sync_queue_pop(hash_queue);
     if(chunk->length == FILE_END){
-        /*free_chunk(chunk);*/
         *new_chunk = chunk;
         return FILE_END;
     }else if(chunk->length == STREAM_END){
-        /*free_chunk(chunk);*/
         *new_chunk = chunk;
         return STREAM_END;
     }

@@ -4,13 +4,31 @@
 #include "tools/sync_queue.h"
 #include "index/index.h"
 
+extern int fingerprint_index_type;
 extern int recv_hash(Chunk **chunk);
 /* output of prepare_thread */
-extern SyncQueue* prepare_queue;
+static SyncQueue* feature_queue;
+static pthread_t prepare_t;
 
-/* 
- * Many fingerprint indexes do not need this process, like ram-index and ddfs.
- * But others, like extreme binning and SiLo, 
+static void send_feature(Chunk *chunk){
+    sync_queue_push(feature_queue, chunk);
+}
+
+int recv_feature(Chunk **new_chunk){
+    Chunk *chunk = sync_queue_pop(feature_queue);
+    if(chunk->length == FILE_END){
+        *new_chunk = chunk;
+        return FILE_END;
+    }else if(chunk->length == STREAM_END){
+        *new_chunk = chunk;
+        return STREAM_END;
+    }
+    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+    *new_chunk = chunk;
+    return SUCCESS;
+}
+
+/* * Many fingerprint indexes do not need this process, like ram-index and ddfs.  * But others, like extreme binning and SiLo, 
  * need this process to buffer some fingerprints to extract characteristic fingerprint.
  */
 /* Some kinds of fingerprint index needs FILE_END signal, such as extreme binning */
@@ -21,7 +39,7 @@ void * simply_prepare(void *arg){
         Chunk *chunk = NULL;
         int signal = recv_hash(&chunk);
         if(signal == STREAM_END){
-            sync_queue_push(prepare_queue, chunk);
+            send_feature(chunk);
             break;
         }
         if(processing_recipe == 0){
@@ -40,8 +58,7 @@ void * simply_prepare(void *arg){
         /* TO-DO */
         processing_recipe->chunknum++;
         processing_recipe->filesize += chunk->length;
-        /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
-        sync_queue_push(prepare_queue, chunk);
+        send_feature(chunk);
     }
     return NULL;
 }
@@ -61,7 +78,7 @@ void* exbin_prepare(void *arg){
         Chunk *chunk = NULL;
         int signal = recv_hash(&chunk);
         if(signal == STREAM_END){
-            sync_queue_push(prepare_queue, chunk);
+            send_feature(chunk);
             break;
         }
         if(processing_recipe == 0){
@@ -76,8 +93,7 @@ void* exbin_prepare(void *arg){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 buffered_chunk->data = malloc(buffered_chunk->length);
                 read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
-                /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
-                sync_queue_push(prepare_queue, buffered_chunk);
+                send_feature(buffered_chunk);
             }
             memset(current_feature, 0xff, sizeof(Fingerprint));
 
@@ -124,12 +140,11 @@ void* silo_prepare(void *arg){
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
                 while(buffered_chunk){
                     memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
-                    /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
-                    sync_queue_push(prepare_queue, buffered_chunk);
+                    send_feature(buffered_chunk);
                     buffered_chunk = queue_pop(buffered_chunk_queue);
                 }
             }
-            sync_queue_push(prepare_queue, chunk);
+            send_feature(chunk);
             break;
         }
         if(processing_recipe == 0){
@@ -151,8 +166,7 @@ void* silo_prepare(void *arg){
             Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
             while(buffered_chunk){
                 memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
-                /*buffered_chunk->container_id = index_search(&buffered_chunk->hash, &buffered_chunk->feature);*/
-                sync_queue_push(prepare_queue, buffered_chunk);
+                send_feature(buffered_chunk);
                 buffered_chunk = queue_pop(buffered_chunk_queue);
             }
             current_segment_size = 0;
@@ -169,4 +183,26 @@ void* silo_prepare(void *arg){
     }
     queue_free(buffered_chunk_queue, NULL);
     return NULL;
+}
+
+int start_prepare_phase(Jcr *jcr){
+    feature_queue = sync_queue_new(100);
+    switch(fingerprint_index_type){
+        case RAM_INDEX:
+        case DDFS_INDEX:
+            pthread_create(&prepare_t, NULL, simply_prepare, jcr);
+            break;
+        case EXBIN_INDEX:
+            pthread_create(&prepare_t, NULL, exbin_prepare, jcr);
+            break;
+        case SILO_INDEX:
+            pthread_create(&prepare_t, NULL, silo_prepare, jcr);
+            break;
+        default:
+            dprint("wrong index type!");
+    }
+}
+
+void stop_prepare_phase(){
+    pthread_join(prepare_t, NULL);
 }

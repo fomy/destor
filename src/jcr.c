@@ -39,7 +39,6 @@ Jcr* new_write_jcr() {
 	jcr->waiting_files_queue = sync_queue_new(-1);
     jcr->fingerchunk_queue = sync_queue_new(-1);
 
-	jcr->write_buffer = 0;
 	jcr->read_cache = 0;
 
 	return jcr;
@@ -55,8 +54,6 @@ Jcr* new_read_jcr(int32_t rcs, BOOL edc) {
 }
 
 void free_jcr(Jcr* jcr) {
-	if (jcr->write_buffer)
-		container_free_full(jcr->write_buffer);
 	sync_queue_free(jcr->completed_files_queue, 0);
     sync_queue_free(jcr->waiting_files_queue, 0);
     sync_queue_free(jcr->fingerchunk_queue, 0);

@@ -11,25 +11,16 @@
 #include "jcr.h"
 #include "tools/sync_queue.h"
 #include "storage/container_usage_monitor.h"
-#include "tools/bloom_filter.h"
 
 extern double container_usage_threshold;
 extern double rewrite_limit;
 extern int32_t stream_context_size;
 extern int32_t disk_context_size;
 extern int32_t rewriting_algorithm;
-extern int32_t bloom_filter_size;
 extern double minimal_rewrite_utility;
 
-/* input */
-/* hash queue */
-extern SyncQueue* prepare_queue;
-
-/* output */
-/* container queue */
-extern SyncQueue* container_queue;
-
-static unsigned char *bloom_filter;
+extern int recv_feature(Chunk **chunk);
+extern ContainerId save_chunk(Chunk *chunk);
 
 typedef struct{
     Queue *context_queue;
@@ -99,16 +90,19 @@ static Chunk* stream_context_pop(StreamContext* stream_context){
 }
 
 static Chunk* stream_context_init(StreamContext* stream_context){
-    Chunk *chunk = sync_queue_pop(prepare_queue);
-    while(chunk->length != STREAM_END){
+    Chunk *chunk = NULL;
+    int signal = recv_feature(&chunk);
+    while(signal != STREAM_END){
         chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         if(stream_context_push(stream_context, chunk)==FALSE){
             break;
         }
-        chunk = sync_queue_pop(prepare_queue);
+        signal = recv_feature(&chunk);
     }
-    /*free_chunk(chunk);*/
-    /* small job, stream_context is not full */
+    if(signal == STREAM_END){
+        free_chunk(chunk);
+        return NULL;
+    }
     return chunk;
 }
 
@@ -176,9 +170,6 @@ static void utility_buckets_update(UtilityBuckets *buckets, double rewrite_utili
 /* ----------------------------------------------------------------------------*/
 void *cbr_filter(void* arg){
     Jcr *jcr = (Jcr*)arg;
-    jcr->write_buffer = create_container();
-
-    /*BOOL exist = FALSE;*/
 
     StreamContext* stream_context = stream_context_new();
     Chunk *tail = stream_context_init(stream_context);
@@ -190,15 +181,17 @@ void *cbr_filter(void* arg){
 
     ContainerUsageMonitor* monitor =container_usage_monitor_new();
     /* content-based rewrite*/
-    while(tail->length != STREAM_END){
+    while(tail){
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
         Chunk *decision_chunk = stream_context_pop(stream_context);
         if(stream_context_push(stream_context, tail) == TRUE){
             TIMER_END(jcr->filter_time, b1, e1);
-            tail = sync_queue_pop(prepare_queue);
-            if(tail->length != STREAM_END)
-                tail->container_id = index_search(&tail->hash, &tail->feature);
+            int signal = recv_feature(&tail);
+            if(signal == STREAM_END){
+                free_chunk(tail);
+                tail = NULL;
+            }
         }
         TIMER_BEGIN(b1);
         double rewrite_utility = -1;
@@ -253,14 +246,7 @@ void *cbr_filter(void* arg){
 
         BOOL update = FALSE;
         if(decision_chunk->duplicate == FALSE){
-            while (container_add_chunk(jcr->write_buffer, decision_chunk)
-                    == CONTAINER_FULL) {
-                Container *container = jcr->write_buffer;
-                seal_container(container);
-                /*sync_queue_push(container_queue, container);*/
-                jcr->write_buffer = create_container();
-            }
-            decision_chunk->container_id = jcr->write_buffer->id;
+            decision_chunk->container_id = save_chunk(decision_chunk);
             update = TRUE;
         }else{
             jcr->dedup_size += decision_chunk->length;
@@ -280,7 +266,6 @@ void *cbr_filter(void* arg){
         free_chunk(decision_chunk);
     }
 
-    free_chunk(tail);
     TIMER_DECLARE(b1, e1);
     TIMER_BEGIN(b1);
     /* process the remaining chunks in stream context */
@@ -300,14 +285,7 @@ void *cbr_filter(void* arg){
             }
         }
         if(remaining_chunk->container_id == TMP_CONTAINER_ID){
-            while (container_add_chunk(jcr->write_buffer, remaining_chunk)
-                    == CONTAINER_FULL) {
-                Container *container = jcr->write_buffer;
-                seal_container(container);
-                /*sync_queue_push(container_queue, container);*/
-                jcr->write_buffer = create_container();
-            }    
-            remaining_chunk->container_id = jcr->write_buffer->id;
+            remaining_chunk->container_id = save_chunk(remaining_chunk);
             update = TRUE;
         }else{
             jcr->dedup_size += remaining_chunk->length;
@@ -327,13 +305,7 @@ void *cbr_filter(void* arg){
     }
     TIMER_END(jcr->filter_time, b1, e1);
 
-    Container *container = jcr->write_buffer;
-    jcr->write_buffer = 0;
-    seal_container(container);
-
-    Container *signal = container_new_meta_only();
-    signal->id = STREAM_END;
-    sync_queue_push(container_queue, signal);
+    save_chunk(NULL);
 
     FingerChunk* fchunk_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
     fchunk_sig->container_id = STREAM_END;

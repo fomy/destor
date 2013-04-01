@@ -70,13 +70,13 @@ Container *create_container(){
     return new_one;
 }
 
-int32_t seal_container(Container* container){
+ContainerId seal_container(Container* container){
     int32_t chunknum = container_get_chunk_num(container);
     if(chunknum == 0){
         container_free_full(container);
         return TMP_CONTAINER_ID;
     }
-    sync_queue_push(container_queue, container);
+    /*sync_queue_push(container_queue, container);*/
     container_volume.container_num++;
     return container->id;
 }
@@ -249,25 +249,4 @@ Container* read_container(ContainerId id) {
     return container;
 }
 
-/*
- * Handle containers in container_queue.
- * When a container buffer is full, we push it into container_queue.
- */
-void* append_thread(void *arg){
-    Jcr* jcr= (Jcr*)arg;
-    while(TRUE){
-        Container *container = sync_queue_pop(container_queue);
-        if(container->id == STREAM_END){
-            /* backup job finish */
-            container_free_full(container);
-            break;
-        }
-        struct timeval begin, end;
-        gettimeofday(&begin, 0);
-        append_container(container);
-        gettimeofday(&end, 0);
-        jcr->write_time += (end.tv_sec - begin.tv_sec)*1000000 + end.tv_usec - begin.tv_usec;
-        container_free_full(container);
-    }
-}
 

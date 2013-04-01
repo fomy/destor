@@ -29,15 +29,11 @@ struct chunk_tag {
     ContainerId container_id;
 };
 
-void* simply_prepare(void *arg);
 void* simply_filter(void *arg);
-void* append_thread(void* arg);
 void* cfl_filter(void* arg);
 void* cbr_filter(void* arg);
 void* cap_filter(void* arg);
 void* sparse_filter(void* arg);
-void* exbin_prepare(void *arg);
-void* silo_prepare(void *arg);
 
 void free_chunk(Chunk* chunk);
 gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2);

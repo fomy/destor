@@ -19,7 +19,6 @@
 
 extern DestorStat *destor_stat;
 extern int rewriting_algorithm;
-extern int fingerprint_index_type;
 
 int backup(Jcr* jcr);
 
@@ -32,11 +31,8 @@ extern void stop_chunk_phase();
 extern int start_hash_phase(Jcr*);
 extern void stop_hash_phase();
 
-/* prepare queue */
-SyncQueue* prepare_queue;
-
-/* container queue */
-SyncQueue *container_queue;
+extern int start_append_phase(Jcr*);
+extern void stop_append_phase();
 
 int backup_server(char *path) {
 
@@ -160,27 +156,13 @@ int backup_server(char *path) {
 }
 
 int backup(Jcr* jcr) {
-    pthread_t prepare_t, filter_t, append_t;
-    prepare_queue = sync_queue_new(100);
-    container_queue = sync_queue_new(100);
+    pthread_t filter_t;
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
     start_hash_phase(jcr);
-    switch(fingerprint_index_type){
-        case RAM_INDEX:
-        case DDFS_INDEX:
-            pthread_create(&prepare_t, NULL, simply_prepare, jcr);
-            break;
-        case EXBIN_INDEX:
-            pthread_create(&prepare_t, NULL, exbin_prepare, jcr);
-            break;
-        case SILO_INDEX:
-            pthread_create(&prepare_t, NULL, silo_prepare, jcr);
-            break;
-        default:
-            dprint("wrong index type!");
-    }
+    start_prepare_phase(jcr);
+
     if (rewriting_algorithm == NO_REWRITING) {
         puts("rewriting_algorithm=NO");
         pthread_create(&filter_t, NULL, simply_filter, jcr);
@@ -206,7 +188,7 @@ int backup(Jcr* jcr) {
         dprint("invalid rewriting algorithm\n");
         exit(-1);
     }
-    pthread_create(&append_t, NULL, append_thread, jcr);
+    start_append_phase(jcr);
 
     ContainerId seed_id = -1;
     int32_t seed_len = 0;
@@ -243,15 +225,12 @@ int backup(Jcr* jcr) {
         recipe_free(recipe);
     }
 
-    stop_read_phase();
-    stop_chunk_phase();
-    stop_hash_phase();
-    pthread_join(prepare_t, NULL);
+    stop_append_phase();
     pthread_join(filter_t, NULL);
-    pthread_join(append_t, NULL);
-
-    sync_queue_free(prepare_queue, 0);
-    sync_queue_free(container_queue, 0);
+    stop_prepare_phase();
+    stop_hash_phase();
+    stop_chunk_phase();
+    stop_read_phase();
 
     return 0;
 }

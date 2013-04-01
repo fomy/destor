@@ -16,9 +16,8 @@ struct container_vol_tag {
 int init_container_volume();
 int update_container_volume();
 int destroy_container_volume();
-int32_t seal_container(Container* container);
+ContainerId seal_container(Container* container);
 BOOL append_container(Container* container);
-//Chunk* read_chunk_directly(Container *container, Fingerprint *hash);
 Container* read_container(ContainerId id);
 Container *read_container_meta_only(ContainerId id);
 Container *create_container();

@@ -4,8 +4,8 @@
 #include "jcr.h"
 #include "tools/sync_queue.h"
 
-extern SyncQueue *prepare_queue;
-extern SyncQueue *container_queue;
+extern int recv_feature(Chunk **chunk);
+extern ContainerId save_chunk(Chunk *chunk);
 
 extern int32_t capping_T;
 extern int32_t capping_segment_size;
@@ -116,7 +116,6 @@ static void cap_segment_get_top(){
 
 void *cap_filter(void* arg){
     Jcr *jcr = (Jcr*)arg;
-    jcr->write_buffer = create_container();
 
     cap_segment_init();
 
@@ -128,16 +127,15 @@ void *cap_filter(void* arg){
     ContainerUsageMonitor * monitor = container_usage_monitor_new();
 
     while(TRUE){
-        chunk = sync_queue_pop(prepare_queue);
+        chunk = NULL;
+        int signal = recv_feature(&chunk);
 
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
-        if(chunk->length == STREAM_END){
+        if(signal == STREAM_END){
             free_chunk(chunk);
-            chunk = 0;
+            chunk = NULL;
             stream_end = TRUE;
-        }else{
-            chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         }
 
         if(stream_end == TRUE || cap_segment_push(jcr, chunk) == FALSE){
@@ -164,14 +162,7 @@ void *cap_filter(void* arg){
 
                 BOOL update = FALSE;
                 if(chunk->duplicate == FALSE){
-                    while(container_add_chunk(jcr->write_buffer, chunk)
-                            == CONTAINER_FULL){
-                        Container *container = jcr->write_buffer;
-                        seal_container(container);
-                        /*sync_queue_push(container_queue, container);*/
-                        jcr->write_buffer = create_container();
-                    }
-                    chunk->container_id = jcr->write_buffer->id;
+                    chunk->container_id = save_chunk(chunk);
                     update = TRUE;
                 }else{
                     jcr->dedup_size += chunk->length;
@@ -200,13 +191,7 @@ void *cap_filter(void* arg){
         TIMER_END(jcr->filter_time, b1, e1);
     }
 
-    Container *container = jcr->write_buffer;
-    jcr->write_buffer = 0;
-    seal_container(container);
-
-    Container *signal = container_new_meta_only();
-    signal->id = STREAM_END;
-    sync_queue_push(container_queue, signal);
+    save_chunk(NULL);
 
     FingerChunk* fchunk_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
     fchunk_sig->container_id = STREAM_END;
