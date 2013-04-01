@@ -9,9 +9,7 @@ uint32_t chunk_size = 8192;
 uint32_t max_chunk_size = 65536;
 uint32_t min_chunk_size = 2048;
 
-/* output of read_thread */
-extern SyncQueue* read_queue;
-
+extern int recv_data(DataBuffer** data_buffer);
 /* chunk queue */
 extern SyncQueue* chunk_queue;
 
@@ -33,10 +31,10 @@ void* rabin_chunk(void *arg) {
         new_chunk->data = 0;
 
         if (signal >= 0 && leftlen < max_chunk_size) {
-            DataBuffer *data_buffer = sync_queue_pop(read_queue);
+            DataBuffer *data_buffer = NULL;
+            signal = recv_data(&data_buffer);
             /* save this signal */
-            signal = data_buffer->size;
-            if (signal > 0) {
+            if (signal == SUCCESS) {
                 memmove(leftbuf, leftbuf + left_offset, leftlen);
                 left_offset = 0;
                 memcpy(leftbuf + leftlen, data_buffer->data, data_buffer->size);
@@ -101,10 +99,10 @@ void* fixed_chunk(void *arg){
         new_chunk->data = 0;
 
         if (signal >= 0 && leftlen < chunk_size) {
-            DataBuffer *data_buffer = sync_queue_pop(read_queue);
+            DataBuffer *data_buffer = NULL;
+            signal = recv_data(&data_buffer);
             /* save this signal */
-            signal = data_buffer->size;
-            if (signal > 0) {
+            if (signal == SUCCESS) {
                 memmove(leftbuf, leftbuf + left_offset, leftlen);
                 left_offset = 0;
                 memcpy(leftbuf + leftlen, data_buffer->data, data_buffer->size);

@@ -21,10 +21,10 @@ extern DestorStat *destor_stat;
 extern int rewriting_algorithm;
 extern int fingerprint_index_type;
 
-void* read_thread(void *argv);
+extern int start_read_phase(Jcr*);
+extern void stop_read_phase();
 int backup(Jcr* jcr);
 
-SyncQueue* read_queue;
 
 /* chunk queue */
 SyncQueue* chunk_queue;
@@ -160,15 +160,14 @@ int backup_server(char *path) {
 }
 
 int backup(Jcr* jcr) {
-    pthread_t read_t, chunk_t, hash_t, prepare_t, filter_t, append_t;
-    read_queue = sync_queue_new(2);
+    pthread_t chunk_t, hash_t, prepare_t, filter_t, append_t;
     chunkAlg_init();
     chunk_queue = sync_queue_new(100);
     hash_queue = sync_queue_new(100);
     prepare_queue = sync_queue_new(100);
     container_queue = sync_queue_new(100);
 
-    pthread_create(&read_t, NULL, read_thread, jcr);
+    start_read_phase(jcr);
     pthread_create(&chunk_t, NULL, rabin_chunk, jcr);
     pthread_create(&hash_t, NULL, sha1_hash, jcr);
     switch(fingerprint_index_type){
@@ -247,7 +246,7 @@ int backup(Jcr* jcr) {
         recipe_free(recipe);
     }
 
-    pthread_join(read_t, NULL);
+    stop_read_phase();
     pthread_join(chunk_t, NULL);
     pthread_join(hash_t, NULL);
     pthread_join(prepare_t, NULL);
@@ -258,111 +257,6 @@ int backup(Jcr* jcr) {
     sync_queue_free(hash_queue, 0);
     sync_queue_free(prepare_queue, 0);
     sync_queue_free(container_queue, 0);
-    sync_queue_free(read_queue, 0);
 
-    return 0;
-}
-
-void* read_thread(void *argv) {
-    /* Each file will be processed seperately */
-    Jcr *jcr = (Jcr*) argv;
-
-    struct stat state;
-    if (stat(jcr->backup_path, &state) != 0) {
-        puts("backup path does not exist!");
-        return NULL;
-    }
-    if (S_ISREG(state.st_mode)) { //single file
-        char filepath[512];
-        strcpy(filepath, jcr->backup_path);
-
-        char *p = jcr->backup_path + strlen(jcr->backup_path) - 1;
-        while (*p != '/')
-            --p;
-        *(p + 1) = 0;
-
-        read_file(jcr, filepath);
-    } else {
-        if (find_one_file(jcr, jcr->backup_path) != 0) {
-            puts("something wrong!");
-            return NULL;
-        }
-    }
-
-    DataBuffer *signal = (DataBuffer*)malloc(sizeof(DataBuffer));
-    signal->size = STREAM_END;
-    sync_queue_push(read_queue, signal);
-    return NULL;
-}
-
-int find_one_file(Jcr *jcr, char *path) {
-    struct stat state;
-    if (stat(path, &state) != 0) {
-        puts("file does not exist! ignored!");
-        return 0;
-    }
-    if (S_ISDIR(state.st_mode)) {
-        /*puts("This is a directory!");*/
-        DIR *dir = opendir(path);
-        struct dirent *entry;
-        char newpath[512];
-        if (strcmp(path + strlen(path) - 1, "/")) {
-            strcat(path, "/");
-        }
-
-        while ((entry = readdir(dir)) != 0) {
-            /*ignore . and ..*/
-            if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-                continue;
-            strcpy(newpath, path);
-            strcat(newpath, entry->d_name);
-            if (find_one_file(jcr, newpath) != 0) {
-                return -1;
-            }
-        }
-        //printf("*** out %s direcotry ***\n", path);
-        closedir(dir);
-    } else if (S_ISREG(state.st_mode)) {
-        /*printf("*** %s\n", path);*/
-
-        read_file(jcr, path);
-
-    } else {
-        puts("illegal file type! ignored!");
-        return 0;
-    }
-    return 0;
-}
-
-int read_file(Jcr *jcr, char *path) {
-
-    char filename[256];
-    int len = strlen(jcr->backup_path);
-    strcpy(filename, path + len);
-
-    Recipe *recipe = recipe_new();
-    jcr->file_num++;
-    if ((recipe->fd = open(path, O_RDONLY)) <= 0) {
-        printf("%s, %d: Can not open file!\n", __FILE__, __LINE__);
-        return -1;
-    } 
-    strcpy(recipe->filename, filename);
-    sync_queue_push(jcr->waiting_files_queue, recipe);
-
-    TIMER_DECLARE(b, e);
-    TIMER_BEGIN(b);
-    int length = 0;
-    DataBuffer *new_data_buffer = (DataBuffer*) malloc(sizeof(DataBuffer));
-    while ((length = read(recipe->fd, new_data_buffer->data, READ_BUFFER_SIZE))) {
-        TIMER_END(jcr->read_time, b, e);
-
-        new_data_buffer->size = length;
-        jcr->job_size += new_data_buffer->size;
-        sync_queue_push(read_queue, new_data_buffer);
-        new_data_buffer = (DataBuffer*) malloc(sizeof(DataBuffer));
-        TIMER_BEGIN(b);
-    }
-    new_data_buffer->size = FILE_END;
-    sync_queue_push(read_queue, new_data_buffer);
     return 0;
 }
