@@ -4,6 +4,9 @@
 #include "jcr.h"
 #include "tools/sync_queue.h"
 
+extern void send_fc_signal();
+extern void send_fingerchunk(FingerChunk *fchunk, 
+        Fingerprint *feature, BOOL update);
 extern int recv_feature(Chunk **chunk);
 extern ContainerId save_chunk(Chunk *chunk);
 
@@ -175,9 +178,7 @@ void *cap_filter(void* arg){
                 memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
                 container_usage_monitor_update(monitor, new_fchunk->container_id,
                         &new_fchunk->fingerprint, new_fchunk->length);
-                index_insert(&chunk->hash, chunk->container_id,
-                        &chunk->feature, update);
-                sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
+                send_fingerchunk(new_fchunk, &chunk->feature, update);
 
                 free_chunk(chunk);
             }//while
@@ -193,9 +194,7 @@ void *cap_filter(void* arg){
 
     save_chunk(NULL);
 
-    FingerChunk* fchunk_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
-    fchunk_sig->container_id = STREAM_END;
-    sync_queue_push(jcr->fingerchunk_queue, fchunk_sig);
+    send_fc_signal();
 
     queue_free(cap_segment.chunk_queue, free_chunk);
     g_sequence_free(cap_segment.container_record_seq);

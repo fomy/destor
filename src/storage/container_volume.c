@@ -76,7 +76,6 @@ ContainerId seal_container(Container* container){
         container_free_full(container);
         return TMP_CONTAINER_ID;
     }
-    /*sync_queue_push(container_queue, container);*/
     container_volume.container_num++;
     return container->id;
 }

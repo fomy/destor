@@ -12,6 +12,10 @@
 #include "tools/sync_queue.h"
 #include "storage/cfl_monitor.h"
 
+extern void send_fc_signal();
+extern void send_fingerchunk(FingerChunk *fchunk, 
+        Fingerprint *feature, BOOL update);
+
 extern int read_cache_size;
 extern double cfl_require;
 
@@ -55,9 +59,8 @@ static void rewrite_container(Jcr *jcr){
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
         }
-        index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, TRUE);
         update_cfl(monitor, fchunk->container_id, fchunk->length);
-        sync_queue_push(jcr->fingerchunk_queue, fchunk);
+        send_fingerchunk(fchunk, &waiting_chunk->feature, TRUE);
         free_chunk(waiting_chunk);
         waiting_chunk = queue_pop(waiting_chunk_queue);
     }
@@ -90,8 +93,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                         update = TRUE;
                     }
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
-                    index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, update);
-                    sync_queue_push(jcr->fingerchunk_queue, fchunk);
+                    send_fingerchunk(fchunk, &waiting_chunk->feature, update);
                     free_chunk(waiting_chunk);
                     waiting_chunk = queue_pop(waiting_chunk_queue);
                 }
@@ -117,8 +119,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
             fchunk->next = 0;
             free_chunk(new_chunk);
             update_cfl(monitor, fchunk->container_id, fchunk->length);
-            index_insert(&new_chunk->hash, new_chunk->container_id, &new_chunk->feature, TRUE);
-            sync_queue_push(jcr->fingerchunk_queue, fchunk);
+            send_fingerchunk(fchunk, &new_chunk->feature, TRUE);
         }else{
             free(new_chunk->data);
             new_chunk->data = 0;
@@ -144,8 +145,7 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
         update = TRUE;
     }
     update_cfl(monitor, fchunk->container_id, fchunk->length);
-    index_insert(&fchunk->fingerprint, fchunk->container_id, &new_chunk->feature, update);
-    sync_queue_push(jcr->fingerchunk_queue, fchunk);
+    send_fingerchunk(fchunk, *new_chunk->feature, update);
     free_chunk(new_chunk);
 }
 
@@ -195,8 +195,7 @@ void *cfl_filter(void* arg){
                     fchunk->next = 0;
                     free_chunk(chunk);    
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
-                    index_insert(&chunk->hash, chunk->container_id, &chunk->feature, FALSE);
-                    sync_queue_push(jcr->fingerchunk_queue, fchunk);
+                    send_fingerchunk(fchunk, &chunk->feature, FALSE);
                 }
                 if(queue_size(waiting_chunk_queue)!=0){
                     printf("%s, %d: irregular state in queue. size=%d.\n",__FILE__,__LINE__, queue_size(waiting_chunk_queue));
@@ -250,8 +249,7 @@ void *cfl_filter(void* arg){
                     update = TRUE;
                 }
                 update_cfl(monitor, fchunk->container_id, fchunk->length);
-                index_insert(&waiting_chunk->hash, waiting_chunk->container_id, &waiting_chunk->feature, update);
-                sync_queue_push(jcr->fingerchunk_queue, fchunk);
+                send_fingerchunk(fchunk, waiting_chunk->feature, update);
                 free_chunk(waiting_chunk);
                 waiting_chunk = queue_pop(waiting_chunk_queue);
             }
@@ -266,9 +264,7 @@ void *cfl_filter(void* arg){
         }
     }
 
-    FingerChunk* fc_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
-    fc_sig->container_id = STREAM_END;
-    sync_queue_push(jcr->fingerchunk_queue, fc_sig);
+    send_fc_signal();
 
     save_chunk(NULL);
 

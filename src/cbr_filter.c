@@ -12,6 +12,10 @@
 #include "tools/sync_queue.h"
 #include "storage/container_usage_monitor.h"
 
+extern void send_fc_signal();
+extern void send_fingerchunk(FingerChunk *fchunk, 
+        Fingerprint *feature, BOOL update);
+
 extern double container_usage_threshold;
 extern double rewrite_limit;
 extern int32_t stream_context_size;
@@ -260,9 +264,7 @@ void *cbr_filter(void* arg){
         TIMER_END(jcr->filter_time, b1, e1);
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
-        index_insert(&decision_chunk->hash, decision_chunk->container_id,
-                    &decision_chunk->feature, update);
-        sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
+        send_fingerchunk(new_fchunk, &decision_chunk->feature, update);
         free_chunk(decision_chunk);
     }
 
@@ -297,9 +299,7 @@ void *cbr_filter(void* arg){
         memcpy(&new_fchunk->fingerprint, &remaining_chunk->hash, sizeof(Fingerprint));
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
-            index_insert(&remaining_chunk->hash, remaining_chunk->container_id,
-                    &remaining_chunk->feature, update);
-        sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
+        send_fingerchunk(new_fchunk, &remaining_chunk->feature, update);
         free_chunk(remaining_chunk);
         remaining_chunk = stream_context_pop(stream_context);
     }
@@ -307,9 +307,7 @@ void *cbr_filter(void* arg){
 
     save_chunk(NULL);
 
-    FingerChunk* fchunk_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
-    fchunk_sig->container_id = STREAM_END;
-    sync_queue_push(jcr->fingerchunk_queue, fchunk_sig);
+    send_fc_signal();
 
     free(buckets);
     stream_context_free(stream_context);

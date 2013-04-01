@@ -11,6 +11,10 @@ extern ContainerId save_chunk(Chunk* chunk);
 
 static pthread_t filter_t;
 
+extern void send_fc_signal();
+extern void send_fingerchunk(FingerChunk *fchunk, 
+        Fingerprint *feature, BOOL update);
+
 extern void* cfl_filter(void* arg);
 extern void* cbr_filter(void* arg);
 extern void* cap_filter(void* arg);
@@ -21,7 +25,6 @@ static void* simply_filter(void* arg){
     historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
     ContainerUsageMonitor* monitor =container_usage_monitor_new();
     while (TRUE) {
-        BOOL update = FALSE;
         Chunk* chunk = NULL;
         int signal = recv_feature(&chunk);
 
@@ -34,11 +37,11 @@ static void* simply_filter(void* arg){
 
         /* init FingerChunk */
         FingerChunk *new_fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
-        new_fchunk->container_id = TMP_CONTAINER_ID;
         new_fchunk->length = chunk->length;
         memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
         new_fchunk->container_id = chunk->container_id;
 
+        BOOL update = FALSE;
         if (new_fchunk->container_id != TMP_CONTAINER_ID) {
             if(rewriting_algorithm == HBR_REWRITING && historical_sparse_containers!=0 && 
                     g_hash_table_lookup(historical_sparse_containers, &new_fchunk->container_id) != NULL){
@@ -62,17 +65,14 @@ static void* simply_filter(void* arg){
         }
         container_usage_monitor_update(monitor, new_fchunk->container_id,
                 &new_fchunk->fingerprint, new_fchunk->length);
-        index_insert(&new_fchunk->fingerprint, new_fchunk->container_id, &chunk->feature, update);
-        sync_queue_push(jcr->fingerchunk_queue, new_fchunk);
+        send_fingerchunk(new_fchunk, &chunk->feature, update);
         TIMER_END(jcr->filter_time, b1, e1);
         free_chunk(chunk);
     }//while(TRUE) end
 
     save_chunk(NULL);
 
-    FingerChunk* fchunk_sig = (FingerChunk*)malloc(sizeof(FingerChunk));
-    fchunk_sig->container_id = STREAM_END;
-    sync_queue_push(jcr->fingerchunk_queue, fchunk_sig);
+    send_fc_signal();
 
     jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
     jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;

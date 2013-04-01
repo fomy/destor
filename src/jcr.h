@@ -39,7 +39,6 @@ struct jcr{
 
     SyncQueue *completed_files_queue;
     SyncQueue *waiting_files_queue;
-    SyncQueue *fingerchunk_queue;
 
     ContainerCache *read_cache;
     OptimalContainerCache *read_opt_cache;

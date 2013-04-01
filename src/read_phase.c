@@ -58,6 +58,7 @@ static int read_file(Jcr *jcr, char *path) {
         new_data_buffer = (DataBuffer*) malloc(sizeof(DataBuffer));
         TIMER_BEGIN(b);
     }
+    free(new_data_buffer);
     send_signal(FILE_END);
     return 0;
 }

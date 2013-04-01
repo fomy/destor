@@ -19,8 +19,6 @@
 
 extern DestorStat *destor_stat;
 
-int backup(Jcr* jcr);
-
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
 
@@ -38,6 +36,9 @@ extern void stop_filter_phase();
 
 extern int start_append_phase(Jcr*);
 extern void stop_append_phase();
+
+int backup(Jcr* jcr);
+static SyncQueue* fingerchunk_queue;
 
 int backup_server(char *path) {
     Jcr *jcr = new_write_jcr();
@@ -159,8 +160,32 @@ int backup_server(char *path) {
 
 }
 
+void send_fc_signal(){
+    FingerChunk *sigfc = (FingerChunk*)malloc(sizeof(FingerChunk));
+    sigfc->length = STREAM_END;
+    sync_queue_push(fingerchunk_queue, sigfc);
+}
+
+void send_fingerchunk(FingerChunk *fchunk, Fingerprint *feature,
+        BOOL update){
+    index_insert(&fchunk->fingerprint, fchunk->container_id, feature, update);
+    sync_queue_push(fingerchunk_queue, fchunk);
+}
+
+static int recv_fingerchunk(FingerChunk **fc){
+    FingerChunk* fchunk = (FingerChunk*)sync_queue_pop(fingerchunk_queue);
+    if(fchunk->length == STREAM_END){
+        free(fchunk);
+        *fc=0;
+        return STREAM_END;
+    }
+    *fc = fchunk;
+    return SUCCESS;
+}
+
 int backup(Jcr* jcr) {
-    pthread_t filter_t;
+
+    fingerchunk_queue = sync_queue_new(-1);
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
@@ -171,8 +196,9 @@ int backup(Jcr* jcr) {
 
     ContainerId seed_id = -1;
     int32_t seed_len = 0;
-    FingerChunk* fchunk = (FingerChunk*)sync_queue_pop(jcr->fingerchunk_queue);
-    while(fchunk->container_id!=STREAM_END){
+    FingerChunk* fchunk = NULL;
+    int signal = recv_fingerchunk(&fchunk);
+    while(signal != STREAM_END){
         jvol_append_fingerchunk(jcr->job_volume, fchunk);
 
         if(seed_id!=-1 && seed_id!=fchunk->container_id){
@@ -184,11 +210,12 @@ int backup(Jcr* jcr) {
         seed_len += fchunk->length;
 
         free(fchunk);
-        fchunk = (FingerChunk*)sync_queue_pop(jcr->fingerchunk_queue);
+        signal = recv_fingerchunk(&fchunk);
     }
-    free(fchunk);
+
     if(seed_len > 0)
         jvol_append_seed(jcr->job_volume, seed_id, seed_len);
+    sync_queue_free(fingerchunk_queue, NULL);
 
     /* store recipes of processed file */
     int i = 0;
