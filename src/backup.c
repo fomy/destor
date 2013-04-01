@@ -18,7 +18,6 @@
 #include "index/index.h"
 
 extern DestorStat *destor_stat;
-extern int rewriting_algorithm;
 
 int backup(Jcr* jcr);
 
@@ -31,11 +30,16 @@ extern void stop_chunk_phase();
 extern int start_hash_phase(Jcr*);
 extern void stop_hash_phase();
 
+extern int start_prepare_phase(Jcr*);
+extern void stop_prepare_phase();
+
+extern int start_filter_phase(Jcr*);
+extern void stop_filter_phase();
+
 extern int start_append_phase(Jcr*);
 extern void stop_append_phase();
 
 int backup_server(char *path) {
-
     Jcr *jcr = new_write_jcr();
     strcpy(jcr->backup_path, path);
     if (access(jcr->backup_path, 4) != 0) {
@@ -162,32 +166,7 @@ int backup(Jcr* jcr) {
     start_chunk_phase(jcr);
     start_hash_phase(jcr);
     start_prepare_phase(jcr);
-
-    if (rewriting_algorithm == NO_REWRITING) {
-        puts("rewriting_algorithm=NO");
-        pthread_create(&filter_t, NULL, simply_filter, jcr);
-    } else if(rewriting_algorithm == CFL_REWRITING){
-        puts("rewriting_algorithm=CFL");
-        pthread_create(&filter_t, NULL, cfl_filter, jcr);
-    } else if(rewriting_algorithm == CBR_REWRITING){
-        puts("rewriting_algorithm=CBR");
-        pthread_create(&filter_t, NULL, cbr_filter, jcr);
-    } else if(rewriting_algorithm == HBR_REWRITING){
-        puts("rewriting_algorithm=HBR");
-        pthread_create(&filter_t, NULL, simply_filter, jcr);
-    } else if(rewriting_algorithm == HBR_CBR_REWRITING){
-        puts("rewriting_algorithm=HBR_CBR");
-        pthread_create(&filter_t, NULL, cbr_filter, jcr);
-    } else if(rewriting_algorithm == CAP_REWRITING){
-        puts("rewriting_algorithm=CAP");
-        pthread_create(&filter_t, NULL, cap_filter, jcr);
-    } else if(rewriting_algorithm == HBR_CAP_REWRITING){
-        puts("rewriting_algorithm=HBR_CAP");
-        pthread_create(&filter_t, NULL, cap_filter, jcr);
-    } else{
-        dprint("invalid rewriting algorithm\n");
-        exit(-1);
-    }
+    start_filter_phase(jcr);
     start_append_phase(jcr);
 
     ContainerId seed_id = -1;
@@ -226,7 +205,7 @@ int backup(Jcr* jcr) {
     }
 
     stop_append_phase();
-    pthread_join(filter_t, NULL);
+    stop_filter_phase();
     stop_prepare_phase();
     stop_hash_phase();
     stop_chunk_phase();

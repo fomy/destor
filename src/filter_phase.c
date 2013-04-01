@@ -9,7 +9,13 @@ extern int rewriting_algorithm;
 extern int recv_feature(Chunk **chunk);
 extern ContainerId save_chunk(Chunk* chunk);
 
-void* simply_filter(void* arg){
+static pthread_t filter_t;
+
+extern void* cfl_filter(void* arg);
+extern void* cbr_filter(void* arg);
+extern void* cap_filter(void* arg);
+
+static void* simply_filter(void* arg){
     Jcr* jcr = (Jcr*) arg;
     GHashTable* historical_sparse_containers = 0;
     historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
@@ -78,4 +84,36 @@ void* simply_filter(void* arg){
         destroy_historical_sparse_containers(historical_sparse_containers);
     container_usage_monitor_free(monitor);
     return NULL;
+}
+
+int start_filter_phase(Jcr *jcr){
+    if (rewriting_algorithm == NO_REWRITING) {
+        puts("rewriting_algorithm=NO");
+        pthread_create(&filter_t, NULL, simply_filter, jcr);
+    } else if(rewriting_algorithm == CFL_REWRITING){
+        puts("rewriting_algorithm=CFL");
+        pthread_create(&filter_t, NULL, cfl_filter, jcr);
+    } else if(rewriting_algorithm == CBR_REWRITING){
+        puts("rewriting_algorithm=CBR");
+        pthread_create(&filter_t, NULL, cbr_filter, jcr);
+    } else if(rewriting_algorithm == HBR_REWRITING){
+        puts("rewriting_algorithm=HBR");
+        pthread_create(&filter_t, NULL, simply_filter, jcr);
+    } else if(rewriting_algorithm == HBR_CBR_REWRITING){
+        puts("rewriting_algorithm=HBR_CBR");
+        pthread_create(&filter_t, NULL, cbr_filter, jcr);
+    } else if(rewriting_algorithm == CAP_REWRITING){
+        puts("rewriting_algorithm=CAP");
+        pthread_create(&filter_t, NULL, cap_filter, jcr);
+    } else if(rewriting_algorithm == HBR_CAP_REWRITING){
+        puts("rewriting_algorithm=HBR_CAP");
+        pthread_create(&filter_t, NULL, cap_filter, jcr);
+    } else{
+        dprint("invalid rewriting algorithm\n");
+        return FAILURE;
+    }
+}
+
+void stop_filter_phase(){
+    pthread_join(filter_t, NULL);
 }

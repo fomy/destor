@@ -28,10 +28,14 @@ int recv_feature(Chunk **new_chunk){
     return SUCCESS;
 }
 
-/* * Many fingerprint indexes do not need this process, like ram-index and ddfs.  * But others, like extreme binning and SiLo, 
+/* 
+ * Many fingerprint indexes do not need this process, like ram-index and ddfs.  
+ * But others, like extreme binning and SiLo, 
  * need this process to buffer some fingerprints to extract characteristic fingerprint.
  */
-/* Some kinds of fingerprint index needs FILE_END signal, such as extreme binning */
+/* 
+ * Some kinds of fingerprint index needs FILE_END signal, such as extreme binning 
+ * */
 void * simply_prepare(void *arg){
     Jcr *jcr = (Jcr*)arg;
     Recipe *processing_recipe = 0;
