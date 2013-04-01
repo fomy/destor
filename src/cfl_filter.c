@@ -54,7 +54,7 @@ static void rewrite_container(Jcr *jcr){
                 jcr->rewritten_chunk_amount += chunk->length;
                 free_chunk(chunk);
             }else{
-                dprint("NOT an error! The container_tmp points to the write buffer.");
+                /*dprint("NOT an error! The container_tmp points to the write buffer.");*/
             }
         } else {
             /*printf("%s, %d: new chunk\n",__FILE__,__LINE__);*/
