@@ -13,7 +13,7 @@ extern ContainerId save_chunk(Chunk *chunk);
 extern int32_t capping_T;
 extern int32_t capping_segment_size;
 extern int rewriting_algorithm;
-static GHashTable* historical_sparse_containers;
+
 typedef struct{
     ContainerId cid;
     int32_t length;
@@ -46,8 +46,8 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
     /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
     if(rewriting_algorithm == HBR_CAP_REWRITING && 
             chunk->container_id != TMP_CONTAINER_ID){
-        if(historical_sparse_containers && 
-                g_hash_table_contains(historical_sparse_containers,
+        if(jcr->historical_sparse_containers && 
+                g_hash_table_contains(jcr->historical_sparse_containers,
                     &chunk->container_id)){
             chunk->container_id = TMP_CONTAINER_ID;
             jcr->rewritten_chunk_amount += chunk->length;
@@ -126,9 +126,6 @@ void *cap_filter(void* arg){
     ContainerRecord tmp_record;
     BOOL stream_end = FALSE;
 
-    historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
-    ContainerUsageMonitor * monitor = container_usage_monitor_new();
-
     while(TRUE){
         chunk = NULL;
         int signal = recv_feature(&chunk);
@@ -176,8 +173,6 @@ void *cap_filter(void* arg){
                 new_fchunk->container_id = chunk->container_id;
                 new_fchunk->length = chunk->length;
                 memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
-                container_usage_monitor_update(monitor, new_fchunk->container_id,
-                        &new_fchunk->fingerprint, new_fchunk->length);
                 send_fingerchunk(new_fchunk, &chunk->feature, update);
 
                 free_chunk(chunk);
@@ -199,11 +194,5 @@ void *cap_filter(void* arg){
     queue_free(cap_segment.chunk_queue, free_chunk);
     g_sequence_free(cap_segment.container_record_seq);
 
-    jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
-    jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;
-    while((jcr->inherited_sparse_num = container_usage_monitor_print(monitor, 
-                    jcr->job_id, historical_sparse_containers))<0){
-        dprint("retry!");
-    }
     return NULL;
 }

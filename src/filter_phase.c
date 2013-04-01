@@ -21,9 +21,6 @@ extern void* cap_filter(void* arg);
 
 static void* simply_filter(void* arg){
     Jcr* jcr = (Jcr*) arg;
-    GHashTable* historical_sparse_containers = 0;
-    historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
-    ContainerUsageMonitor* monitor =container_usage_monitor_new();
     while (TRUE) {
         Chunk* chunk = NULL;
         int signal = recv_feature(&chunk);
@@ -43,8 +40,8 @@ static void* simply_filter(void* arg){
 
         BOOL update = FALSE;
         if (new_fchunk->container_id != TMP_CONTAINER_ID) {
-            if(rewriting_algorithm == HBR_REWRITING && historical_sparse_containers!=0 && 
-                    g_hash_table_lookup(historical_sparse_containers, &new_fchunk->container_id) != NULL){
+            if(rewriting_algorithm == HBR_REWRITING && jcr->historical_sparse_containers!=0 && 
+                    g_hash_table_lookup(jcr->historical_sparse_containers, &new_fchunk->container_id) != NULL){
                 /* this chunk is in a sparse container */
                 /* rewrite it */
                 chunk->duplicate = FALSE;
@@ -63,8 +60,6 @@ static void* simply_filter(void* arg){
             new_fchunk->container_id = save_chunk(chunk); 
             update = TRUE;
         }
-        container_usage_monitor_update(monitor, new_fchunk->container_id,
-                &new_fchunk->fingerprint, new_fchunk->length);
         send_fingerchunk(new_fchunk, &chunk->feature, update);
         TIMER_END(jcr->filter_time, b1, e1);
         free_chunk(chunk);
@@ -74,15 +69,6 @@ static void* simply_filter(void* arg){
 
     send_fc_signal();
 
-    jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
-    jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;
-    while((jcr->inherited_sparse_num = container_usage_monitor_print(monitor, 
-                    jcr->job_id, historical_sparse_containers))<0){
-        dprint("retry!");
-    }
-    if(historical_sparse_containers)
-        destroy_historical_sparse_containers(historical_sparse_containers);
-    container_usage_monitor_free(monitor);
     return NULL;
 }
 

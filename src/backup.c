@@ -186,6 +186,8 @@ static int recv_fingerchunk(FingerChunk **fc){
 int backup(Jcr* jcr) {
 
     fingerchunk_queue = sync_queue_new(-1);
+    ContainerUsageMonitor* monitor = container_usage_monitor_new();
+    jcr->historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
@@ -199,6 +201,8 @@ int backup(Jcr* jcr) {
     FingerChunk* fchunk = NULL;
     int signal = recv_fingerchunk(&fchunk);
     while(signal != STREAM_END){
+        container_usage_monitor_update(monitor, fchunk->container_id,
+                &fchunk->fingerprint, fchunk->length);
         jvol_append_fingerchunk(jcr->job_volume, fchunk);
 
         if(seed_id!=-1 && seed_id!=fchunk->container_id){
@@ -217,6 +221,14 @@ int backup(Jcr* jcr) {
         jvol_append_seed(jcr->job_volume, seed_id, seed_len);
     sync_queue_free(fingerchunk_queue, NULL);
 
+    jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
+    jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;
+
+    while((jcr->inherited_sparse_num = container_usage_monitor_print(monitor, 
+                    jcr->job_id, jcr->historical_sparse_containers))<0){
+        dprint("retry!");
+    }
+
     /* store recipes of processed file */
     int i = 0;
     for(;i < jcr->file_num; ++i) {
@@ -230,6 +242,10 @@ int backup(Jcr* jcr) {
         jcr->chunk_num += recipe->chunknum;
         recipe_free(recipe);
     }
+
+    if(jcr->historical_sparse_containers)
+        destroy_historical_sparse_containers(jcr->historical_sparse_containers);
+    container_usage_monitor_free(monitor);
 
     stop_append_phase();
     stop_filter_phase();

@@ -180,10 +180,6 @@ void *cbr_filter(void* arg){
 
     UtilityBuckets *buckets = utility_buckets_new();
 
-    GHashTable* historical_sparse_containers = 0;
-    historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
-
-    ContainerUsageMonitor* monitor =container_usage_monitor_new();
     /* content-based rewrite*/
     while(tail){
         TIMER_DECLARE(b1, e1);
@@ -208,8 +204,8 @@ void *cbr_filter(void* arg){
                 rewrite_utility = 0;
             if(rewriting_algorithm == HBR_CBR_REWRITING){
                 /* rewriting_algorithm == HBR_CBR */
-                if(historical_sparse_containers && 
-                        g_hash_table_lookup(historical_sparse_containers,
+                if(jcr->historical_sparse_containers && 
+                        g_hash_table_lookup(jcr->historical_sparse_containers,
                             &decision_chunk->container_id) != NULL){
                     /* in sparse containers */
                     decision_chunk->duplicate = FALSE;
@@ -262,8 +258,6 @@ void *cbr_filter(void* arg){
         new_fchunk->length = decision_chunk->length;
         memcpy(&new_fchunk->fingerprint, &decision_chunk->hash, sizeof(Fingerprint));
         TIMER_END(jcr->filter_time, b1, e1);
-        container_usage_monitor_update(monitor, new_fchunk->container_id,
-                &new_fchunk->fingerprint, new_fchunk->length);
         send_fingerchunk(new_fchunk, &decision_chunk->feature, update);
         free_chunk(decision_chunk);
     }
@@ -276,8 +270,8 @@ void *cbr_filter(void* arg){
         BOOL update = FALSE;
         if(rewriting_algorithm == HBR_CBR_REWRITING &&
                 remaining_chunk->container_id != TMP_CONTAINER_ID){ 
-            if(historical_sparse_containers &&
-                    g_hash_table_lookup(historical_sparse_containers, 
+            if(jcr->historical_sparse_containers &&
+                    g_hash_table_lookup(jcr->historical_sparse_containers, 
                         &remaining_chunk->container_id) != NULL){
                 /* in sparse containers */
                 remaining_chunk->duplicate = FALSE;
@@ -297,8 +291,6 @@ void *cbr_filter(void* arg){
         new_fchunk->container_id = remaining_chunk->container_id;
         new_fchunk->length = remaining_chunk->length;
         memcpy(&new_fchunk->fingerprint, &remaining_chunk->hash, sizeof(Fingerprint));
-        container_usage_monitor_update(monitor, new_fchunk->container_id,
-                &new_fchunk->fingerprint, new_fchunk->length);
         send_fingerchunk(new_fchunk, &remaining_chunk->feature, update);
         free_chunk(remaining_chunk);
         remaining_chunk = stream_context_pop(stream_context);
@@ -312,14 +304,5 @@ void *cbr_filter(void* arg){
     free(buckets);
     stream_context_free(stream_context);
 
-    jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
-    jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;
-    while((jcr->inherited_sparse_num = container_usage_monitor_print(monitor, 
-                    jcr->job_id, historical_sparse_containers))<0){
-        dprint("retry!");
-    }
-    if(historical_sparse_containers)
-        destroy_historical_sparse_containers(historical_sparse_containers);
-    container_usage_monitor_free(monitor);
     return NULL;
 }

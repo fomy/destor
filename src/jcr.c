@@ -40,6 +40,7 @@ Jcr* new_write_jcr() {
 
 	jcr->read_cache = 0;
 
+    jcr->historical_sparse_containers = 0;
 	return jcr;
 }
 
