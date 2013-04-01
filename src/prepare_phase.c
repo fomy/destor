@@ -4,9 +4,7 @@
 #include "tools/sync_queue.h"
 #include "index/index.h"
 
-/* hash queue */
-extern SyncQueue* hash_queue;
-
+extern int recv_hash(Chunk **chunk);
 /* output of prepare_thread */
 extern SyncQueue* prepare_queue;
 
@@ -20,8 +18,9 @@ void * simply_prepare(void *arg){
     Jcr *jcr = (Jcr*)arg;
     Recipe *processing_recipe = 0;
     while(TRUE){
-        Chunk *chunk = sync_queue_pop(hash_queue);
-        if(chunk->length == STREAM_END){
+        Chunk *chunk = NULL;
+        int signal = recv_hash(&chunk);
+        if(signal == STREAM_END){
             sync_queue_push(prepare_queue, chunk);
             break;
         }
@@ -29,7 +28,7 @@ void * simply_prepare(void *arg){
             processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
             puts(processing_recipe->filename);
         }
-        if(chunk->length == FILE_END){
+        if(signal == FILE_END){
             /* TO-DO */
             close(processing_recipe->fd);
             sync_queue_push(jcr->completed_files_queue, processing_recipe);
@@ -59,8 +58,9 @@ void* exbin_prepare(void *arg){
     memset(&current_feature, 0xff, sizeof(Fingerprint));
     Queue *buffered_chunk_queue = queue_new();
     while(TRUE){
-        Chunk *chunk = sync_queue_pop(hash_queue);
-        if(chunk->length == STREAM_END){
+        Chunk *chunk = NULL;
+        int signal = recv_hash(&chunk);
+        if(signal == STREAM_END){
             sync_queue_push(prepare_queue, chunk);
             break;
         }
@@ -68,7 +68,7 @@ void* exbin_prepare(void *arg){
             processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
             puts(processing_recipe->filename);
         }
-        if(chunk->length == FILE_END){
+        if(signal == FILE_END){
             /* TO-DO */
             lseek(processing_recipe->fd, 0, SEEK_SET);
             while(queue_size(buffered_chunk_queue)){
@@ -116,8 +116,9 @@ void* silo_prepare(void *arg){
     Queue *buffered_chunk_queue = queue_new();
     int32_t current_segment_size = 0;
     while(TRUE){
-        Chunk *chunk = sync_queue_pop(hash_queue);
-        if(chunk->length == STREAM_END){
+        Chunk *chunk = NULL;
+        int signal = recv_hash(&chunk);
+        if(signal == STREAM_END){
             if(current_segment_size > 0){
                 /* process remaing chunks */
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
@@ -135,7 +136,7 @@ void* silo_prepare(void *arg){
             processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
             puts(processing_recipe->filename);
         }
-        if(chunk->length == FILE_END){
+        if(signal == FILE_END){
             /* TO-DO */
             close(processing_recipe->fd);
             sync_queue_push(jcr->completed_files_queue, processing_recipe);

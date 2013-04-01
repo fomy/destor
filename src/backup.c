@@ -29,8 +29,8 @@ extern void stop_read_phase();
 extern int start_chunk_phase(Jcr*);
 extern void stop_chunk_phase();
 
-/* hash queue */
-SyncQueue* hash_queue;
+extern int start_hash_phase(Jcr*);
+extern void stop_hash_phase();
 
 /* prepare queue */
 SyncQueue* prepare_queue;
@@ -160,14 +160,13 @@ int backup_server(char *path) {
 }
 
 int backup(Jcr* jcr) {
-    pthread_t hash_t, prepare_t, filter_t, append_t;
-    hash_queue = sync_queue_new(100);
+    pthread_t prepare_t, filter_t, append_t;
     prepare_queue = sync_queue_new(100);
     container_queue = sync_queue_new(100);
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
-    pthread_create(&hash_t, NULL, sha1_hash, jcr);
+    start_hash_phase(jcr);
     switch(fingerprint_index_type){
         case RAM_INDEX:
         case DDFS_INDEX:
@@ -246,12 +245,11 @@ int backup(Jcr* jcr) {
 
     stop_read_phase();
     stop_chunk_phase();
-    pthread_join(hash_t, NULL);
+    stop_hash_phase();
     pthread_join(prepare_t, NULL);
     pthread_join(filter_t, NULL);
     pthread_join(append_t, NULL);
 
-    sync_queue_free(hash_queue, 0);
     sync_queue_free(prepare_queue, 0);
     sync_queue_free(container_queue, 0);
 
