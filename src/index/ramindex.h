@@ -4,6 +4,6 @@
 int ram_index_init();
 void ram_index_destroy();
 ContainerId ram_index_search(Fingerprint *fp);
-void ram_index_insert(Fingerprint* finger, ContainerId id);
+void ram_index_update(Fingerprint* finger, ContainerId id);
 
 #endif

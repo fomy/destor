@@ -90,20 +90,20 @@ ContainerId ram_index_search(Fingerprint *fp) {
     return addr==0?-1:*addr;
 }
 
-void ram_index_update(Fingerprint* fingers, int32_t fingernum, ContainerId id) {
-    int i = 0;
-    for (; i < fingernum; ++i) {
-        ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));
-        *addr = id;
-        Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));
-        memcpy(fp, fingers[i], sizeof(Fingerprint));
+/*void ram_index_update(Fingerprint* fingers, int32_t fingernum, ContainerId id) {*/
+    /*int i = 0;*/
+    /*for (; i < fingernum; ++i) {*/
+        /*ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));*/
+        /**addr = id;*/
+        /*Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));*/
+        /*memcpy(fp, fingers[i], sizeof(Fingerprint));*/
 
-        g_hash_table_replace(table, fp, addr);
-    }
-    dirty = TRUE;
-}
+        /*g_hash_table_replace(table, fp, addr);*/
+    /*}*/
+    /*dirty = TRUE;*/
+/*}*/
 
-void ram_index_insert(Fingerprint* finger, ContainerId id) {
+void ram_index_update(Fingerprint* finger, ContainerId id) {
     ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));
     *addr = id;
     Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));

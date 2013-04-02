@@ -168,7 +168,7 @@ void send_fc_signal(){
 
 void send_fingerchunk(FingerChunk *fchunk, Fingerprint *feature,
         BOOL update){
-    index_insert(&fchunk->fingerprint, fchunk->container_id, feature, update);
+    index_update(&fchunk->fingerprint, fchunk->container_id, feature, update);
     sync_queue_push(fingerchunk_queue, fchunk);
 }
 

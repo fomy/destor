@@ -28,7 +28,7 @@ struct silo_segment_tag{
 void silo_destroy();
 BOOL silo_init();
 ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* delegate);
-void silo_insert(Fingerprint* fingerprint, ContainerId containerId,
+void silo_update(Fingerprint* fingerprint, ContainerId containerId,
         Fingerprint *delegate);
 
 #endif

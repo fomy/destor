@@ -70,27 +70,27 @@ ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
  * It should be called before pushing a chunk into fchunk_queue in filter phase.
  * The update parameter indicates whether the container_id is new.
  */
-void index_insert(Fingerprint* fingerprint, ContainerId container_id, 
+void index_update(Fingerprint* fingerprint, ContainerId container_id, 
         void* feature, BOOL update){
     /* The update determines wheter update except in SILO */
     switch(fingerprint_index_type){
         case RAM_INDEX:
             if(update){
-                ram_index_insert(fingerprint, container_id);
+                ram_index_update(fingerprint, container_id);
             }
             break;
         case DDFS_INDEX:
             if(update){
-                ddfs_index_insert(fingerprint, container_id);
+                ddfs_index_update(fingerprint, container_id);
             }
             break;
         case EXBIN_INDEX:
             if(update){
-                extreme_binning_insert(fingerprint, container_id, feature);
+                extreme_binning_update(fingerprint, container_id, feature);
             }
             break;
         case SILO_INDEX:
-            silo_insert(fingerprint, container_id, feature);
+            silo_update(fingerprint, container_id, feature);
             break;
         default:
             printf("%s, %d: Wrong index type!\n",__FILE__,__LINE__);

@@ -262,7 +262,7 @@ ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* feature){
     return TMP_CONTAINER_ID;
 }
 
-void silo_insert(Fingerprint* fingerprint, ContainerId container_id,
+void silo_update(Fingerprint* fingerprint, ContainerId container_id,
         Fingerprint *feature){
     /*if(!g_hash_table_lookup(write_buffer->feature_table, feature)){*/
     /*[>dprint("It can not happen!");<]*/

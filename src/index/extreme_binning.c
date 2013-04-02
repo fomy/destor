@@ -337,7 +337,7 @@ ContainerId extreme_binning_search(Fingerprint *fingerprint,
     }
 }
 
-void extreme_binning_insert(Fingerprint *finger, ContainerId container_id,
+void extreme_binning_update(Fingerprint *finger, ContainerId container_id,
         Fingerprint* feature){
     Fingerprint *new_finger = (Fingerprint*)malloc(sizeof(Fingerprint));
     memcpy(new_finger, finger, sizeof(Fingerprint));

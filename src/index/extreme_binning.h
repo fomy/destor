@@ -31,6 +31,6 @@ BOOL extreme_binning_init();
 void extreme_binning_destroy();
 ContainerId extreme_binning_search(Fingerprint *fingerprint,
         Fingerprint *feature);
-void extreme_binning_insert(Fingerprint *finger, 
+void extreme_binning_update(Fingerprint *finger, 
         ContainerId container_id, Fingerprint* feature);
 #endif
