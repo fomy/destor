@@ -187,7 +187,6 @@ int backup(Jcr* jcr) {
 
     fingerchunk_queue = sync_queue_new(-1);
     ContainerUsageMonitor* monitor = container_usage_monitor_new();
-    jcr->historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
@@ -243,16 +242,14 @@ int backup(Jcr* jcr) {
         recipe_free(recipe);
     }
 
-    if(jcr->historical_sparse_containers)
-        destroy_historical_sparse_containers(jcr->historical_sparse_containers);
-    container_usage_monitor_free(monitor);
-
     stop_append_phase();
     stop_filter_phase();
     stop_prepare_phase();
     stop_hash_phase();
     stop_chunk_phase();
     stop_read_phase();
+
+    container_usage_monitor_free(monitor);
 
     return 0;
 }

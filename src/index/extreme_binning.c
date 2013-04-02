@@ -275,7 +275,7 @@ void extreme_binning_destroy(){
     int fd;
     if((fd = open(filename, O_CREAT | O_RDWR, S_IRWXU)) < 0){
         dprint("failed to open primary_index.map");
-        return FALSE;
+        return;
     }
 
     int item_num = g_hash_table_size(primary_index);

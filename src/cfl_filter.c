@@ -68,7 +68,7 @@ static void rewrite_container(Jcr *jcr){
 
 static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
     BOOL update = FALSE;
-    if(new_chunk->container_id != TMP_CONTAINER_ID){
+    if(new_chunk->status & DUPLICATE){
         /* existed */
         if(container_tmp->chunk_num != 0
                 && container_tmp->id != new_chunk->container_id){
@@ -137,7 +137,7 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
 
     BOOL update = FALSE;
     fchunk->container_id = new_chunk->container_id;
-    if(fchunk->container_id != TMP_CONTAINER_ID){
+    if(new_chunk->status & DUPLICATE){
         jcr->dedup_size += fchunk->length;
         jcr->number_of_dup_chunks++;
     }else{
@@ -145,7 +145,7 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
         update = TRUE;
     }
     update_cfl(monitor, fchunk->container_id, fchunk->length);
-    send_fingerchunk(fchunk, *new_chunk->feature, update);
+    send_fingerchunk(fchunk, &new_chunk->feature, update);
     free_chunk(new_chunk);
 }
 
@@ -194,6 +194,8 @@ void *cfl_filter(void* arg){
                     memcpy(&fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
                     fchunk->next = 0;
                     free_chunk(chunk);    
+                    jcr->dedup_size += fchunk->length;
+                    jcr->number_of_dup_chunks++;
                     update_cfl(monitor, fchunk->container_id, fchunk->length);
                     send_fingerchunk(fchunk, &chunk->feature, FALSE);
                 }
@@ -240,7 +242,7 @@ void *cfl_filter(void* arg){
                 fchunk->length = waiting_chunk->length;
                 memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
                 fchunk->next = 0;
-                if(container_get_chunk(container_tmp, fchunk->fingerprint)){
+                if(container_get_chunk(container_tmp, &fchunk->fingerprint)){
                     jcr->dedup_size += fchunk->length;
                     jcr->number_of_dup_chunks++;
                     /*fchunk->container_id = container_tmp->id;*/
@@ -249,7 +251,7 @@ void *cfl_filter(void* arg){
                     update = TRUE;
                 }
                 update_cfl(monitor, fchunk->container_id, fchunk->length);
-                send_fingerchunk(fchunk, waiting_chunk->feature, update);
+                send_fingerchunk(fchunk, &waiting_chunk->feature, update);
                 free_chunk(waiting_chunk);
                 waiting_chunk = queue_pop(waiting_chunk_queue);
             }

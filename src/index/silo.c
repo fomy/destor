@@ -192,7 +192,7 @@ void silo_destroy(){
     int fd;
     if((fd = open(filename, O_CREAT | O_RDWR, S_IRWXU))<0){
         dprint("failed to open shtable!");
-        return FALSE;
+        return;
     }
     uint32_t hash_num = g_hash_table_size(SHTable);
     write(fd, &hash_num, 4);
@@ -209,32 +209,6 @@ void silo_destroy(){
 }
 
 ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* feature){
-    /* is write_buffer full? */
-    /*if((write_buffer->size + silo_item_size) > silo_block_hash_size){*/
-    /*[> this chunk does not belong to this block <]*/
-    /*append_block_to_volume(write_buffer);*/
-    /*GHashTableIter iter;*/
-    /*gpointer key, value;*/
-    /*g_hash_table_iter_init(&iter, write_buffer->feature_table);*/
-    /*while(g_hash_table_iter_next(&iter, &key, &value)){*/
-    /*g_hash_table_insert(SHTable, key, value);*/
-    /*}*/
-    /*silo_block_free(write_buffer);*/
-    /*write_buffer = silo_block_new();*/
-    /*}*/
-    /*if(g_hash_table_lookup(write_buffer->feature_table, */
-    /*feature) == NULL){*/
-    /*[> a new segement <]*/
-    /*if(write_buffer->size + silo_segment_hash_size > silo_block_hash_size)*/
-    /*dprint("It can't happen!");*/
-    /*Fingerprint *new_feature = (Fingerprint*)malloc(sizeof(Fingerprint));*/
-    /*memcpy(new_feature, feature, sizeof(Fingerprint));*/
-    /*int32_t *new_bid = (int32_t*)malloc(sizeof(int32_t));*/
-    /**new_bid = block_num;*/
-    /*g_hash_table_insert(write_buffer->feature_table, new_feature, new_bid);*/
-    /*}*/
-    /*write_buffer->size += silo_item_size;*/
-
     /* Does it exist in write_buffer? */
     ContainerId *cid = g_hash_table_lookup(write_buffer->LHTable, fingerprint);
     if(cid){
@@ -252,11 +226,6 @@ ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* feature){
     /* filter the fingerprint in read cache */
     cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
     if(cid != 0){
-        /*Fingerprint* new_fingerprint = (Fingerprint*)malloc(sizeof(Fingerprint));*/
-        /*memcpy(new_fingerprint, fingerprint, sizeof(Fingerprint));*/
-        /*ContainerId* new_cid = (ContainerId*)malloc(sizeof(ContainerId));*/
-        /*memcpy(new_cid, cid, sizeof(ContainerId));*/
-        /*g_hash_table_insert(write_buffer->LHTable, new_fingerprint, new_cid);*/
         return *cid;
     }
     return TMP_CONTAINER_ID;
@@ -264,9 +233,6 @@ ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* feature){
 
 void silo_update(Fingerprint* fingerprint, ContainerId container_id,
         Fingerprint *feature){
-    /*if(!g_hash_table_lookup(write_buffer->feature_table, feature)){*/
-    /*[>dprint("It can not happen!");<]*/
-    /*}*/
     /* is write_buffer full? */
     if((write_buffer->size + silo_item_size) > silo_block_hash_size){
         /* this chunk does not belong to this block */

@@ -43,18 +43,17 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
     if((cap_segment.size + chunk->length) > capping_segment_size){
         return FALSE;
     }
-    /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
-    if(rewriting_algorithm == HBR_CAP_REWRITING && 
-            chunk->container_id != TMP_CONTAINER_ID){
-        if(jcr->historical_sparse_containers && 
-                g_hash_table_contains(jcr->historical_sparse_containers,
-                    &chunk->container_id)){
-            chunk->container_id = TMP_CONTAINER_ID;
-            jcr->rewritten_chunk_amount += chunk->length;
-            jcr->rewritten_chunk_count++;
-        }
-    }
-    if(chunk->container_id != TMP_CONTAINER_ID){
+    /*if(rewriting_algorithm == HBR_CAP_REWRITING && */
+    /*chunk->container_id != TMP_CONTAINER_ID){*/
+    /*if(jcr->historical_sparse_containers && */
+    /*g_hash_table_contains(jcr->historical_sparse_containers,*/
+    /*&chunk->container_id)){*/
+    /*chunk->container_id = TMP_CONTAINER_ID;*/
+    /*jcr->rewritten_chunk_amount += chunk->length;*/
+    /*jcr->rewritten_chunk_count++;*/
+    /*}*/
+    /*}*/
+    if(chunk->status & DUPLICATE){
         ContainerRecord tmp_record;
         tmp_record.cid = chunk->container_id;
         GSequenceIter *iter = g_sequence_lookup(cap_segment.container_record_seq,
@@ -144,29 +143,31 @@ void *cap_filter(void* arg){
             cap_segment_get_top();
 
             while(chunk = cap_segment_pop()){
-                if(chunk->container_id != TMP_CONTAINER_ID){
+                if(chunk->status & DUPLICATE){
                     tmp_record.cid = chunk->container_id;
                     if(g_sequence_lookup(cap_segment.container_record_seq,
-                                &tmp_record, compare_cid, NULL)){
-                        /* in TOP_T */
-                        chunk->duplicate = TRUE;
-                    }else{
-                        chunk->duplicate = FALSE;
-                        chunk->container_id = TMP_CONTAINER_ID;
-                        jcr->rewritten_chunk_amount += chunk->length;
-                        jcr->rewritten_chunk_count++;
+                                &tmp_record, compare_cid, NULL) == NULL){
+                        /* not in TOP_T */
+                        chunk->status |= OUT_OF_ORDER;
                     }
-                }else{
-                    chunk->duplicate = FALSE;
                 }
 
                 BOOL update = FALSE;
-                if(chunk->duplicate == FALSE){
+                if(chunk->status & DUPLICATE){
+                    if(chunk->status & OUT_OF_ORDER ||
+                            (rewriting_algorithm == HBR_CAP_REWRITING &&
+                             chunk->status & SPARSE)){
+                        chunk->container_id = save_chunk(chunk);
+                        update = TRUE;
+                        jcr->rewritten_chunk_amount += chunk->length;
+                        jcr->rewritten_chunk_count++;
+                    }else{
+                        jcr->dedup_size += chunk->length;
+                        ++jcr->number_of_dup_chunks;
+                    }
+                }else{
                     chunk->container_id = save_chunk(chunk);
                     update = TRUE;
-                }else{
-                    jcr->dedup_size += chunk->length;
-                    ++jcr->number_of_dup_chunks;
                 }
 
                 FingerChunk *new_fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));

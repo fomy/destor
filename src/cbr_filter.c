@@ -57,8 +57,9 @@ static BOOL stream_context_push(StreamContext* stream_context, Chunk *chunk){
         /* stream context is full */
         return FALSE;
     }
-    /*chunk->container_id = index_search(&chunk->hash, &chunk->feature);*/
-    if(chunk->container_id != TMP_CONTAINER_ID){
+    if(chunk->status & DUPLICATE){
+        /* assuming every one is out of order*/
+        chunk->status |= OUT_OF_ORDER;
         int* cntnr_usg = g_hash_table_lookup(stream_context->container_usage_map, &chunk->container_id);
         if(cntnr_usg == 0){
             ContainerId *new_cntnr_id = malloc(sizeof(ContainerId));
@@ -120,9 +121,9 @@ static double get_rewrite_utility(StreamContext *stream_context, ContainerId con
     return rewrite_utility;
 }
 
-static void mark_duplicate(Chunk *chunk, ContainerId *container_id){
+static void mark_not_out_of_order(Chunk *chunk, ContainerId *container_id){
     if(chunk->container_id == *container_id){
-        chunk->duplicate = TRUE;
+        chunk->status &= ~OUT_OF_ORDER;
     }
 }
 
@@ -194,63 +195,41 @@ void *cbr_filter(void* arg){
             }
         }
         TIMER_BEGIN(b1);
-        double rewrite_utility = -1;
+        double rewrite_utility = 0;
         /* if chunk has existed */
-        if(decision_chunk->container_id != TMP_CONTAINER_ID){
+        if(decision_chunk->status & DUPLICATE){
             /* a duplicate chunk */
-            if(decision_chunk->duplicate == FALSE)
+            if(decision_chunk->status & OUT_OF_ORDER){
                 rewrite_utility = get_rewrite_utility(stream_context, decision_chunk->container_id);
-            else /* if marked as duplicate */
-                rewrite_utility = 0;
-            if(rewriting_algorithm == HBR_CBR_REWRITING){
-                /* rewriting_algorithm == HBR_CBR */
-                if(jcr->historical_sparse_containers && 
-                        g_hash_table_lookup(jcr->historical_sparse_containers,
-                            &decision_chunk->container_id) != NULL){
-                    /* in sparse containers */
-                    decision_chunk->duplicate = FALSE;
-                    decision_chunk->container_id = TMP_CONTAINER_ID;
-                    jcr->rewritten_chunk_count ++;
-                    jcr->rewritten_chunk_amount += decision_chunk->length;
-                }
-            }
-        }
-
-        /* if chunk has existed, but have not been marked yet. */
-        if(decision_chunk->container_id != TMP_CONTAINER_ID){
-            /* not unique chunk or not be filter by HBR */
-            if(decision_chunk->duplicate == FALSE){
-                /* not mark as duplicate */
-                if(rewrite_utility >= minimal_rewrite_utility
-                        && rewrite_utility >= buckets->current_utility_threshold){
-                    /* it's a condidate */
-                    decision_chunk->duplicate = FALSE;
-                    decision_chunk->container_id = TMP_CONTAINER_ID;
-                    jcr->rewritten_chunk_count ++;
-                    jcr->rewritten_chunk_amount += decision_chunk->length;
-                }else{//<minimal or current
-                    /* mark all physically continuous chunks duplicated */
-                    decision_chunk->duplicate = TRUE;
+                if(rewrite_utility < minimal_rewrite_utility ||
+                        rewrite_utility < buckets->current_utility_threshold){
+                    /* mark all physically continuous chunks */
+                    decision_chunk->status &= ~OUT_OF_ORDER;
                     queue_foreach(stream_context->context_queue, 
-                            mark_duplicate, &decision_chunk->container_id);
+                            mark_not_out_of_order, &decision_chunk->container_id);
                 }
-            }
+            }else /* if marked as not out of order*/
+                rewrite_utility = 0;
         }
 
-        if(rewrite_utility != -1){
-            /* duplicate chunk */
-            utility_buckets_update(buckets, rewrite_utility);
-        }else{
-            utility_buckets_update(buckets, 0);
-        }
+        utility_buckets_update(buckets, rewrite_utility);
 
         BOOL update = FALSE;
-        if(decision_chunk->duplicate == FALSE){
+        if(decision_chunk->status & DUPLICATE){
+            if((rewriting_algorithm == HBR_CBR_REWRITING && 
+                    (decision_chunk->status & SPARSE)) ||
+                    decision_chunk->status & OUT_OF_ORDER){
+                decision_chunk->container_id = save_chunk(decision_chunk);
+                update = TRUE;
+                jcr->rewritten_chunk_count ++;
+                jcr->rewritten_chunk_amount += decision_chunk->length;
+            }else{
+                jcr->dedup_size += decision_chunk->length;
+                ++jcr->number_of_dup_chunks;
+            }
+        }else{
             decision_chunk->container_id = save_chunk(decision_chunk);
             update = TRUE;
-        }else{
-            jcr->dedup_size += decision_chunk->length;
-            ++jcr->number_of_dup_chunks;
         }
 
         FingerChunk *new_fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
@@ -264,34 +243,33 @@ void *cbr_filter(void* arg){
 
     TIMER_DECLARE(b1, e1);
     TIMER_BEGIN(b1);
+
     /* process the remaining chunks in stream context */
     Chunk *remaining_chunk = stream_context_pop(stream_context);
     while(remaining_chunk){
         BOOL update = FALSE;
-        if(rewriting_algorithm == HBR_CBR_REWRITING &&
-                remaining_chunk->container_id != TMP_CONTAINER_ID){ 
-            if(jcr->historical_sparse_containers &&
-                    g_hash_table_lookup(jcr->historical_sparse_containers, 
-                        &remaining_chunk->container_id) != NULL){
-                /* in sparse containers */
-                remaining_chunk->duplicate = FALSE;
-                remaining_chunk->container_id = TMP_CONTAINER_ID;
+        if(remaining_chunk->status & DUPLICATE){
+            if(rewriting_algorithm == HBR_CBR_REWRITING && 
+                    (remaining_chunk->status & SPARSE)){
+                remaining_chunk->container_id = save_chunk(remaining_chunk);
+                update = TRUE;
                 jcr->rewritten_chunk_count ++;
                 jcr->rewritten_chunk_amount += remaining_chunk->length;
+            }else{
+                jcr->dedup_size += remaining_chunk->length;
+                ++jcr->number_of_dup_chunks;
             }
-        }
-        if(remaining_chunk->container_id == TMP_CONTAINER_ID){
+        }else{
             remaining_chunk->container_id = save_chunk(remaining_chunk);
             update = TRUE;
-        }else{
-            jcr->dedup_size += remaining_chunk->length;
-            ++jcr->number_of_dup_chunks;
         }
+
         FingerChunk *new_fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
         new_fchunk->container_id = remaining_chunk->container_id;
         new_fchunk->length = remaining_chunk->length;
         memcpy(&new_fchunk->fingerprint, &remaining_chunk->hash, sizeof(Fingerprint));
         send_fingerchunk(new_fchunk, &remaining_chunk->feature, update);
+
         free_chunk(remaining_chunk);
         remaining_chunk = stream_context_pop(stream_context);
     }
@@ -305,4 +283,4 @@ void *cbr_filter(void* arg){
     stream_context_free(stream_context);
 
     return NULL;
-}
+    }

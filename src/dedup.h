@@ -10,6 +10,12 @@
 
 #include "global.h"
 
+#define UNIQUE (0x00)
+#define DUPLICATE (0x01)
+#define SPARSE (0x02)
+#define OUT_OF_ORDER (0x04)
+#define IN_CACHE (0x08)
+
 typedef struct chunk_tag Chunk;
 typedef struct data_buffer_tag DataBuffer;
 
@@ -22,7 +28,8 @@ struct data_buffer_tag {
 struct chunk_tag {
 	int32_t length;
 	unsigned char *data;
-	BOOL duplicate;
+	//BOOL duplicate;
+    int status;
 	Fingerprint hash;
     /* for SiLo and Extreme Binning */
     Fingerprint feature;

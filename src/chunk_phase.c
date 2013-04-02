@@ -52,7 +52,7 @@ static void* rabin_chunk_thread(void *arg) {
     bzero(zeros, max_chunk_size);
     while (TRUE) {
         Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
-        new_chunk->duplicate = FALSE;
+        new_chunk->status = UNIQUE;
         new_chunk->container_id = TMP_CONTAINER_ID;
         new_chunk->length = 0;
         new_chunk->data = 0;
@@ -119,7 +119,7 @@ static void* fixed_chunk_thread(void *arg){
     bzero(zeros, chunk_size);
     while (TRUE) {
         Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
-        new_chunk->duplicate = FALSE;
+        new_chunk->status = UNIQUE;
         new_chunk->container_id = TMP_CONTAINER_ID;
         new_chunk->length = 0;
         new_chunk->data = 0;
@@ -141,7 +141,6 @@ static void* fixed_chunk_thread(void *arg){
             TIMER_DECLARE(b, e);
             TIMER_BEGIN(b);
 
-            /*new_chunk->length = chunk_data(leftbuf + left_offset, leftlen);*/
             new_chunk->length = chunk_size > leftlen ? leftlen : chunk_size;
 
             TIMER_END(jcr->chunk_time, b, e);

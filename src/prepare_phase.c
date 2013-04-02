@@ -9,6 +9,7 @@ extern int recv_hash(Chunk **chunk);
 /* output of prepare_thread */
 static SyncQueue* feature_queue;
 static pthread_t prepare_t;
+static GHashTable *sparse_containers;
 
 static void send_feature(Chunk *chunk){
     sync_queue_push(feature_queue, chunk);
@@ -24,6 +25,14 @@ int recv_feature(Chunk **new_chunk){
         return STREAM_END;
     }
     chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+    if(chunk->container_id != TMP_CONTAINER_ID){
+        chunk->status |= DUPLICATE;
+        if(sparse_containers && g_hash_table_lookup(sparse_containers, 
+                    &chunk->container_id) != NULL){
+            chunk->status |= SPARSE;
+        }
+    }
+    
     *new_chunk = chunk;
     return SUCCESS;
 }
@@ -191,6 +200,8 @@ void* silo_prepare(void *arg){
 
 int start_prepare_phase(Jcr *jcr){
     feature_queue = sync_queue_new(100);
+    jcr->historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
+    sparse_containers = jcr->historical_sparse_containers;
     switch(fingerprint_index_type){
         case RAM_INDEX:
         case DDFS_INDEX:
@@ -209,4 +220,6 @@ int start_prepare_phase(Jcr *jcr){
 
 void stop_prepare_phase(){
     pthread_join(prepare_t, NULL);
+    if(sparse_containers)
+        destroy_historical_sparse_containers(sparse_containers);
 }

@@ -39,27 +39,25 @@ static void* simply_filter(void* arg){
         new_fchunk->container_id = chunk->container_id;
 
         BOOL update = FALSE;
-        if (new_fchunk->container_id != TMP_CONTAINER_ID) {
-            if(rewriting_algorithm == HBR_REWRITING && jcr->historical_sparse_containers!=0 && 
-                    g_hash_table_lookup(jcr->historical_sparse_containers, &new_fchunk->container_id) != NULL){
+        if (chunk->status & DUPLICATE) {
+            if(rewriting_algorithm == HBR_REWRITING 
+                    && (chunk->status & SPARSE)){
                 /* this chunk is in a sparse container */
                 /* rewrite it */
-                chunk->duplicate = FALSE;
                 new_fchunk->container_id = save_chunk(chunk);
 
                 update = TRUE;
                 jcr->rewritten_chunk_count++;
                 jcr->rewritten_chunk_amount += new_fchunk->length;
             }else{
-                chunk->duplicate = TRUE;
                 jcr->dedup_size += chunk->length;
                 ++jcr->number_of_dup_chunks;
             }
         } else {
-            chunk->duplicate = FALSE;
             new_fchunk->container_id = save_chunk(chunk); 
             update = TRUE;
         }
+
         send_fingerchunk(new_fchunk, &chunk->feature, update);
         TIMER_END(jcr->filter_time, b1, e1);
         free_chunk(chunk);
