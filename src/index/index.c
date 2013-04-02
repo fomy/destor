@@ -6,7 +6,12 @@
 
 extern int fingerprint_index_type;
 
+double search_time;
+double update_time;
+
 BOOL index_init(){
+    search_time = 0;
+    update_time = 0;
     switch(fingerprint_index_type){
         case RAM_INDEX:
             puts("index=RAM");
@@ -49,20 +54,29 @@ void index_destroy(){
  * Call index_search() to obtain the container id of the chunk.
  * It should be called immediately after poping a chunk.
  */
-ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
+ContainerId index_search(Fingerprint* fingerprint, void* feature){
+    TIMER_DECLARE(b, e);
+    TIMER_BEGIN(b);
+    ContainerId container_id;
     switch(fingerprint_index_type){
         case RAM_INDEX:
-            return ram_index_search(fingerprint);
+            container_id = ram_index_search(fingerprint);
+            break;
         case DDFS_INDEX:
-            return ddfs_index_search(fingerprint);
+            container_id = ddfs_index_search(fingerprint);
+            break;
         case EXBIN_INDEX:
-            return extreme_binning_search(fingerprint, eigenvalue);
+            container_id = extreme_binning_search(fingerprint, feature);
+            break;
         case SILO_INDEX:
-            return silo_search(fingerprint, eigenvalue);
+            container_id = silo_search(fingerprint, feature);
+            break;
         default:
             printf("%s, %d: Wrong index type!\n",__FILE__,__LINE__);
             return TMP_CONTAINER_ID;
     }
+    TIMER_END(search_time, b, e);
+    return container_id;
 }
 
 /*
@@ -73,6 +87,8 @@ ContainerId index_search(Fingerprint* fingerprint, void* eigenvalue){
 void index_update(Fingerprint* fingerprint, ContainerId container_id, 
         void* feature, BOOL update){
     /* The update determines wheter update except in SILO */
+    TIMER_DECLARE(b, e);
+    TIMER_BEGIN(b);
     switch(fingerprint_index_type){
         case RAM_INDEX:
             if(update){
@@ -95,4 +111,5 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
         default:
             printf("%s, %d: Wrong index type!\n",__FILE__,__LINE__);
     }
+    TIMER_END(update_time, b, e);
 }

@@ -58,8 +58,8 @@ static void* simply_filter(void* arg){
             update = TRUE;
         }
 
-        send_fingerchunk(new_fchunk, &chunk->feature, update);
         TIMER_END(jcr->filter_time, b1, e1);
+        send_fingerchunk(new_fchunk, &chunk->feature, update);
         free_chunk(chunk);
     }//while(TRUE) end
 

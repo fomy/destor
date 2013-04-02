@@ -18,6 +18,8 @@
 #include "index/index.h"
 
 extern DestorStat *destor_stat;
+extern double search_time;
+extern double update_time;
 
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
@@ -118,6 +120,10 @@ int backup_server(char *path) {
             jcr->job_size * 1000000 / jcr->filter_time / 1024 / 1024);
     printf("write_time : %.3fs, %.2fMB/s\n", jcr->write_time / 1000000,
             jcr->job_size * 1000000 / jcr->write_time / 1024 / 1024);
+    printf("index_search_time : %.3fs, %.2fMB/s\n", search_time / 1000000,
+            jcr->job_size * 1000000 / search_time / 1024 / 1024);
+    printf("index_update_time : %.3fs, %.2fMB/s\n", update_time / 1000000,
+            jcr->job_size * 1000000 / update_time / 1024 / 1024);
     puts("==== backup end ====");
 
     jcr->job_volume->job.job_id= jcr->job_id;

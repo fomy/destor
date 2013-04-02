@@ -43,16 +43,7 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
     if((cap_segment.size + chunk->length) > capping_segment_size){
         return FALSE;
     }
-    /*if(rewriting_algorithm == HBR_CAP_REWRITING && */
-    /*chunk->container_id != TMP_CONTAINER_ID){*/
-    /*if(jcr->historical_sparse_containers && */
-    /*g_hash_table_contains(jcr->historical_sparse_containers,*/
-    /*&chunk->container_id)){*/
-    /*chunk->container_id = TMP_CONTAINER_ID;*/
-    /*jcr->rewritten_chunk_amount += chunk->length;*/
-    /*jcr->rewritten_chunk_count++;*/
-    /*}*/
-    /*}*/
+
     if(chunk->status & DUPLICATE){
         ContainerRecord tmp_record;
         tmp_record.cid = chunk->container_id;
@@ -129,20 +120,22 @@ void *cap_filter(void* arg){
         chunk = NULL;
         int signal = recv_feature(&chunk);
 
-        TIMER_DECLARE(b1, e1);
-        TIMER_BEGIN(b1);
         if(signal == STREAM_END){
             free_chunk(chunk);
             chunk = NULL;
             stream_end = TRUE;
         }
 
+        TIMER_DECLARE(b, e);
+        TIMER_BEGIN(b);
         if(stream_end == TRUE || cap_segment_push(jcr, chunk) == FALSE){
             /* segment is full */
             remaining = chunk;
             cap_segment_get_top();
 
             while(chunk = cap_segment_pop()){
+                TIMER_DECLARE(b1, e1);
+                TIMER_BEGIN(b1);
                 if(chunk->status & DUPLICATE){
                     tmp_record.cid = chunk->container_id;
                     if(g_sequence_lookup(cap_segment.container_record_seq,
@@ -174,6 +167,7 @@ void *cap_filter(void* arg){
                 new_fchunk->container_id = chunk->container_id;
                 new_fchunk->length = chunk->length;
                 memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
+                TIMER_END(jcr->filter_time, b1, e1);
                 send_fingerchunk(new_fchunk, &chunk->feature, update);
 
                 free_chunk(chunk);
@@ -182,10 +176,11 @@ void *cap_filter(void* arg){
             cap_segment_clear();
             if(remaining)
                 cap_segment_push(jcr, remaining);
-        }//full or end
+        }else{
+            TIMER_END(jcr->filter_time, b, e);
+        }
         if(stream_end == TRUE)
             break;
-        TIMER_END(jcr->filter_time, b1, e1);
     }
 
     save_chunk(NULL);
