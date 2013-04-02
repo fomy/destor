@@ -17,9 +17,7 @@ GRANT ALL PRIVILEGES ON destor_db.* TO destor@localhost IDENTIFIED BY '123456';
 USE destor_db;
 DROP TABLE IF EXISTS HashStore;
 CREATE TABLE HashStore(
-    id INTEGER PRIMARY KEY AUTO_INCREMENT,
-    Fingerprint BINARY(20) NOT NULL,
+    Fingerprint BINARY(20) PRIMARY KEY,
     ContainerId INTEGER NOT NULL
-);
-CREATE INDEX hash_index ON HashStore(Fingerprint ASC);
+) ENGINE=MyISAM;
 END-OF-DATA
