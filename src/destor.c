@@ -16,12 +16,14 @@ extern int restore_server(int revision, char *path);
 extern int load_config();
 
 extern BOOL enable_writing;
+extern BOOL enable_hbr;
 extern int read_cache_type;
 extern int read_cache_size;
 extern int fingerprint_index_type;
 extern int rewriting_algorithm;
 extern int optimal_cache_window_size;
-extern double container_usage_threshold;
+extern double cfl_usage_threshold;
+extern double hbr_usage_threshold;
 extern double minimal_rewrite_utility;
 extern double rewrite_limit;
 extern int32_t stream_context_size;
@@ -45,7 +47,8 @@ struct option long_options[] = {
     {"cache", 1, NULL, 'c'},
     {"cache_size", 1, NULL, 'C'},
     {"rewrite", 1, NULL, 'R'},
-    {"usage", 1, NULL, 'u'},
+    {"cfl_p", 1, NULL, 'p'},
+    {"hbr_usage", 1, NULL, 'u'},
     {"min_utility", 1, NULL, 'm'},
     {"rewrite_limit", 1, NULL, 'l'},
     {"stream_context_size", 1, NULL, 'S'},
@@ -53,6 +56,7 @@ struct option long_options[] = {
     {"capping_t", 1, NULL, 't'},
     {"capping_segment_size", 1, NULL, 'a'},
     {"disable_writing", 0, NULL, 'd'},
+    {"enable_hbr", 0, NULL, 'e'},
     {"help", 0, NULL, 'h'},
     {NULL, 0, NULL, 0}
 };
@@ -82,8 +86,8 @@ void print_help(){
     puts("\t\tAssign read cache size, e.g. --cache_size=100.");
     puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP]");
     puts("\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
-    puts("\t--usage=[usage threshold of container,]");
-    puts("\t\tSet usage threshold, e.g. --usage=0.7.");
+    puts("\t--cfl_p=[p in CFL]");
+    puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
     puts("\t--rewrite_limit=[rewrite limit for CBR]");
     puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
     puts("\t--min_utility=[minimal rewrite utility for CBR]");
@@ -97,6 +101,8 @@ void print_help(){
     puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
     puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
     puts("\t--disable_writing");
+    puts("\t\tenable HBR.");
+    puts("\t--enable_hbr");
     puts("\t\tdisable writing files during the recovery.");
 }
 
@@ -160,12 +166,15 @@ int main(int argc, char **argv) {
                     rewriting_algorithm = CBR_REWRITING;
                 }else if(strcmp(optarg, "HBR") == 0){
                     rewriting_algorithm = HBR_REWRITING;
+                    enable_hbr = TRUE;
                 }else if(strcmp(optarg, "HBR_CBR") == 0){
                     rewriting_algorithm = HBR_CBR_REWRITING;
+                    enable_hbr = TRUE;
                 }else if(strcmp(optarg, "CAP") == 0){
                     rewriting_algorithm = CAP_REWRITING;
                 }else if(strcmp(optarg, "HBR_CAP") == 0){
                     rewriting_algorithm = HBR_CAP_REWRITING;
+                    enable_hbr = TRUE;
                 }else{
                     puts("unknown rewriting algorithm\n");
                     puts("type -h or --help for help.");
@@ -178,14 +187,20 @@ int main(int argc, char **argv) {
             case 'a':
                 capping_segment_size = atoi(optarg)*1024*1024;
                 break;
+            case 'p':
+                cfl_usage_threshold = atoi(optarg)/100.0;
+                break;
             case 'u':
-                container_usage_threshold = atof(optarg);
+                hbr_usage_threshold = atof(optarg);
                 break;
             case 'm':
                 minimal_rewrite_utility= atof(optarg);
                 break;
             case 'l':
                 rewrite_limit = atof(optarg);
+                break;
+            case 'e':
+                enable_hbr = TRUE;
                 break;
             case 'w':
                 optimal_cache_window_size = atoi(optarg);

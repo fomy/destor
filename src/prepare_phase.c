@@ -5,6 +5,7 @@
 #include "index/index.h"
 
 extern int fingerprint_index_type;
+extern BOOL enable_hbr;
 extern int recv_hash(Chunk **chunk);
 /* output of prepare_thread */
 static SyncQueue* feature_queue;
@@ -27,7 +28,7 @@ int recv_feature(Chunk **new_chunk){
     chunk->container_id = index_search(&chunk->hash, &chunk->feature);
     if(chunk->container_id != TMP_CONTAINER_ID){
         chunk->status |= DUPLICATE;
-        if(sparse_containers && g_hash_table_lookup(sparse_containers, 
+        if(enable_hbr && sparse_containers && g_hash_table_lookup(sparse_containers, 
                     &chunk->container_id) != NULL){
             chunk->status |= SPARSE;
         }

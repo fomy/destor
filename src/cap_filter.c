@@ -12,7 +12,6 @@ extern ContainerId save_chunk(Chunk *chunk);
 
 extern int32_t capping_T;
 extern int32_t capping_segment_size;
-extern int rewriting_algorithm;
 
 typedef struct{
     ContainerId cid;
@@ -148,8 +147,7 @@ void *cap_filter(void* arg){
                 BOOL update = FALSE;
                 if(chunk->status & DUPLICATE){
                     if(chunk->status & OUT_OF_ORDER ||
-                            (rewriting_algorithm == HBR_CAP_REWRITING &&
-                             chunk->status & SPARSE)){
+                             chunk->status & SPARSE){
                         chunk->container_id = save_chunk(chunk);
                         update = TRUE;
                         jcr->rewritten_chunk_amount += chunk->length;

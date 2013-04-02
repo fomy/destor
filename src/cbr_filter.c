@@ -20,7 +20,6 @@ extern double container_usage_threshold;
 extern double rewrite_limit;
 extern int32_t stream_context_size;
 extern int32_t disk_context_size;
-extern int32_t rewriting_algorithm;
 extern double minimal_rewrite_utility;
 
 extern int recv_feature(Chunk **chunk);
@@ -216,8 +215,7 @@ void *cbr_filter(void* arg){
 
         BOOL update = FALSE;
         if(decision_chunk->status & DUPLICATE){
-            if((rewriting_algorithm == HBR_CBR_REWRITING && 
-                    (decision_chunk->status & SPARSE)) ||
+            if((decision_chunk->status & SPARSE) ||
                     decision_chunk->status & OUT_OF_ORDER){
                 decision_chunk->container_id = save_chunk(decision_chunk);
                 update = TRUE;
@@ -249,8 +247,7 @@ void *cbr_filter(void* arg){
     while(remaining_chunk){
         BOOL update = FALSE;
         if(remaining_chunk->status & DUPLICATE){
-            if(rewriting_algorithm == HBR_CBR_REWRITING && 
-                    (remaining_chunk->status & SPARSE)){
+            if(remaining_chunk->status & SPARSE){
                 remaining_chunk->container_id = save_chunk(remaining_chunk);
                 update = TRUE;
                 jcr->rewritten_chunk_count ++;
@@ -283,4 +280,4 @@ void *cbr_filter(void* arg){
     stream_context_free(stream_context);
 
     return NULL;
-    }
+}

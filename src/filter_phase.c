@@ -40,8 +40,7 @@ static void* simply_filter(void* arg){
 
         BOOL update = FALSE;
         if (chunk->status & DUPLICATE) {
-            if(rewriting_algorithm == HBR_REWRITING 
-                    && (chunk->status & SPARSE)){
+            if(chunk->status & SPARSE){
                 /* this chunk is in a sparse container */
                 /* rewrite it */
                 new_fchunk->container_id = save_chunk(chunk);

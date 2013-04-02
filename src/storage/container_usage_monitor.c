@@ -9,7 +9,7 @@
 
 extern char working_path[];
 
-extern double container_usage_threshold; 
+extern double hbr_usage_threshold; 
 
 static ContainerUsage* container_usage_new(ContainerId cntnr_id){
     ContainerUsage* cntnr_usg = (ContainerUsage*)malloc(sizeof(ContainerUsage));
@@ -83,7 +83,7 @@ void container_usage_monitor_update(ContainerUsageMonitor* cntnr_usg_mntr,
             g_hash_table_insert(cntnr_usg_mntr->sparse_map, &cntnr_usg->cntnr_id, cntnr_usg);
         }
         double usage = container_usage_add(cntnr_usg, fngr, len);
-        if(usage > container_usage_threshold){
+        if(usage > hbr_usage_threshold){
             g_hash_table_steal(cntnr_usg_mntr->sparse_map, &cntnr_id);
             g_hash_table_insert(cntnr_usg_mntr->dense_map, &cntnr_usg->cntnr_id, cntnr_usg);
         }

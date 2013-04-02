@@ -28,10 +28,9 @@ int ddfs_cache_size = 100;
 
 /* filter type */
 int rewriting_algorithm = NO_REWRITING;
-/* cfl_monitor parameters */
-/* also used in container usage monitor */
-double container_usage_threshold = 0.7;//should larger than cfl_require
-double cfl_require = 0.6;
+/* cfl_filter parameters */
+double cfl_usage_threshold = 0.03;//should larger than cfl_require
+double cfl_require = 0.7;
 
 /* cbr_filter parameters */
 double minimal_rewrite_utility = 0.7;
@@ -46,6 +45,10 @@ int32_t silo_block_size = 128;//MB
 /* capping parameters */
 int32_t capping_T = 20;
 int32_t capping_segment_size = 20*1024*1024; 
+
+/* HBR parameters */ 
+BOOL enable_hbr = FALSE;
+double hbr_usage_threshold = 0.7;
 
 void set_value(char *pname, char *pvalue){
     if(strcmp(pname, "WORKING_PATH") == 0){
@@ -68,9 +71,9 @@ void set_value(char *pname, char *pvalue){
     else if(strcmp(pname, "ENABLE_WRITING") == 0){
         enable_writing = atoi(pvalue) == 0 ? FALSE : TRUE;
     }
-    /*else if(strcmp(pname, "ENABLE_DATA_CACHE") == 0){*/
-        /*enable_data_cache = atoi(pvalue);*/
-    /*}*/
+    else if(strcmp(pname, "ENABLE_HBR") == 0){
+        enable_hbr = atoi(pvalue) == 0 ? FALSE : TRUE;
+    }
     else if(strcmp(pname, "OPTIMAL_CACHE_WINDOW_SIZE") == 0){
         optimal_cache_window_size = atoi(pvalue);
     }
@@ -90,11 +93,14 @@ void set_value(char *pname, char *pvalue){
     else if(strcmp(pname, "DDFS_CACHE_SIZE") == 0){
         ddfs_cache_size = atoi(pvalue);
     }
-    else if(strcmp(pname, "CFL_REQUIRE") == 0){
+    else if(strcmp(pname, "CFL_USAGE_REQUIRE") == 0){
         cfl_require = atof(pvalue);
     }
-    else if(strcmp(pname, "CONTAINER_USAGE_THRESHOLD") == 0){
-        container_usage_threshold = atof(pvalue);
+    else if(strcmp(pname, "CFL_P") == 0){
+        cfl_usage_threshold = atoi(pvalue)/100.0;
+    }
+    else if(strcmp(pname, "HBR_USAGE_THRESHOLD") == 0){
+        hbr_usage_threshold = atof(pvalue);
     }
     else if(strcmp(pname, "REWRITE") == 0){
         if(strcmp(pvalue, "NO")==0){
@@ -105,12 +111,15 @@ void set_value(char *pname, char *pvalue){
             rewriting_algorithm = CBR_REWRITING;
         }else if(strcmp(pvalue, "HBR") == 0){
             rewriting_algorithm = HBR_REWRITING;
+            enable_hbr = TRUE;
         }else if(strcmp(pvalue, "HBR_CBR") == 0){
             rewriting_algorithm = HBR_CBR_REWRITING;
+            enable_hbr = TRUE;
         }else if(strcmp(pvalue, "CAP") == 0){
             rewriting_algorithm = CAP_REWRITING;
         }else if(strcmp(pvalue, "HBR_CAP") == 0){
             rewriting_algorithm = HBR_CAP_REWRITING;
+            enable_hbr = TRUE;
         }else{
             printf("%s, %d: unknown rewriting algorithm\n",__FILE__,__LINE__);
         }
