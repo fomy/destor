@@ -46,10 +46,13 @@ AR = ar
 ARFLAGS = cru
 libserver_a_AR = $(AR) $(ARFLAGS)
 libserver_a_LIBADD =
-am_libserver_a_OBJECTS = dedup.$(OBJEXT) cfl_dedup.$(OBJEXT) \
-	destor.$(OBJEXT) backup.$(OBJEXT) restore.$(OBJEXT) \
-	statistic.$(OBJEXT) jcr.$(OBJEXT) config.$(OBJEXT) \
-	cbr_dedup.$(OBJEXT) cap_dedup.$(OBJEXT)
+am_libserver_a_OBJECTS = dedup.$(OBJEXT) read_phase.$(OBJEXT) \
+	chunk_phase.$(OBJEXT) hash_phase.$(OBJEXT) \
+	prepare_phase.$(OBJEXT) filter_phase.$(OBJEXT) \
+	append_phase.$(OBJEXT) cfl_filter.$(OBJEXT) destor.$(OBJEXT) \
+	backup.$(OBJEXT) restore.$(OBJEXT) statistic.$(OBJEXT) \
+	jcr.$(OBJEXT) config.$(OBJEXT) cbr_filter.$(OBJEXT) \
+	cap_filter.$(OBJEXT)
 libserver_a_OBJECTS = $(am_libserver_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -152,7 +155,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libserver.a
-libserver_a_SOURCES = dedup.c cfl_dedup.c destor.c backup.c restore.c statistic.c jcr.c config.c cbr_dedup.c cap_dedup.c
+libserver_a_SOURCES = dedup.c read_phase.c chunk_phase.c hash_phase.c prepare_phase.c filter_phase.c append_phase.c cfl_filter.c destor.c backup.c restore.c statistic.c jcr.c config.c cbr_filter.c cap_filter.c
 all: all-am
 
 .SUFFIXES:
@@ -201,14 +204,20 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/append_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/backup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cap_dedup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cbr_dedup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cfl_dedup.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cap_filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cbr_filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cfl_filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chunk_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dedup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/destor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_phase.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hash_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jcr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/prepare_phase.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/restore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statistic.Po@am__quote@
 
