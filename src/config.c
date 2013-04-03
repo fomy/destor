@@ -50,6 +50,12 @@ int32_t capping_segment_size = 20*1024*1024;
 BOOL enable_hbr = FALSE;
 double hbr_usage_threshold = 0.7;
 
+/* 
+ * enable cache monitor to filter unnecessary
+ * out of order chunks
+ */
+BOOL enable_cache_filter = FALSE;
+
 void set_value(char *pname, char *pvalue){
     if(strcmp(pname, "WORKING_PATH") == 0){
         strcpy(working_path, pvalue);
@@ -70,9 +76,6 @@ void set_value(char *pname, char *pvalue){
     }
     else if(strcmp(pname, "ENABLE_WRITING") == 0){
         enable_writing = atoi(pvalue) == 0 ? FALSE : TRUE;
-    }
-    else if(strcmp(pname, "ENABLE_HBR") == 0){
-        enable_hbr = atoi(pvalue) == 0 ? FALSE : TRUE;
     }
     else if(strcmp(pname, "OPTIMAL_CACHE_WINDOW_SIZE") == 0){
         optimal_cache_window_size = atoi(pvalue);
@@ -119,6 +122,9 @@ void set_value(char *pname, char *pvalue){
             rewriting_algorithm = CAP_REWRITING;
         }else if(strcmp(pvalue, "HBR_CAP") == 0){
             rewriting_algorithm = HBR_CAP_REWRITING;
+            enable_hbr = TRUE;
+        }else if(strcmp(pvalue, "HBR_CFL") == 0){
+            rewriting_algorithm = HBR_CFL_REWRITING;
             enable_hbr = TRUE;
         }else{
             printf("%s, %d: unknown rewriting algorithm\n",__FILE__,__LINE__);

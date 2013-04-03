@@ -17,6 +17,7 @@ extern int load_config();
 
 extern BOOL enable_writing;
 extern BOOL enable_hbr;
+extern BOOL enable_cache_filter;
 extern int read_cache_type;
 extern int read_cache_size;
 extern int fingerprint_index_type;
@@ -57,6 +58,7 @@ struct option long_options[] = {
     {"capping_segment_size", 1, NULL, 'a'},
     {"disable_writing", 0, NULL, 'd'},
     {"enable_hbr", 0, NULL, 'e'},
+    {"enable_cache_filter", 0, NULL, 'E'},
     {"help", 0, NULL, 'h'},
     {NULL, 0, NULL, 0}
 };
@@ -84,7 +86,7 @@ void print_help(){
     puts("\t\tAssign read cache type. IT now support LRU, OPT.");
     puts("\t--cache_size=[number of containers]");
     puts("\t\tAssign read cache size, e.g. --cache_size=100.");
-    puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP]");
+    puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]");
     puts("\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
     puts("\t--cfl_p=[p in CFL]");
     puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
@@ -101,9 +103,11 @@ void print_help(){
     puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
     puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
     puts("\t--disable_writing");
-    puts("\t\tenable HBR.");
-    puts("\t--enable_hbr");
     puts("\t\tdisable writing files during the recovery.");
+    puts("\t--enable_hbr");
+    puts("\t\tenable HBR.");
+    puts("\t--enable_cache_filter");
+    puts("\t\tenable cache filter.");
 }
 
 int main(int argc, char **argv) {
@@ -175,6 +179,9 @@ int main(int argc, char **argv) {
                 }else if(strcmp(optarg, "HBR_CAP") == 0){
                     rewriting_algorithm = HBR_CAP_REWRITING;
                     enable_hbr = TRUE;
+                }else if(strcmp(optarg, "HBR_CFL") == 0){
+                    rewriting_algorithm = HBR_CFL_REWRITING;
+                    enable_hbr = TRUE;
                 }else{
                     puts("unknown rewriting algorithm\n");
                     puts("type -h or --help for help.");
@@ -214,6 +221,8 @@ int main(int argc, char **argv) {
             case 'd':
                 enable_writing = FALSE;
                 break;
+            case 'E':
+                enable_cache_filter = TRUE;
             default:
                 return 0;
         }

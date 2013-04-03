@@ -311,7 +311,7 @@ static void* read_chunk_thread(void *arg) {
                 jcr->enable_data_cache, jcr->job_volume->job_seed_file, optimal_cache_window_size);
     }else if(read_cache_type == ASM_CACHE){
         puts("cache=ASM");
-        monitor = cfl_monitor_new(0, 0);
+        monitor = cfl_monitor_new(0);
         jcr->asm_buffer = 0;
         area_length = jcr->read_cache_size*4*1024*1024;
         chunks_length = 0;

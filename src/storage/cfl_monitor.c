@@ -12,13 +12,9 @@ static gint container_id_cmp(gconstpointer a, gconstpointer b) {
     return *((ContainerId*) a) - *((ContainerId*) b);
 }
 
-CFLMonitor* cfl_monitor_new(int read_cache_size, double cfl_require) {
+CFLMonitor* cfl_monitor_new(int read_cache_size) {
     CFLMonitor *monitor = (CFLMonitor*)malloc(sizeof(CFLMonitor));
     monitor->total_size = 0;
-
-    monitor->high_water_mark = cfl_require + 0.1;
-    monitor->low_water_mark = cfl_require;
-    monitor->enable_selective = FALSE;
 
     monitor->ccf = 0;
     monitor->ocf = 0;

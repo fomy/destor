@@ -46,7 +46,6 @@ struct jcr{
     BOOL enable_data_cache;
     int32_t read_cache_size;
     GHashTable* historical_sparse_containers;
-
     /*
      * the time consuming of six dedup phase
      */

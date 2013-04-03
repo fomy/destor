@@ -7,6 +7,8 @@
 
 #include "jcr.h"
 
+extern int read_cache_size;
+
 Jcr* new_write_jcr() {
 	Jcr *jcr = (Jcr*) malloc(sizeof(Jcr));
 	jcr->job_id = 0;

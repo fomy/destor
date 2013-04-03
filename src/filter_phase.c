@@ -91,6 +91,9 @@ int start_filter_phase(Jcr *jcr){
     } else if(rewriting_algorithm == HBR_CAP_REWRITING){
         puts("rewriting_algorithm=HBR_CAP");
         pthread_create(&filter_t, NULL, cap_filter, jcr);
+    } else if(rewriting_algorithm == HBR_CFL_REWRITING){
+        puts("rewriting_algorithm=HBR_CFL");
+        pthread_create(&filter_t, NULL, cfl_filter, jcr);
     } else{
         dprint("invalid rewriting algorithm\n");
         return FAILURE;

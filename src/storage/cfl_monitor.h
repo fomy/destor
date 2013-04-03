@@ -12,13 +12,10 @@ struct cfl_monitor_tag {
     int ccf;
     double cfl; //ocf/ccf
 
-    BOOL enable_selective;
-    double low_water_mark;
-    double high_water_mark;
     LRUCache *cache;
 };
 
-CFLMonitor* cfl_monitor_new(int read_cache_size, double cfl_require);
+CFLMonitor* cfl_monitor_new(int read_cache_size);
 void cfl_monitor_free(CFLMonitor *monitor);
 void update_cfl(CFLMonitor *monitor, ContainerId id, int32_t chunklen);
 void update_cfl_directly(CFLMonitor* monitor, int32_t chunklen, BOOL is_new);

@@ -9,8 +9,6 @@
 #include "container_volume.h"
 #include "../dedup.h"
 
-extern double cfl_require;
-
 /*
  * seed_file will be ingnored when cache_type is LRU_CACHE
  */
@@ -20,7 +18,7 @@ ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache)
     cc->lru_cache = lru_cache_new(cache_size, container_cmp_asc);
     cc->enable_data = enable_data_cache;
     if (cc->enable_data)
-        cc->cfl_monitor = cfl_monitor_new(cache_size, cfl_require);
+        cc->cfl_monitor = cfl_monitor_new(cache_size);
     else
         cc->cfl_monitor = 0;
     cc->map = g_hash_table_new_full(g_int64_hash,

@@ -16,8 +16,10 @@
 #include "statistic.h"
 #include "tools/sync_queue.h"
 #include "index/index.h"
+#include "storage/cfl_monitor.h"
 
 extern DestorStat *destor_stat;
+extern int read_cache_size;
 extern double search_time;
 extern double update_time;
 
@@ -41,6 +43,8 @@ extern void stop_append_phase();
 
 int backup(Jcr* jcr);
 static SyncQueue* fingerchunk_queue;
+
+CFLMonitor *cfl_monitor;
 
 int backup_server(char *path) {
     Jcr *jcr = new_write_jcr();
@@ -175,6 +179,7 @@ void send_fc_signal(){
 void send_fingerchunk(FingerChunk *fchunk, Fingerprint *feature,
         BOOL update){
     index_update(&fchunk->fingerprint, fchunk->container_id, feature, update);
+    update_cfl(cfl_monitor, fchunk->container_id, fchunk->length);
     sync_queue_push(fingerchunk_queue, fchunk);
 }
 
@@ -192,7 +197,8 @@ static int recv_fingerchunk(FingerChunk **fc){
 int backup(Jcr* jcr) {
 
     fingerchunk_queue = sync_queue_new(-1);
-    ContainerUsageMonitor* monitor = container_usage_monitor_new();
+    ContainerUsageMonitor* usage_monitor = container_usage_monitor_new();
+    cfl_monitor = cfl_monitor_new(read_cache_size);
 
     start_read_phase(jcr);
     start_chunk_phase(jcr);
@@ -206,7 +212,7 @@ int backup(Jcr* jcr) {
     FingerChunk* fchunk = NULL;
     int signal = recv_fingerchunk(&fchunk);
     while(signal != STREAM_END){
-        container_usage_monitor_update(monitor, fchunk->container_id,
+        container_usage_monitor_update(usage_monitor, fchunk->container_id,
                 &fchunk->fingerprint, fchunk->length);
         jvol_append_fingerchunk(jcr->job_volume, fchunk);
 
@@ -226,10 +232,10 @@ int backup(Jcr* jcr) {
         jvol_append_seed(jcr->job_volume, seed_id, seed_len);
     sync_queue_free(fingerchunk_queue, NULL);
 
-    jcr->sparse_container_num = g_hash_table_size(monitor->sparse_map);
-    jcr->total_container_num = g_hash_table_size(monitor->dense_map) + jcr->sparse_container_num;
+    jcr->sparse_container_num = g_hash_table_size(usage_monitor->sparse_map);
+    jcr->total_container_num = g_hash_table_size(usage_monitor->dense_map) + jcr->sparse_container_num;
 
-    while((jcr->inherited_sparse_num = container_usage_monitor_print(monitor, 
+    while((jcr->inherited_sparse_num = container_usage_monitor_print(usage_monitor, 
                     jcr->job_id, jcr->historical_sparse_containers))<0){
         dprint("retry!");
     }
@@ -255,7 +261,9 @@ int backup(Jcr* jcr) {
     stop_chunk_phase();
     stop_read_phase();
 
-    container_usage_monitor_free(monitor);
+    container_usage_monitor_free(usage_monitor);
+    print_cfl(cfl_monitor);
+    cfl_monitor_free(cfl_monitor);
 
     return 0;
 }

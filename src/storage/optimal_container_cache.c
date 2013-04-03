@@ -9,8 +9,6 @@
 #include "container_volume.h"
 #include "../dedup.h"
 
-extern double cfl_require;
-
 #define INFINITE -1
 
 static int read_nseed(FILE *seed_file, Seed *start, int count){
@@ -201,7 +199,7 @@ OptimalContainerCache* optimal_container_cache_new(int cache_size,
     opt_cache->cache_size = cache_size;
     opt_cache->enable_data = enable_data;
     if(enable_data)
-        opt_cache->cfl_monitor = cfl_monitor_new(cache_size, cfl_require);
+        opt_cache->cfl_monitor = cfl_monitor_new(cache_size);
     else
         opt_cache->cfl_monitor = 0;
 

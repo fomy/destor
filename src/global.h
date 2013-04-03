@@ -58,6 +58,7 @@ typedef int BOOL;
 #define CBR_REWRITING 3
 #define HBR_REWRITING 4
 #define HBR_CBR_REWRITING 5
+#define HBR_CFL_REWRITING 6
 #define CAP_REWRITING 7
 #define HBR_CAP_REWRITING 8
 

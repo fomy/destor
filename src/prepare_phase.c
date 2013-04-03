@@ -6,6 +6,7 @@
 
 extern int fingerprint_index_type;
 extern BOOL enable_hbr;
+extern BOOL enable_cache_filter;
 extern int recv_hash(Chunk **chunk);
 /* output of prepare_thread */
 static SyncQueue* feature_queue;
@@ -32,8 +33,11 @@ int recv_feature(Chunk **new_chunk){
                     &chunk->container_id) != NULL){
             chunk->status |= SPARSE;
         }
+        if(enable_cache_filter){
+            chunk->status |= IN_CACHE;
+        }
     }
-    
+
     *new_chunk = chunk;
     return SUCCESS;
 }

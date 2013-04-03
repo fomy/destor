@@ -10,7 +10,7 @@ Features
 3. Container-based storage;
 4. in-memory index and DDFS index;
 5. LRU cache and Nearly-Optimal cache;
-6. CFL monitor and selective deduplication;
+6. CFL monitor,  selective deduplication, and CFL-assisted HBR;
 7. Context-based rewriting algorithm (CBR).
 8. Extreme Binning index without file-level dedup;
 9. SiLo index;
