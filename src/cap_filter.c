@@ -146,7 +146,8 @@ void *cap_filter(void* arg){
 
                 BOOL update = FALSE;
                 if(chunk->status & DUPLICATE){
-                    if(chunk->status & OUT_OF_ORDER ||
+                    if((chunk->status & OUT_OF_ORDER) &&
+                           (chunk->status & NOT_IN_CACHE) ||
                              chunk->status & SPARSE){
                         chunk->container_id = save_chunk(chunk);
                         update = TRUE;

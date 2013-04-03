@@ -223,6 +223,7 @@ int main(int argc, char **argv) {
                 break;
             case 'E':
                 enable_cache_filter = TRUE;
+                break;
             default:
                 return 0;
         }

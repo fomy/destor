@@ -3,11 +3,13 @@
 #include "jcr.h"
 #include "tools/sync_queue.h"
 #include "index/index.h"
+#include "storage/cfl_monitor.h"
 
 extern int fingerprint_index_type;
 extern BOOL enable_hbr;
 extern BOOL enable_cache_filter;
 extern int recv_hash(Chunk **chunk);
+extern CFLMonitor* cfl_monitor;
 /* output of prepare_thread */
 static SyncQueue* feature_queue;
 static pthread_t prepare_t;
@@ -33,8 +35,9 @@ int recv_feature(Chunk **new_chunk){
                     &chunk->container_id) != NULL){
             chunk->status |= SPARSE;
         }
-        if(enable_cache_filter){
-            chunk->status |= IN_CACHE;
+        if(!enable_cache_filter || 
+                is_container_already_in_cache(cfl_monitor, chunk->container_id)==FALSE){
+            chunk->status |= NOT_IN_CACHE;
         }
     }
 

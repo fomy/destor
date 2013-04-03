@@ -48,6 +48,19 @@ void* lru_cache_lookup(LRUCache *cache, void* data) {
 }
 
 /*
+ * Lookup data in lru cache,
+ * but the lookup will not update the lru queue. 
+ */
+void* lru_cache_lookup_without_update(LRUCache *cache, void* data) {
+    GList* item = g_list_find_custom(cache->lru_queue, data, cache->data_cmp);
+    if (item) {
+        return item->data;
+    } else {
+        return NULL;
+    }
+}
+
+/*
  * We know that the elem does not exist!
  */
 void* lru_cache_insert(LRUCache *cache, void* data) {

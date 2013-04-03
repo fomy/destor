@@ -14,7 +14,7 @@
 #define DUPLICATE (0x01)
 #define SPARSE (0x02)
 #define OUT_OF_ORDER (0x04)
-#define IN_CACHE (0x08)
+#define NOT_IN_CACHE (0x08)
 
 typedef struct chunk_tag Chunk;
 typedef struct data_buffer_tag DataBuffer;

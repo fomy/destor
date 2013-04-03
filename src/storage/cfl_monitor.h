@@ -21,4 +21,5 @@ void update_cfl(CFLMonitor *monitor, ContainerId id, int32_t chunklen);
 void update_cfl_directly(CFLMonitor* monitor, int32_t chunklen, BOOL is_new);
 double get_cfl(CFLMonitor *monitor);
 void print_cfl(CFLMonitor *monitor);
+BOOL is_container_already_in_cache(CFLMonitor* monitor, ContainerId id);
 #endif

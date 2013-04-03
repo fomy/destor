@@ -16,6 +16,7 @@ Features
 9. SiLo index;
 10. History-based rewriting algorithm (HBR), and CBR-assisted HBR.
 11. Capping rewriting algorithm, rolling forward assembly area algorithm, and capping-assisted HBR.
+12. Add a cache filter to improve rewriting algorithms.
 
 Related papers
 ==============

@@ -63,9 +63,13 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
         if(container_tmp.id != new_chunk->container_id){
             if(container_tmp.size > 0){
                 /* determining whether rewrite container_tmp */
-                if((1.0*container_tmp.size/CONTAINER_SIZE) < cfl_usage_threshold
+                if((1.0*container_tmp.size/CONTAINER_SIZE) < cfl_usage_threshold 
+                        && (container_tmp.status & NOT_IN_CACHE)
                         || container_tmp.status & SPARSE){
-                    /* rewrite */
+                    /* 
+                     * If SPARSE,  rewrite it.
+                     * If OUT_OF_ORDER and NOT_IN_CACHE, rewrite it.
+                     * */
                     rewrite_container(jcr);
                 }else{
                     Chunk* waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
@@ -218,8 +222,9 @@ void *cfl_filter(void* arg){
 
     /* Handle container_tmp*/
     if(enable_selective){
-        if ((1.0*container_tmp.size/CONTAINER_SIZE)< cfl_usage_threshold ||
-                container_tmp.status & SPARSE) {
+        if((1.0*container_tmp.size/CONTAINER_SIZE) < cfl_usage_threshold 
+                && (container_tmp.status & NOT_IN_CACHE)
+                || container_tmp.status & SPARSE){
             //rewrite container_tmp
             rewrite_container(jcr);
         } else {

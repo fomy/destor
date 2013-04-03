@@ -180,6 +180,7 @@ void *cbr_filter(void* arg){
 
     UtilityBuckets *buckets = utility_buckets_new();
 
+    int i = 0;
     /* content-based rewrite*/
     while(tail){
         TIMER_DECLARE(b1, e1);
@@ -216,7 +217,8 @@ void *cbr_filter(void* arg){
         BOOL update = FALSE;
         if(decision_chunk->status & DUPLICATE){
             if((decision_chunk->status & SPARSE) ||
-                    decision_chunk->status & OUT_OF_ORDER){
+                    (decision_chunk->status & NOT_IN_CACHE) &&
+                    (decision_chunk->status & OUT_OF_ORDER)){
                 decision_chunk->container_id = save_chunk(decision_chunk);
                 update = TRUE;
                 jcr->rewritten_chunk_count ++;
@@ -225,6 +227,7 @@ void *cbr_filter(void* arg){
                 jcr->dedup_size += decision_chunk->length;
                 ++jcr->number_of_dup_chunks;
             }
+            i++;
         }else{
             decision_chunk->container_id = save_chunk(decision_chunk);
             update = TRUE;
@@ -256,6 +259,7 @@ void *cbr_filter(void* arg){
                 jcr->dedup_size += remaining_chunk->length;
                 ++jcr->number_of_dup_chunks;
             }
+            i++;
         }else{
             remaining_chunk->container_id = save_chunk(remaining_chunk);
             update = TRUE;
@@ -271,6 +275,7 @@ void *cbr_filter(void* arg){
         remaining_chunk = stream_context_pop(stream_context);
     }
     TIMER_END(jcr->filter_time, b1, e1);
+    printf("i=%d\n", i);
 
     save_chunk(NULL);
 

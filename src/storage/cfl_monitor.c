@@ -71,6 +71,11 @@ void update_cfl_directly(CFLMonitor* monitor, int32_t chunklen, BOOL is_new){
     monitor->cfl = monitor->ocf / (double)monitor->ccf;
 }
 
+BOOL is_container_already_in_cache(CFLMonitor* monitor, ContainerId id){
+    void *key = lru_cache_lookup_without_update(monitor->cache, &id);
+    return key ? TRUE : FALSE;
+}
+
 double get_cfl(CFLMonitor *monitor) {
     return monitor->cfl>1?1:monitor->cfl;
 }

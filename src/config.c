@@ -96,7 +96,7 @@ void set_value(char *pname, char *pvalue){
     else if(strcmp(pname, "DDFS_CACHE_SIZE") == 0){
         ddfs_cache_size = atoi(pvalue);
     }
-    else if(strcmp(pname, "CFL_USAGE_REQUIRE") == 0){
+    else if(strcmp(pname, "CFL_REQUIRE") == 0){
         cfl_require = atof(pvalue);
     }
     else if(strcmp(pname, "CFL_P") == 0){
@@ -155,7 +155,7 @@ void set_value(char *pname, char *pvalue){
         capping_segment_size = atoi(pvalue)*1024*1024;
     }
     else{
-        printf("%s, %d: no such param name\n",__FILE__,__LINE__);
+        printf("%s, %d: no such param name %s.\n",__FILE__,__LINE__, pname);
     }
 }
 

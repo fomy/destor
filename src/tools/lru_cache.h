@@ -29,5 +29,6 @@ struct lru_cache_tag {
 LRUCache* lru_cache_new(int size, gint (*elem_cmp)(gconstpointer a, gconstpointer b));
 void lru_cache_free(LRUCache *cache, void (*data_free)(void*));
 void* lru_cache_lookup(LRUCache *cache, void* elem);
+void* lru_cache_lookup_without_update(LRUCache *cache, void* data);
 void* lru_cache_insert(LRUCache *cache, void* elem);
 #endif /* Cache_H_ */
