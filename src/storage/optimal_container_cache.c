@@ -261,7 +261,7 @@ static Container *optimal_container_cache_insert(OptimalContainerCache *opt_cach
     /* read and insert container */
     Container *required_container = 0;
     if(opt_cache->enable_data){
-#ifdef SIMULATE
+#ifdef SIMULATOR
         required_container = read_container_meta_only(container_id);
 #else
         required_container = read_container(container_id);

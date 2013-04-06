@@ -77,6 +77,6 @@ typedef unsigned char Fingerprint[20];
 #define EXBIN_INDEX 3
 #define SILO_INDEX 4
 
-//#define SIMULATE
+//#define SIMULATOR
 
 #endif /* SERVER_GLOBAL_H_ */

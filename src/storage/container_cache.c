@@ -83,7 +83,7 @@ Container *container_cache_insert_container(ContainerCache *cc,
     Container *container = 0;
     if (cc->enable_data)
     {
-#ifdef SIMULATE
+#ifdef SIMULATOR
         container = read_container_meta_only(cid);
 #else
         container = read_container(cid);

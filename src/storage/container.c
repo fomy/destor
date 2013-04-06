@@ -146,7 +146,7 @@ ContainerMetaEntry* container_lookup(Container *container, Fingerprint* finger) 
 }
 
 Chunk* container_get_chunk(Container* container, Fingerprint *hash) {
-#ifndef SIMULATE
+#ifndef SIMULATOR
 	if (!container->data) {
         dprint("Failed to get a chunk!");
 		return NULL;
@@ -160,7 +160,7 @@ Chunk* container_get_chunk(Container* container, Fingerprint *hash) {
 	Chunk *chunk = (Chunk*) malloc(sizeof(Chunk));
 
     chunk->data = malloc(cm->length);
-#ifdef SIMULATE
+#ifdef SIMULATOR
     memset(chunk->data, 0, cm->length);
 #else
 	memcpy(chunk->data, (char*) container->data + cm->offset, cm->length);
