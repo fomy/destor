@@ -16,7 +16,7 @@ echo "#index ${index} rewrite ${rewrite}" >>  backup.log
 jobid=0
 for file in $(ls $3); do
 echo 3 > /proc/sys/vm/drop_caches
-destor $3/$file --index=$index --rewrite=$rewrite --usage=0.7 >>log
+destor $3/$file --index=$index --rewrite=$rewrite >>log
 jobid=$(($jobid+1))
 done
 
