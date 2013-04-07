@@ -10,6 +10,7 @@
 #include "../dedup.h"
 
 #define INFINITE -1
+extern BOOL enable_simulator;
 
 static int read_nseed(FILE *seed_file, Seed *start, int count){
     if(count == 0)
@@ -261,11 +262,11 @@ static Container *optimal_container_cache_insert(OptimalContainerCache *opt_cach
     /* read and insert container */
     Container *required_container = 0;
     if(opt_cache->enable_data){
-#ifdef SIMULATOR
-        required_container = read_container_meta_only(container_id);
-#else
-        required_container = read_container(container_id);
-#endif
+        if(enable_simulator){
+            required_container = read_container_meta_only(container_id);
+        }else{
+            required_container = read_container(container_id);
+        }
     }else{
         required_container = read_container_meta_only(container_id);
     }

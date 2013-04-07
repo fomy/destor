@@ -9,6 +9,7 @@
 #include "container_volume.h"
 #include "../dedup.h"
 
+extern BOOL enable_simulator;
 /*
  * seed_file will be ingnored when cache_type is LRU_CACHE
  */
@@ -83,11 +84,11 @@ Container *container_cache_insert_container(ContainerCache *cc,
     Container *container = 0;
     if (cc->enable_data)
     {
-#ifdef SIMULATOR
-        container = read_container_meta_only(cid);
-#else
-        container = read_container(cid);
-#endif
+        if(enable_simulator){
+            container = read_container_meta_only(cid);
+        }else{
+            container = read_container(cid);
+        }
     }
     else
     {

@@ -16,6 +16,7 @@ extern int restore_server(int revision, char *path);
 extern int load_config();
 
 extern BOOL enable_writing;
+extern BOOL enable_simulator;
 extern BOOL enable_hbr;
 extern BOOL enable_cache_filter;
 extern int read_cache_type;
@@ -59,6 +60,7 @@ struct option long_options[] = {
     {"disable_writing", 0, NULL, 'd'},
     {"enable_hbr", 0, NULL, 'e'},
     {"enable_cache_filter", 0, NULL, 'E'},
+    {"enable_simulator", 0, NULL, 'I'},
     {"help", 0, NULL, 'h'},
     {NULL, 0, NULL, 0}
 };
@@ -108,6 +110,8 @@ void print_help(){
     puts("\t\tenable HBR.");
     puts("\t--enable_cache_filter");
     puts("\t\tenable cache filter.");
+    puts("\t--enable_simulator");
+    puts("\t\tenable simulator mode.");
 }
 
 int main(int argc, char **argv) {
@@ -223,6 +227,9 @@ int main(int argc, char **argv) {
                 break;
             case 'E':
                 enable_cache_filter = TRUE;
+                break;
+            case 'I':
+                enable_simulator = TRUE;
                 break;
             default:
                 return 0;

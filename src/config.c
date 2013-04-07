@@ -14,6 +14,9 @@ char working_path[200] = "/home/data/working/";
 /* enable writing data during the recovery */
 BOOL enable_writing = TRUE;
 
+/* simulator mode */
+BOOL enable_simulator = FALSE;
+
 /* read cahce parameters */
 int read_cache_size = 100;
 BOOL enable_data_cache = TRUE;
