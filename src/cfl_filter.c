@@ -197,10 +197,19 @@ void *cfl_filter(void* arg){
                     fchunk->length = chunk->length;
                     memcpy(&fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
                     fchunk->next = 0;
+
+                    BOOL update = FALSE;
+                    if(chunk->status & SPARSE){
+                        fchunk->container_id = save_chunk(chunk);
+                        jcr->rewritten_chunk_count++;
+                        jcr->rewritten_chunk_amount += fchunk->length;
+                        update = TRUE;
+                    }else{
+                        jcr->dedup_size += fchunk->length;
+                        jcr->number_of_dup_chunks++;
+                    }
+                    send_fingerchunk(fchunk, &chunk->feature, update);
                     free_chunk(chunk);    
-                    jcr->dedup_size += fchunk->length;
-                    jcr->number_of_dup_chunks++;
-                    send_fingerchunk(fchunk, &chunk->feature, FALSE);
                 }
                 if(queue_size(container_tmp.waiting_chunk_queue)!=0){
                     printf("%s, %d: irregular state in queue. size=%d.\n",
