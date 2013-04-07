@@ -48,7 +48,7 @@ void container_free_full(Container* container) {
  * If the container will over-flow after inserting.
  */
 static BOOL container_overflow_predict(Container* container, int32_t length) {
-    if ((container->chunk_num + 1) * CONTAINER_META_ENTRY_SIZE > CONTAINER_MAX_META_SIZE) {
+    if (((container->chunk_num + 1) * CONTAINER_META_ENTRY_SIZE + CONTAINER_DES_SIZE) > CONTAINER_MAX_META_SIZE) {
         dprint("The metadata buffer of container_buffer is now facing overflow!");
         return TRUE;
     }
