@@ -42,7 +42,7 @@ int init_container_volume() {
     strcat(container_volume.volume_path, "container_volume");
 
     if ((container_volume.file_descriptor = open(container_volume.volume_path,
-                    O_RDWR | O_CREAT | O_DIRECT, S_IRWXU)) <= 0) {
+                    O_RDWR | O_CREAT /*| O_DIRECT*/, S_IRWXU)) <= 0) {
         dprint("Failed to init container manager!");
         return FAILURE;
     }
