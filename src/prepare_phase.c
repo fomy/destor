@@ -15,6 +15,9 @@ static SyncQueue* feature_queue;
 static pthread_t prepare_t;
 static GHashTable *sparse_containers;
 
+int sparse_chunk_count = 0;
+int64_t sparse_chunk_amount = 0;
+
 static void send_feature(Chunk *chunk){
     sync_queue_push(feature_queue, chunk);
 }
@@ -33,6 +36,8 @@ int recv_feature(Chunk **new_chunk){
         chunk->status |= DUPLICATE;
         if(enable_hbr && sparse_containers && g_hash_table_lookup(sparse_containers, 
                     &chunk->container_id) != NULL){
+            ++sparse_chunk_count;
+            sparse_chunk_amount += chunk->length;
             chunk->status |= SPARSE;
         }
         if(!enable_cache_filter || 
@@ -210,6 +215,8 @@ int start_prepare_phase(Jcr *jcr){
     feature_queue = sync_queue_new(100);
     jcr->historical_sparse_containers = load_historical_sparse_containers(jcr->job_id);
     sparse_containers = jcr->historical_sparse_containers;
+    sparse_chunk_count = 0;
+    sparse_chunk_amount = 0;
     switch(fingerprint_index_type){
         case RAM_INDEX:
         case DDFS_INDEX:

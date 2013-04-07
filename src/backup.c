@@ -22,6 +22,8 @@ extern DestorStat *destor_stat;
 extern int read_cache_size;
 extern double search_time;
 extern double update_time;
+extern int sparse_chunk_count;
+extern int64_t sparse_chunk_amount;
 
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
@@ -113,6 +115,8 @@ int backup_server(char *path) {
     destor_stat->zero_chunk_amount += jcr->zero_chunk_amount;
     destor_stat->rewritten_chunk_count += jcr->rewritten_chunk_count;
     destor_stat->rewritten_chunk_amount += jcr->rewritten_chunk_amount;
+    destor_stat->sparse_chunk_count += sparse_chunk_count;
+    destor_stat->sparse_chunk_amount += sparse_chunk_amount;
 
     printf("read_time : %.3fs, %.2fMB/s\n", jcr->read_time / 1000000,
             jcr->job_size * 1000000 / jcr->read_time / 1024 / 1024);

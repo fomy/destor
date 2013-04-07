@@ -19,6 +19,9 @@ typedef struct destor_stat{
 
     int32_t rewritten_chunk_count;
     int64_t rewritten_chunk_amount;
+
+    int32_t sparse_chunk_count;
+    int64_t sparse_chunk_amount;
 }DestorStat;
 
 extern int init_destor_stat();
