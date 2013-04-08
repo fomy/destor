@@ -215,18 +215,22 @@ ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* feature){
         return *cid;
     }
 
+    cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
+    if(cid != 0){
+        return *cid;
+    }
+
     /* Does it exist in SHTable? */
     int32_t *bid = g_hash_table_lookup(SHTable, feature);
     if(bid != 0 && *bid != read_cache->id){
         /* its block is not in read cache */
         silo_block_free(read_cache);
         read_cache = read_block_from_volume(*bid);
-    }
-
-    /* filter the fingerprint in read cache */
-    cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
-    if(cid != 0){
-        return *cid;
+        /* filter the fingerprint in read cache */
+        cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
+        if(cid != 0){
+            return *cid;
+        }
     }
     return TMP_CONTAINER_ID;
 }

@@ -85,3 +85,19 @@ void queue_foreach(Queue *queue, void (*func)(void *data, void *user_data), void
         item = item->next;
     }
 }
+
+/*
+ * return the nth elem in queue.
+ */
+void* queue_get_n(Queue *queue, int n){
+    if(n >= queue_size(queue)){
+        return NULL;
+    }
+    int i = 0;
+    queue_ele_t *item = queue->first;
+    while(i < n){
+        item = item->next;
+    }
+    return item->data;
+
+}
