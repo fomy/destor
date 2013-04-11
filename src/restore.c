@@ -21,7 +21,7 @@ extern int read_cache_size;
 extern BOOL enable_data_cache;
 extern int read_cache_type;
 extern int optimal_cache_window_size;
-extern BOOL enable_writing;
+extern BOOL enable_simulator;
 
 typedef struct{
     char *data;
@@ -187,7 +187,7 @@ static int restore_one_file(Jcr *jcr, Recipe *recipe) {
         TIMER_DECLARE(b1, e1);
         TIMER_BEGIN(b1);
         /* cherish your disk */
-        if(enable_writing == TRUE)
+        if(enable_simulator == FALSE)
             write(fd, current_record->data + current_record->offset,
                 write_length);
         jcr->job_size += write_length;

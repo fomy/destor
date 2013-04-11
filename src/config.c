@@ -11,9 +11,6 @@
 /* server parameters */
 char working_path[200] = "/home/data/working/";
 
-/* enable writing data during the recovery */
-BOOL enable_writing = TRUE;
-
 /* simulator mode */
 BOOL enable_simulator = FALSE;
 
@@ -76,9 +73,6 @@ void set_value(char *pname, char *pvalue){
         }else{
             printf("%s, %d: unknown cache type\n",__FILE__,__LINE__);
         }
-    }
-    else if(strcmp(pname, "ENABLE_WRITING") == 0){
-        enable_writing = atoi(pvalue) == 0 ? FALSE : TRUE;
     }
     else if(strcmp(pname, "OPTIMAL_CACHE_WINDOW_SIZE") == 0){
         optimal_cache_window_size = atoi(pvalue);

@@ -49,9 +49,35 @@ Container* container_cache_lookup(ContainerCache *cc, Fingerprint *finger)
     if (container_list)
     {
         container = g_sequence_get(g_sequence_get_begin_iter(container_list));
-        if (!lru_cache_lookup(cc->lru_cache, container))
-        {
-            printf("%s, %d: inconsistency between map and cache.\n", __FILE__, __LINE__);
+        /*container = g_sequence_get(g_sequence_search(container_list, &tmp, container_cmp_des, NULL));*/
+        if(container){
+            if (!lru_cache_lookup(cc->lru_cache, container))
+            {
+                printf("%s, %d: inconsistency between map and cache.\n", __FILE__, __LINE__);
+            }
+        }
+    }
+    return container;
+}
+
+Container* container_cache_lookup_special(ContainerCache *cc, Fingerprint *finger, ContainerId container_id)
+{
+    Container tmp;
+    tmp.id = container_id;
+    Container *container = 0;
+    GSequence *container_list = g_hash_table_lookup(cc->map, finger);
+    if (container_list)
+    {
+        /*container = g_sequence_get(g_sequence_get_begin_iter(container_list));*/
+        GSequenceIter *iter = g_sequence_lookup(container_list, &tmp, container_cmp_des, NULL);
+        if(iter){
+            container = g_sequence_get(iter);
+            if(container){
+                if (!lru_cache_lookup(cc->lru_cache, container))
+                {
+                    printf("%s, %d: inconsistency between map and cache.\n", __FILE__, __LINE__);
+                }
+            }
         }
     }
     return container;
@@ -61,7 +87,7 @@ Container* container_cache_lookup(ContainerCache *cc, Fingerprint *finger)
 Chunk *container_cache_get_chunk(ContainerCache *cc, 
         Fingerprint *finger, ContainerId container_id)
 {
-    Container *container = container_cache_lookup(cc, finger);
+    Container *container = container_cache_lookup_special(cc, finger, container_id);
     Chunk *result = 0;
     if (container)
     {

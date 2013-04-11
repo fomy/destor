@@ -15,7 +15,6 @@ extern int restore_server(int revision, char *path);
 
 extern int load_config();
 
-extern BOOL enable_writing;
 extern BOOL enable_simulator;
 extern BOOL enable_hbr;
 extern BOOL enable_cache_filter;
@@ -57,7 +56,6 @@ struct option long_options[] = {
     {"window_size", 1, NULL, 'w'},
     {"capping_t", 1, NULL, 't'},
     {"capping_segment_size", 1, NULL, 'a'},
-    {"disable_writing", 0, NULL, 'd'},
     {"enable_hbr", 0, NULL, 'e'},
     {"enable_cache_filter", 0, NULL, 'E'},
     {"enable_simulator", 0, NULL, 'I'},
@@ -104,8 +102,6 @@ void print_help(){
     puts("\t\tSet T for capping, e.g. --T=16.");
     puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
     puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
-    puts("\t--disable_writing");
-    puts("\t\tdisable writing files during the recovery.");
     puts("\t--enable_hbr");
     puts("\t\tenable HBR.");
     puts("\t--enable_cache_filter");
@@ -221,9 +217,6 @@ int main(int argc, char **argv) {
                 break;
             case 'S':
                 stream_context_size = atoi(optarg)*1024*1024;
-                break;
-            case 'd':
-                enable_writing = FALSE;
                 break;
             case 'E':
                 enable_cache_filter = TRUE;
