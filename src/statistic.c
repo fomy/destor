@@ -102,7 +102,8 @@ void print_destor_stat() {
     printf("#consumed capacity for unique chunks: %ld\n",
             destor_stat->consumed_capacity);
     printf("#saved capacity due to dedup: %ld\n", destor_stat->saved_capacity);
-    printf("#dedup efficiency: %.3f\n", ((double)destor_stat->saved_capacity)/destor_stat->data_amount);
+    printf("#dedup efficiency: %.3f, %.3f\n", ((double)destor_stat->saved_capacity)/destor_stat->data_amount,
+            ((double)destor_stat->data_amount)/(destor_stat->consumed_capacity));
 
     printf("#zero chunk count: %d\n", destor_stat->zero_chunk_count);
     printf("#zero chunk amount: %ld\n", destor_stat->zero_chunk_amount);
