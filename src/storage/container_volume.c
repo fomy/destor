@@ -12,6 +12,7 @@
 extern char working_path[];
 /* container queue */
 extern SyncQueue* container_queue;
+extern BOOL enable_simulator;
 
 ContainerVolume container_volume;
 
@@ -193,7 +194,8 @@ BOOL append_container(Container* container) {
         puts("append a empty container!");
         return FAILURE;
     }
-    check_container(container);
+    if(enable_simulator == FALSE)
+        check_container(container);
 
     char *buffer = container_ser(container);
     int len = 0;
@@ -273,7 +275,8 @@ Container* read_container(ContainerId id) {
 
     Container* container = container_unser_full(buff, len);
     free(buff);
-    check_container(container);
+    if(enable_simulator == FALSE)
+        check_container(container);
     return container;
 }
 
