@@ -389,7 +389,7 @@ static void* read_chunk_thread(void *arg) {
      * mean containers read per MB
      * throughput
      */
-    sprintf(buf, "%d %d %d %.2f %.2f %.2f\n", jcr->job_id, 
+    sprintf(buf, "%d %d %d %.2f %.4f %.2f\n", jcr->job_id, 
             monitor->ocf, monitor->ccf,  get_cfl(monitor),
             monitor->ccf*1024.0*1024/jcr->job_size,
             (double) jcr->job_size * 1000000 / (jcr->read_chunk_time * 1024 * 1024));

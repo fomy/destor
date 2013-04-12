@@ -159,7 +159,7 @@ int backup_server(char *path) {
      * inherited container number,
      * throughput
      */
-    sprintf(buf, "%d %ld %.2f %.2f %d %d %d %.2f\n", jcr->job_id, destor_stat->consumed_capacity,
+    sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f\n", jcr->job_id, destor_stat->consumed_capacity,
             jcr->job_size != 0 ?(double) (jcr->dedup_size) / (double) (jcr->job_size):0,
             jcr->job_size != 0 ?(double) (jcr->rewritten_chunk_amount) / (double) (jcr->job_size):0,
             jcr->total_container_num,
