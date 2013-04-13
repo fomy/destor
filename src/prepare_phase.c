@@ -17,6 +17,8 @@ static GHashTable *sparse_containers;
 
 int sparse_chunk_count = 0;
 int64_t sparse_chunk_amount = 0;
+int in_cache_count = 0;
+int64_t in_cache_amount = 0;
 
 static void send_feature(Chunk *chunk){
     sync_queue_push(feature_queue, chunk);
@@ -43,6 +45,9 @@ int recv_feature(Chunk **new_chunk){
         if(!enable_cache_filter || 
                 is_container_already_in_cache(cfl_monitor, chunk->container_id)==FALSE){
             chunk->status |= NOT_IN_CACHE;
+        }else{
+            in_cache_count++;
+            in_cache_amount += chunk->length;
         }
     }
 

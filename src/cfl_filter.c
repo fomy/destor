@@ -15,7 +15,6 @@
 extern void send_fc_signal();
 extern void send_fingerchunk(FingerChunk *fchunk, 
         Fingerprint *feature, BOOL update);
-
 extern double cfl_require;
 extern double cfl_usage_threshold;
 extern CFLMonitor* cfl_monitor;
@@ -58,65 +57,67 @@ static void rewrite_container(Jcr *jcr){
 
 static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
     BOOL update = FALSE;
-    if(new_chunk->status & DUPLICATE){
-        /* existed */
-        if(container_tmp.id != new_chunk->container_id){
-            if(container_tmp.size > 0){
-                /* determining whether rewrite container_tmp */
-                if((1.0*container_tmp.size/CONTAINER_SIZE) < cfl_usage_threshold 
-                        && (container_tmp.status & NOT_IN_CACHE)
-                        || container_tmp.status & SPARSE){
-                    /* 
-                     * If SPARSE,  rewrite it.
-                     * If OUT_OF_ORDER and NOT_IN_CACHE, rewrite it.
-                     * */
-                    rewrite_container(jcr);
-                }else{
-                    Chunk* waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
-                    while(waiting_chunk){
-                        FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
-                        fchunk->container_id = waiting_chunk->container_id;
-                        fchunk->length = waiting_chunk->length;
-                        memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
-                        fchunk->next = 0;
-                        if(waiting_chunk->data){
-                            jcr->dedup_size += fchunk->length;
-                            jcr->number_of_dup_chunks++;
-                            update = FALSE;
-                        }else{
-                            update = TRUE;
-                        }
-                        send_fingerchunk(fchunk, &waiting_chunk->feature, update);
-                        free_chunk(waiting_chunk);
-                        waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
+    /* existed */
+    if(container_tmp.id != new_chunk->container_id){
+        if(container_tmp.size > 0){
+            /* determining whether rewrite container_tmp */
+            if((1.0*container_tmp.size/CONTAINER_SIZE) < cfl_usage_threshold 
+                    && (container_tmp.status & NOT_IN_CACHE)
+                    || container_tmp.status & SPARSE){
+                /* 
+                 * If SPARSE,  rewrite it.
+                 * If OUT_OF_ORDER and NOT_IN_CACHE, rewrite it.
+                 * */
+                rewrite_container(jcr);
+            }else{
+                Chunk* waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
+                while(waiting_chunk){
+                    FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
+                    fchunk->container_id = waiting_chunk->container_id;
+                    fchunk->length = waiting_chunk->length;
+                    memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
+                    fchunk->next = 0;
+                    if(waiting_chunk->data){
+                        jcr->dedup_size += fchunk->length;
+                        jcr->number_of_dup_chunks++;
+                        update = FALSE;
+                    }else{
+                        update = TRUE;
                     }
+                    send_fingerchunk(fchunk, &waiting_chunk->feature, update);
+                    free_chunk(waiting_chunk);
+                    waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
                 }
             }
-            /*
-             * Set the status of container_tmp as the status of the first chunk
-             */
+        }
+        container_tmp.size = 0; 
+        container_tmp.id = TMP_CONTAINER_ID;
+    }
+    if(new_chunk->status & DUPLICATE){
+        /*
+         * Set the status of container_tmp as the status of the first chunk
+         */
+        if(container_tmp.size == 0){
             container_tmp.size = CONTAINER_DES_SIZE;
             container_tmp.id = new_chunk->container_id;
-            container_tmp.status = new_chunk->status;
         }
         container_tmp.size += new_chunk->length + CONTAINER_META_ENTRY_SIZE;
+        container_tmp.status = new_chunk->status;
+
         queue_push(container_tmp.waiting_chunk_queue, new_chunk);
-    } else {
+    }else{
+        if(container_tmp.size > 0){
+            dprint("container_tmp is not empty!");
+        }
         save_chunk(new_chunk);
 
-        if(queue_size(container_tmp.waiting_chunk_queue) == 0){
-            FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
-            fchunk->container_id = new_chunk->container_id;
-            fchunk->length = new_chunk->length;
-            memcpy(&fchunk->fingerprint, &new_chunk->hash, sizeof(Fingerprint));
-            fchunk->next = 0;
-            free_chunk(new_chunk);
-            send_fingerchunk(fchunk, &new_chunk->feature, TRUE);
-        }else{
-            free(new_chunk->data);
-            new_chunk->data = 0;
-            queue_push(container_tmp.waiting_chunk_queue, new_chunk);
-        }
+        FingerChunk* fchunk = (FingerChunk*)malloc(sizeof(FingerChunk));
+        fchunk->container_id = new_chunk->container_id;
+        fchunk->length = new_chunk->length;
+        memcpy(&fchunk->fingerprint, &new_chunk->hash, sizeof(Fingerprint));
+        fchunk->next = 0;
+        free_chunk(new_chunk);
+        send_fingerchunk(fchunk, &new_chunk->feature, TRUE);
     }
 }
 
