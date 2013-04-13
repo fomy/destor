@@ -7,6 +7,7 @@ mkdir -p ${DIR}/index/
 rm -f ${DIR}/jobs/*
 rm -f ${DIR}/index/*
 rm -f ${DIR}/container_volume
+rm -f ${DIR}/container_count
 rm -f ${DIR}/destor_stat
 
 #Assume mysql has no password
