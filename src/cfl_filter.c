@@ -7,7 +7,6 @@
 
 #include "global.h"
 #include "dedup.h"
-#include "index/index.h"
 #include "jcr.h"
 #include "tools/sync_queue.h"
 #include "storage/cfl_monitor.h"

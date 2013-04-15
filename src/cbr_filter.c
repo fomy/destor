@@ -7,7 +7,6 @@
  */
 #include "global.h"
 #include "dedup.h"
-#include "index/index.h"
 #include "jcr.h"
 #include "tools/sync_queue.h"
 #include "storage/container_usage_monitor.h"
@@ -97,7 +96,6 @@ static Chunk* stream_context_init(StreamContext* stream_context){
     Chunk *chunk = NULL;
     int signal = recv_feature(&chunk);
     while(signal != STREAM_END){
-        chunk->container_id = index_search(&chunk->hash, &chunk->feature);
         if(stream_context_push(stream_context, chunk)==FALSE){
             break;
         }

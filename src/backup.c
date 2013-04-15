@@ -92,7 +92,7 @@ int backup_server(char *path) {
     printf("number of dup chunks: %d\n", jcr->number_of_dup_chunks);
     printf("total size: %ld\n", jcr->job_size);
     printf("dedup size: %ld\n", jcr->dedup_size);
-    printf("dedup efficiency: %.2f, %.2f\n",
+    printf("dedup efficiency: %.4f, %.4f\n",
             jcr->job_size!= 0 ?
             (double) (jcr->dedup_size) / (double) (jcr->job_size) :
             0, jcr->job_size/(double)(jcr->job_size - jcr->dedup_size));
