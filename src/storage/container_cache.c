@@ -10,6 +10,9 @@
 #include "../dedup.h"
 
 extern BOOL enable_simulator;
+extern char working_path[];
+
+static FILE* fragment_stream = 0;
 /*
  * seed_file will be ingnored when cache_type is LRU_CACHE
  */
@@ -18,21 +21,37 @@ ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache)
     ContainerCache *cc = (ContainerCache *)malloc(sizeof(ContainerCache));
     cc->lru_cache = lru_cache_new(cache_size, container_cmp_asc);
     cc->enable_data = enable_data_cache;
-    if (cc->enable_data)
+    if (cc->enable_data){
         cc->cfl_monitor = cfl_monitor_new(cache_size);
-    else
+        char fragment_file[256];
+        strcpy(fragment_file, working_path);
+        strcat(fragment_file, "/fragment");
+        fragment_stream = fopen(fragment_file, "w+");
+    }else
         cc->cfl_monitor = 0;
     cc->map = g_hash_table_new_full(g_int64_hash,
             g_fingerprint_cmp, free, g_sequence_free);
     return cc;
 }
 
+void fprintf_container_usage(gpointer data, gpointer user_data){
+    FILE *stream = (FILE*)user_data;
+    Container *container = data;
+    fprintf(stream, "%.4f\n", 1.0*container->used_size/CONTAINER_SIZE);
+}
+
 CFLMonitor *container_cache_free(ContainerCache *cc)
 {
     CFLMonitor *monitor = cc->cfl_monitor;
     g_hash_table_destroy(cc->map);
+    if(fragment_stream){
+        lru_cache_foreach(cc->lru_cache, fprintf_container_usage, fragment_stream);
+        fclose(fragment_stream);
+        fragment_stream = 0;
+    }
     lru_cache_free(cc->lru_cache, (void (*)(void*))container_free_full);
     free(cc);
+    
     return monitor;
 }
 
@@ -100,6 +119,7 @@ Chunk *container_cache_get_chunk(ContainerCache *cc,
         result = container_get_chunk(container, finger);
         update_cfl_directly(cc->cfl_monitor, result->length, TRUE);
     }
+    container->used_size += result->length + CONTAINER_META_ENTRY_SIZE;
     return result;
 }
 
@@ -149,6 +169,7 @@ Container *container_cache_insert_container(ContainerCache *cc,
             }
         }
         free(fingers);
+        fprintf(fragment_stream, "%.4f\n", 1.0*evictor->used_size/CONTAINER_SIZE);
         container_free_full(evictor);
     }
 

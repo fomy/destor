@@ -31,4 +31,5 @@ void lru_cache_free(LRUCache *cache, void (*data_free)(void*));
 void* lru_cache_lookup(LRUCache *cache, void* elem);
 void* lru_cache_lookup_without_update(LRUCache *cache, void* data);
 void* lru_cache_insert(LRUCache *cache, void* elem);
+void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data);
 #endif /* Cache_H_ */
