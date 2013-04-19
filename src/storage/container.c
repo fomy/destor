@@ -24,6 +24,7 @@ Container* container_new_meta_only() {
     new_one->id = TMP_CONTAINER_ID;
     new_one->data_size = 0;
     new_one->chunk_num = 0;
+    new_one->used_size = CONTAINER_DES_SIZE;
 
     new_one->meta =  g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp, NULL, free);
     new_one->data = 0;

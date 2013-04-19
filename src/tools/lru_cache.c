@@ -78,3 +78,8 @@ void* lru_cache_insert(LRUCache *cache, void* data) {
     cache->cache_size++;
     return evictor;
 }
+
+void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data){
+    g_list_foreach(cache->lru_queue, func, user_data);
+}
+

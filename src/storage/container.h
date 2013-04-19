@@ -24,6 +24,7 @@ struct container_tag {
 	ContainerId id;
 	int32_t data_size;
 	int32_t chunk_num;
+    int32_t used_size;
 
 	GHashTable *meta;
 	char *data;
