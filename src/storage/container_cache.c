@@ -13,19 +13,22 @@ extern BOOL enable_simulator;
 extern char working_path[];
 
 static FILE* fragment_stream = 0;
+static char fragment_template[256];
 /*
  * seed_file will be ingnored when cache_type is LRU_CACHE
  */
-ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache)
+ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache, int job_id)
 {
     ContainerCache *cc = (ContainerCache *)malloc(sizeof(ContainerCache));
     cc->lru_cache = lru_cache_new(cache_size, container_cmp_asc);
     cc->enable_data = enable_data_cache;
+    cc->job_id = job_id;
     if (cc->enable_data){
         cc->cfl_monitor = cfl_monitor_new(cache_size);
         char fragment_file[256];
-        strcpy(fragment_file, working_path);
-        strcat(fragment_file, "/fragment");
+        strcpy(fragment_template, working_path);
+        strcat(fragment_template, "/jobs/job%d.%d.fragment");
+        sprintf(fragment_file, fragment_template, job_id, cache_size);
         fragment_stream = fopen(fragment_file, "w+");
     }else
         cc->cfl_monitor = 0;

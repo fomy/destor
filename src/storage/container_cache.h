@@ -16,10 +16,11 @@ struct container_cache_tag{
     GHashTable *map;// finger:container-list pairs
     BOOL enable_data;
     CFLMonitor* cfl_monitor;
+    int job_id;
 };
 
 /* container_cache.c */
-ContainerCache* container_cache_new(int cache_size, BOOL enable_data);
+ContainerCache* container_cache_new(int cache_size, BOOL enable_data, int job_id);
 CFLMonitor* container_cache_free(ContainerCache *cc);
 BOOL container_cache_contains(ContainerCache *cc, Fingerprint *finger);
 Container* container_cache_lookup(ContainerCache *cc, Fingerprint *finger);
