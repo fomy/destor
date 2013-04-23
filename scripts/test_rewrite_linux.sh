@@ -38,11 +38,47 @@ jobid=$(($jobid-1));
 destor -s >> backup.log;
 
 echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
+echo "lru_cache=32" >> restore.log
+i=0
+while [ $i -le $jobid ]
+do
+destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=32 --enable_simulator >>log;
+i=$(($i+1));
+done
+
+echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
+echo "lru_cache=28" >> restore.log
+i=0
+while [ $i -le $jobid ]
+do
+destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=28 --enable_simulator >>log;
+i=$(($i+1));
+done
+
+echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
+echo "lru_cache=24" >> restore.log
+i=0
+while [ $i -le $jobid ]
+do
+destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=24 --enable_simulator >>log;
+i=$(($i+1));
+done
+
+echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
 echo "lru_cache=20" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
 destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=20 --enable_simulator >>log;
+i=$(($i+1));
+done
+
+echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
+echo "lru_cache=16" >> restore.log
+i=0
+while [ $i -le $jobid ]
+do
+destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=16 --enable_simulator >>log;
 i=$(($i+1));
 done
 
