@@ -96,7 +96,7 @@ BOOL ddfs_index_init(){
     mysql_stmt_prepare(search_stmt, search_sql, strlen(search_sql));
     mysql_stmt_prepare(insert_stmt, insert_sql, strlen(insert_sql));
 
-    fingers_cache = container_cache_new(ddfs_cache_size, FALSE);
+    fingers_cache = container_cache_new(ddfs_cache_size, FALSE, -1);
 
     /* read bloom filter */
     strcpy(indexpath, working_path);
@@ -130,7 +130,7 @@ void ddfs_index_flush(){
     close(fd);
 
     container_cache_free(fingers_cache);
-    fingers_cache = container_cache_new(ddfs_cache_size, FALSE);
+    fingers_cache = container_cache_new(ddfs_cache_size, FALSE, -1);
 
     dirty = FALSE;
 }

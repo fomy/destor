@@ -304,7 +304,7 @@ static void* read_chunk_thread(void *arg) {
     monitor = 0;
     if(read_cache_type == LRU_CACHE){
         puts("cache=LRU");
-        jcr->read_cache = container_cache_new(jcr->read_cache_size, jcr->enable_data_cache);
+        jcr->read_cache = container_cache_new(jcr->read_cache_size, jcr->enable_data_cache, jcr->job_id);
     }else if(read_cache_type == OPT_CACHE){
         puts("cache=OPT");
         jcr->read_opt_cache = optimal_container_cache_new(jcr->read_cache_size,
