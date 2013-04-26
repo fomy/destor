@@ -54,7 +54,7 @@ make uninstall
 
 Running
 =======
-If compile and install are successful, executable files, destor, should be moved to /usr/local/bin by default.
+If compile and install are successful, the executable file, destor, should have been moved to /usr/local/bin by default.
 You can create a config file, destor.config, in where you run destor.
 A sample destor.config is in scripts directory,
 and many scripts for experiment are also there.
@@ -73,7 +73,7 @@ destor has provided four types of services:
 There are several options for destor.
 1.backup options
     --index=[RAM|DDFS|EXBIN|SILO]
-    --rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP]
+    --rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]
 2.restore options
     --cache=[LRU|ASM|OPT]
 
