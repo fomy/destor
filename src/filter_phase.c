@@ -88,6 +88,9 @@ int start_filter_phase(Jcr *jcr){
     } else if(rewriting_algorithm == CAP_REWRITING){
         puts("rewriting_algorithm=CAP");
         pthread_create(&filter_t, NULL, cap_filter, jcr);
+    } else if(rewriting_algorithm == ECAP_REWRITING){
+        puts("rewriting_algorithm=ECAP");
+        pthread_create(&filter_t, NULL, cap_filter, jcr);
     } else if(rewriting_algorithm == HBR_CAP_REWRITING){
         puts("rewriting_algorithm=HBR_CAP");
         pthread_create(&filter_t, NULL, cap_filter, jcr);

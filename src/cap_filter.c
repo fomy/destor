@@ -8,6 +8,7 @@ extern void send_fingerchunk(FingerChunk *fchunk,
         Fingerprint *feature, BOOL update);
 extern int recv_feature(Chunk **chunk);
 extern ContainerId save_chunk(Chunk *chunk);
+extern int rewriting_algorithm;
 
 extern int32_t capping_T;
 extern int32_t capping_segment_size;
@@ -21,12 +22,14 @@ struct{
     Queue *chunk_queue;
     GSequence *container_record_seq;//
     int32_t size;
+    BOOL has_new;//indicates whether there are new chunks in the segment
 }cap_segment;
 
 static void cap_segment_init(){
     cap_segment.chunk_queue = queue_new();
     cap_segment.container_record_seq = g_sequence_new(free);
     cap_segment.size = 0;
+    cap_segment.has_new = FALSE;
 }
 
 static gint compare_cid(gconstpointer a, gconstpointer b, gpointer user_data){
@@ -60,6 +63,8 @@ static BOOL cap_segment_push(Jcr *jcr, Chunk *chunk){
             }
             record->length += chunk->length;
         }
+    }else{
+        cap_segment.has_new = TRUE;
     }
     queue_push(cap_segment.chunk_queue, chunk);
     cap_segment.size += chunk->length;
@@ -84,12 +89,18 @@ static void cap_segment_clear(){
     if(queue_size(cap_segment.chunk_queue) != 0){
         dprint("queue is not empty!");
     }
+    cap_segment.has_new = FALSE;
 }
 
 static void cap_segment_get_top(){
     int32_t length = g_sequence_get_length(cap_segment.container_record_seq);
     if(length <= capping_T)
         return;
+    if(rewriting_algorithm == ECAP_REWRITING &&
+            cap_segment.has_new == FALSE &&
+            length <= capping_T +1){
+        return;
+    }
     g_sequence_sort(cap_segment.container_record_seq,
             compare_length, NULL);
     /* remove extra records */

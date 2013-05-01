@@ -123,6 +123,8 @@ void set_value(char *pname, char *pvalue){
         }else if(strcmp(pvalue, "HBR_CFL") == 0){
             rewriting_algorithm = HBR_CFL_REWRITING;
             enable_hbr = TRUE;
+        }else if(strcmp(pvalue, "ECAP") == 0){
+            rewriting_algorithm = ECAP_REWRITING;
         }else{
             printf("%s, %d: unknown rewriting algorithm\n",__FILE__,__LINE__);
         }

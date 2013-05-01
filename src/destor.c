@@ -176,6 +176,8 @@ int main(int argc, char **argv) {
                     enable_hbr = TRUE;
                 }else if(strcmp(optarg, "CAP") == 0){
                     rewriting_algorithm = CAP_REWRITING;
+                }else if(strcmp(optarg, "ECAP") == 0){
+                    rewriting_algorithm = ECAP_REWRITING;
                 }else if(strcmp(optarg, "HBR_CAP") == 0){
                     rewriting_algorithm = HBR_CAP_REWRITING;
                     enable_hbr = TRUE;
