@@ -117,11 +117,3 @@ do
 destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=8 --enable_simulator >>log;
 i=$(($i+1));
 done
-
-echo "lru_cache=4" >> restore.log
-i=0
-while [ $i -le $jobid ]
-do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=4 --enable_simulator >>log;
-i=$(($i+1));
-done
