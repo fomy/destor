@@ -42,3 +42,7 @@ Add new feature CFL-assisted HBR.
 
 v3.1
 Add new feature cache filter, which can used to improve CFL, CBR and CAP.
+
+v3.2
+Optimize the capping algorithm, and the new algorithm is named Enhanced-CAP
+(ECAP).
