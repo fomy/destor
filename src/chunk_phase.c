@@ -20,7 +20,7 @@ static void send_chunk(Chunk* chunk){
 }
 
 static void send_signal(int signal){
-    Chunk *chunk = (Chunk*) malloc(sizeof(Chunk));
+    Chunk *chunk = allocate_chunk();
     chunk->length = signal;
     sync_queue_push(chunk_queue, chunk);
 }
@@ -51,11 +51,7 @@ static void* rabin_chunk_thread(void *arg) {
     char zeros[max_chunk_size];
     bzero(zeros, max_chunk_size);
     while (TRUE) {
-        Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
-        new_chunk->status = UNIQUE;
-        new_chunk->container_id = TMP_CONTAINER_ID;
-        new_chunk->length = 0;
-        new_chunk->data = 0;
+        Chunk *new_chunk = allocate_chunk();
 
         if (signal >= 0 && leftlen < max_chunk_size) {
             DataBuffer *data_buffer = NULL;
@@ -118,11 +114,7 @@ static void* fixed_chunk_thread(void *arg){
     char zeros[chunk_size];
     bzero(zeros, chunk_size);
     while (TRUE) {
-        Chunk *new_chunk = (Chunk*) malloc(sizeof(Chunk));
-        new_chunk->status = UNIQUE;
-        new_chunk->container_id = TMP_CONTAINER_ID;
-        new_chunk->length = 0;
-        new_chunk->data = 0;
+        Chunk *new_chunk = allocate_chunk();
 
         if (signal >= 0 && leftlen < chunk_size) {
             DataBuffer *data_buffer = NULL;

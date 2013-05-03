@@ -33,7 +33,7 @@ int recv_feature(Chunk **new_chunk){
         *new_chunk = chunk;
         return STREAM_END;
     }
-    chunk->container_id = index_search(&chunk->hash, &chunk->feature);
+    chunk->container_id = index_search(&chunk->hash, chunk->feature);
     if(chunk->container_id != TMP_CONTAINER_ID){
         chunk->status |= DUPLICATE;
         if(enable_hbr && sparse_containers && g_hash_table_lookup(sparse_containers, 
@@ -121,7 +121,8 @@ void* exbin_prepare(void *arg){
             lseek(processing_recipe->fd, 0, SEEK_SET);
             while(queue_size(buffered_chunk_queue)){
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
-                memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 buffered_chunk->data = malloc(buffered_chunk->length);
                 read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
                 send_feature(buffered_chunk);
@@ -170,7 +171,8 @@ void* silo_prepare(void *arg){
                 /* process remaing chunks */
                 Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
                 while(buffered_chunk){
-                    memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                    buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                    memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                     send_feature(buffered_chunk);
                     buffered_chunk = queue_pop(buffered_chunk_queue);
                 }
@@ -196,7 +198,8 @@ void* silo_prepare(void *arg){
             /* segment is full, push it */
             Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
             while(buffered_chunk){
-                memcpy(&buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
                 send_feature(buffered_chunk);
                 buffered_chunk = queue_pop(buffered_chunk_queue);
             }
@@ -213,6 +216,53 @@ void* silo_prepare(void *arg){
         current_segment_size += silo_item_size;
     }
     queue_free(buffered_chunk_queue, NULL);
+    return NULL;
+}
+
+void* sparse_prepare(void* arg){
+    Jcr *jcr = (Jcr*)arg;
+    Recipe *processing_recipe = 0;
+    Queue *segment = queue_new();
+    /*while(TRUE){*/
+        /*Chunk *chunk = NULL;*/
+        /*int signal = recv_hash(&chunk);*/
+        /*if(signal == STREAM_END){*/
+            /*send_feature(chunk);*/
+            /*break;*/
+        /*}*/
+        /*if(processing_recipe == 0){*/
+            /*processing_recipe = sync_queue_pop(jcr->waiting_files_queue);*/
+            /*puts(processing_recipe->filename);*/
+        /*}*/
+        /*if(signal == FILE_END){*/
+            /*[> TO-DO <]*/
+            /*close(processing_recipe->fd);*/
+            /*sync_queue_push(jcr->completed_files_queue, processing_recipe);*/
+            /*processing_recipe = 0;*/
+            /*free_chunk(chunk);*/
+            /*[> FILE notion is meaningless for following threads <]*/
+            /*continue;*/
+        /*}*/
+        /*[> TO-DO <]*/
+        /*if(TRUE[>segment boundary is found<]){*/
+            /*[> segment is full, push it <]*/
+            /*Chunk *buffered_chunk = queue_pop(segment);*/
+            /*while(buffered_chunk){*/
+                /*[>memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));<]*/
+                /*send_feature(buffered_chunk);*/
+                /*buffered_chunk = queue_pop(buffered_chunk_queue);*/
+            /*}*/
+            /*current_segment_size = 0;*/
+            /*memset(&current_feature, 0xff, sizeof(Fingerprint));*/
+        /*}*/
+        /*if(memcmp(&current_feature, &chunk->hash, sizeof(Fingerprint)) > 0){*/
+            /*memcpy(&current_feature, &chunk->hash, sizeof(Fingerprint));*/
+        /*}*/
+
+        /*processing_recipe->chunknum++;*/
+        /*processing_recipe->filesize += chunk->length;*/
+        /*send_feature(chunk);*/
+    /*}*/
     return NULL;
 }
 

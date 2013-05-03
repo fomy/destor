@@ -5,7 +5,7 @@
 
 extern void send_fc_signal();
 extern void send_fingerchunk(FingerChunk *fchunk, 
-        Fingerprint *feature, BOOL update);
+        void *feature, BOOL update);
 extern int recv_feature(Chunk **chunk);
 extern ContainerId save_chunk(Chunk *chunk);
 extern int rewriting_algorithm;
@@ -177,7 +177,7 @@ void *cap_filter(void* arg){
                 new_fchunk->length = chunk->length;
                 memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
                 TIMER_END(jcr->filter_time, b1, e1);
-                send_fingerchunk(new_fchunk, &chunk->feature, update);
+                send_fingerchunk(new_fchunk, chunk->feature, update);
 
                 free_chunk(chunk);
             }//while

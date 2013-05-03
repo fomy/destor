@@ -32,10 +32,11 @@ struct chunk_tag {
     int status;
 	Fingerprint hash;
     /* for SiLo and Extreme Binning */
-    Fingerprint feature;
+    void *feature;
     ContainerId container_id;
 };
 
+Chunk* allocate_chunk();
 void free_chunk(Chunk* chunk);
 gboolean g_fingerprint_cmp(gconstpointer k1, 
         gconstpointer k2);

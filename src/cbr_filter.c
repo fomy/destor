@@ -13,7 +13,7 @@
 
 extern void send_fc_signal();
 extern void send_fingerchunk(FingerChunk *fchunk, 
-        Fingerprint *feature, BOOL update);
+        void *feature, BOOL update);
 
 extern double container_usage_threshold;
 extern double rewrite_limit;
@@ -236,7 +236,7 @@ void *cbr_filter(void* arg){
         new_fchunk->length = decision_chunk->length;
         memcpy(&new_fchunk->fingerprint, &decision_chunk->hash, sizeof(Fingerprint));
         TIMER_END(jcr->filter_time, b1, e1);
-        send_fingerchunk(new_fchunk, &decision_chunk->feature, update);
+        send_fingerchunk(new_fchunk, decision_chunk->feature, update);
         free_chunk(decision_chunk);
     }
 
@@ -267,7 +267,7 @@ void *cbr_filter(void* arg){
         new_fchunk->container_id = remaining_chunk->container_id;
         new_fchunk->length = remaining_chunk->length;
         memcpy(&new_fchunk->fingerprint, &remaining_chunk->hash, sizeof(Fingerprint));
-        send_fingerchunk(new_fchunk, &remaining_chunk->feature, update);
+        send_fingerchunk(new_fchunk, remaining_chunk->feature, update);
 
         free_chunk(remaining_chunk);
         remaining_chunk = stream_context_pop(stream_context);

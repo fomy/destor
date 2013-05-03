@@ -180,7 +180,7 @@ void send_fc_signal(){
     sync_queue_push(fingerchunk_queue, sigfc);
 }
 
-void send_fingerchunk(FingerChunk *fchunk, Fingerprint *feature,
+void send_fingerchunk(FingerChunk *fchunk, void *feature,
         BOOL update){
     index_update(&fchunk->fingerprint, fchunk->container_id, feature, update);
     update_cfl(cfl_monitor, fchunk->container_id, fchunk->length);

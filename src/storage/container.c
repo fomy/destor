@@ -159,7 +159,7 @@ Chunk* container_get_chunk(Container* container, Fingerprint *hash) {
         /*dprint("Failed to get a chunk!");*/
         return NULL;
     }
-    Chunk *chunk = (Chunk*) malloc(sizeof(Chunk));
+    Chunk *chunk = allocate_chunk();
 
     chunk->data = malloc(cm->length);
     if(enable_simulator){

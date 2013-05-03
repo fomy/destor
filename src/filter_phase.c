@@ -13,7 +13,7 @@ static pthread_t filter_t;
 
 extern void send_fc_signal();
 extern void send_fingerchunk(FingerChunk *fchunk, 
-        Fingerprint *feature, BOOL update);
+        void *feature, BOOL update);
 
 extern void* cfl_filter(void* arg);
 extern void* cbr_filter(void* arg);
@@ -58,7 +58,7 @@ static void* simply_filter(void* arg){
         }
 
         TIMER_END(jcr->filter_time, b1, e1);
-        send_fingerchunk(new_fchunk, &chunk->feature, update);
+        send_fingerchunk(new_fchunk, chunk->feature, update);
         free_chunk(chunk);
     }//while(TRUE) end
 
