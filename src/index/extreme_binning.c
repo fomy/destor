@@ -8,6 +8,7 @@
  */
 #include "../dedup.h"
 #include "extreme_binning.h" 
+#include "../jcr.h"
 
 #define BIN_LEVEL_COUNT 20
 const static int64_t bvolume_head_size = 20;
@@ -29,6 +30,7 @@ static BinVolume *bin_volume_array[BIN_LEVEL_COUNT];
 static Bin *current_bin;
 
 extern char working_path[];
+extern void send_feature(Chunk *chunk);
 
 static BinVolume* bin_volume_init(int64_t level){
     BinVolume* bvol = (BinVolume*)malloc(sizeof(BinVolume));
@@ -367,4 +369,61 @@ void extreme_binning_update(Fingerprint *finger, ContainerId container_id,
     }
     g_hash_table_insert(current_bin->fingers, new_finger, new_id);
     current_bin->dirty = TRUE;
+}
+
+/* prepare thread for extreme binning */
+/*
+ * buffer all fingers of one file(free data part of chunks),
+ * select the feature.
+ */
+void* exbin_prepare(void *arg){
+    Jcr *jcr = (Jcr*)arg;
+    Recipe *processing_recipe = 0;
+    Fingerprint current_feature;
+    memset(&current_feature, 0xff, sizeof(Fingerprint));
+    Queue *buffered_chunk_queue = queue_new();
+    while(TRUE){
+        Chunk *chunk = NULL;
+        int signal = recv_hash(&chunk);
+        if(signal == STREAM_END){
+            send_feature(chunk);
+            break;
+        }
+        if(processing_recipe == 0){
+            processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
+            puts(processing_recipe->filename);
+        }
+        if(signal == FILE_END){
+            /* TO-DO */
+            lseek(processing_recipe->fd, 0, SEEK_SET);
+            while(queue_size(buffered_chunk_queue)){
+                Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
+                buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                buffered_chunk->data = malloc(buffered_chunk->length);
+                read(processing_recipe->fd, buffered_chunk->data, buffered_chunk->length);
+                send_feature(buffered_chunk);
+            }
+            memset(current_feature, 0xff, sizeof(Fingerprint));
+
+            close(processing_recipe->fd);
+            sync_queue_push(jcr->completed_files_queue, processing_recipe);
+            processing_recipe = 0;
+            /* FILE notion is meaningless for following threads */
+            free_chunk(chunk);
+            continue;
+        }
+        /* TO-DO */
+        free(chunk->data);
+        chunk->data = 0;
+        if(memcmp(&current_feature, &chunk->hash, sizeof(Fingerprint))>0){
+            memcpy(&current_feature, &chunk->hash, sizeof(Fingerprint));
+        }
+        processing_recipe->chunknum++;
+        processing_recipe->filesize += chunk->length;
+
+        queue_push(buffered_chunk_queue, chunk);
+    }
+    queue_free(buffered_chunk_queue, NULL);
+    return NULL;
 }

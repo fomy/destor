@@ -12,6 +12,7 @@
  * @date 2013-01-06
  */
 #include "silo.h"
+#include "../jcr.h"
 
 extern int32_t silo_segment_size;//KB
 extern int32_t silo_block_size;//MB
@@ -268,4 +269,70 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
     ContainerId* new_cid = (ContainerId*)malloc(sizeof(ContainerId));
     memcpy(new_cid, &container_id, sizeof(ContainerId));
     g_hash_table_insert(write_buffer->LHTable, new_finger, new_cid);
+}
+
+/*
+ * prepare thread for SiLo.
+ */
+void* silo_prepare(void *arg){
+    Jcr *jcr = (Jcr*)arg;
+    Recipe *processing_recipe = 0;
+    Fingerprint current_feature;
+    memset(&current_feature, 0xff, sizeof(Fingerprint));
+    Queue *buffered_chunk_queue = queue_new();
+    int32_t current_segment_size = 0;
+    while(TRUE){
+        Chunk *chunk = NULL;
+        int signal = recv_hash(&chunk);
+        if(signal == STREAM_END){
+            if(current_segment_size > 0){
+                /* process remaing chunks */
+                Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
+                while(buffered_chunk){
+                    buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                    memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                    send_feature(buffered_chunk);
+                    buffered_chunk = queue_pop(buffered_chunk_queue);
+                }
+            }
+            send_feature(chunk);
+            break;
+        }
+        if(processing_recipe == 0){
+            processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
+            puts(processing_recipe->filename);
+        }
+        if(signal == FILE_END){
+            /* TO-DO */
+            close(processing_recipe->fd);
+            sync_queue_push(jcr->completed_files_queue, processing_recipe);
+            processing_recipe = 0;
+            free_chunk(chunk);
+            /* FILE notion is meaningless for following threads */
+            continue;
+        }
+        /* TO-DO */
+        if((current_segment_size+silo_item_size) > silo_segment_hash_size){
+            /* segment is full, push it */
+            Chunk *buffered_chunk = queue_pop(buffered_chunk_queue);
+            while(buffered_chunk){
+                buffered_chunk->feature = (Fingerprint*)malloc(sizeof(Fingerprint));
+                memcpy(buffered_chunk->feature, &current_feature, sizeof(Fingerprint));
+                send_feature(buffered_chunk);
+                buffered_chunk = queue_pop(buffered_chunk_queue);
+            }
+            current_segment_size = 0;
+            memset(&current_feature, 0xff, sizeof(Fingerprint));
+        }
+        if(memcmp(&current_feature, &chunk->hash, sizeof(Fingerprint)) > 0){
+            memcpy(&current_feature, &chunk->hash, sizeof(Fingerprint));
+        }
+        processing_recipe->chunknum++;
+        processing_recipe->filesize += chunk->length;
+
+        queue_push(buffered_chunk_queue, chunk);
+        current_segment_size += silo_item_size;
+    }
+    queue_free(buffered_chunk_queue, NULL);
+    return NULL;
 }

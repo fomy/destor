@@ -15,4 +15,6 @@ ContainerId index_search(Fingerprint* finger, void* feature);
  * Insert fingerprint into Index for new fingerprint or new ContainerId.
  */
 void index_update(Fingerprint*, ContainerId, void* feature, BOOL update);
+void* exbin_prepare(void *arg);
+void* silo_prepare(void *arg);
 #endif
