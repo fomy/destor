@@ -78,5 +78,6 @@ typedef unsigned char Fingerprint[20];
 #define DDFS_INDEX 2
 #define EXBIN_INDEX 3
 #define SILO_INDEX 4
+#define SPARSE_INDEX 5
 
 #endif /* SERVER_GLOBAL_H_ */

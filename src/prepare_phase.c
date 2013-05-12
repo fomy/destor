@@ -111,6 +111,9 @@ int start_prepare_phase(Jcr *jcr){
         case SILO_INDEX:
             pthread_create(&prepare_t, NULL, silo_prepare, jcr);
             break;
+        case SPARSE_INDEX:
+            pthread_create(&prepare_t, NULL, sparse_prepare, jcr);
+            break;
         default:
             dprint("wrong index type!");
     }

@@ -98,7 +98,7 @@ static Bin *bin_new(int64_t addr, Fingerprint *feature){
     nbin->dirty = FALSE;
     memcpy(&nbin->feature, feature, sizeof(Fingerprint));
 
-    nbin->fingers = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
+    nbin->fingers = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
             free, free);
     return nbin;
 }
@@ -222,7 +222,7 @@ static Bin* read_bin_from_volume(int64_t address){
 }
 
 BOOL extreme_binning_init(){
-    primary_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
+    primary_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
             NULL, free);
 
     char filename[256];

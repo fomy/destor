@@ -17,4 +17,5 @@ ContainerId index_search(Fingerprint* finger, void* feature);
 void index_update(Fingerprint*, ContainerId, void* feature, BOOL update);
 void* exbin_prepare(void *arg);
 void* silo_prepare(void *arg);
+void* sparse_prepare(void* arg);
 #endif

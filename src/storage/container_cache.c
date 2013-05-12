@@ -33,7 +33,7 @@ ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache, int 
     }else
         cc->cfl_monitor = 0;
     cc->map = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_cmp, free, g_sequence_free);
+            g_fingerprint_equal, free, g_sequence_free);
     return cc;
 }
 

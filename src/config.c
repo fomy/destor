@@ -86,6 +86,8 @@ void set_value(char *pname, char *pvalue){
             fingerprint_index_type = EXBIN_INDEX;
         }else if(strcmp(pvalue, "SILO") == 0){
             fingerprint_index_type = SILO_INDEX;
+        }else if(strcmp(pvalue, "SPARSE") == 0){
+                    fingerprint_index_type = SPARSE_INDEX;
         }else{
             printf("%s, %d: unknown index type\n",__FILE__,__LINE__);
         }

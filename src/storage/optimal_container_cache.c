@@ -225,7 +225,7 @@ OptimalContainerCache* optimal_container_cache_new(int cache_size,
 
     /*opt_cache->active_container = 0;*/
     opt_cache->map = g_hash_table_new_full(g_int64_hash, 
-            g_fingerprint_cmp, free, g_sequence_free);
+            g_fingerprint_equal, free, g_sequence_free);
     opt_cache->active_seed = 0;
 
     /* id-container pair */

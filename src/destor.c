@@ -39,247 +39,242 @@ extern int32_t capping_segment_size;
 /* : means argument is required.
  * :: means argument is required and no space.
  */
-const char *const short_options = "sr::h";
+const char * const short_options = "sr::h";
 
-struct option long_options[] = {
-    {"restore", 1, NULL, 'r'},
-    {"state", 0, NULL, 's'},
-    {"index", 1, NULL, 'i'},
-    {"cache", 1, NULL, 'c'},
-    {"cache_size", 1, NULL, 'C'},
-    {"rewrite", 1, NULL, 'R'},
-    {"cfl_p", 1, NULL, 'p'},
-    {"hbr_usage", 1, NULL, 'u'},
-    {"min_utility", 1, NULL, 'm'},
-    {"rewrite_limit", 1, NULL, 'l'},
-    {"stream_context_size", 1, NULL, 'S'},
-    {"window_size", 1, NULL, 'w'},
-    {"capping_t", 1, NULL, 't'},
-    {"capping_segment_size", 1, NULL, 'a'},
-    {"enable_hbr", 0, NULL, 'e'},
-    {"enable_cache_filter", 0, NULL, 'E'},
-    {"enable_simulator", 0, NULL, 'I'},
-    {"help", 0, NULL, 'h'},
-    {NULL, 0, NULL, 0}
-};
+struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
+		NULL, 's' }, { "index", 1, NULL, 'i' }, { "cache", 1, NULL, 'c' }, {
+		"cache_size", 1, NULL, 'C' }, { "rewrite", 1, NULL, 'R' }, { "cfl_p", 1,
+		NULL, 'p' }, { "hbr_usage", 1, NULL, 'u' }, { "min_utility", 1, NULL,
+		'm' }, { "rewrite_limit", 1, NULL, 'l' }, { "stream_context_size", 1,
+		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
+		't' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
+		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, {
+		"enable_simulator", 0, NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0,
+		NULL, 0 } };
 
-void print_help(){
-    puts("GENERAL USAGE");
-    puts("\tstart a backup job");
-    puts("\t\t./destor <protected_path>");
-    puts("\tstart a restore job");
-    puts("\t\t./destor -r<JOB_ID> <target_path>");
-    puts("\tprint state of destor");
-    puts("\t\t./destor -s");
-    puts("\tprint this");
-    puts("\t\t./destor -h");
-    puts("OPTIONS");
-    puts("\t--restore or -r");
-    puts("\t\tA restore job, which required a job id following the option.");
-    puts("\t--state or -s");
-    puts("\t\tprint the state of destor.");
-    puts("\t--help or -h");
-    puts("\t\tprint this.");
-    puts("\t--index=[RAM|DDFS|EXBIN|SILO]");
-    puts("\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO.");
-    puts("\t--cache=[LRU|ASM|OPT]");
-    puts("\t\tAssign read cache type. IT now support LRU, OPT.");
-    puts("\t--cache_size=[number of containers]");
-    puts("\t\tAssign read cache size, e.g. --cache_size=100.");
-    puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]");
-    puts("\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
-    puts("\t--cfl_p=[p in CFL]");
-    puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
-    puts("\t--rewrite_limit=[rewrite limit for CBR]");
-    puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
-    puts("\t--min_utility=[minimal rewrite utility for CBR]");
-    puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
-    puts("\t--window_size=[size of the slide window for OPT]");
-    puts("\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
-    puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
-    puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
-    puts("\t--capping_t=[T for CAP]");
-    puts("\t\tSet T for capping, e.g. --T=16.");
-    puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
-    puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
-    puts("\t--enable_hbr");
-    puts("\t\tenable HBR.");
-    puts("\t--enable_cache_filter");
-    puts("\t\tenable cache filter.");
-    puts("\t--enable_simulator");
-    puts("\t\tenable simulator mode.");
+void print_help() {
+	puts("GENERAL USAGE");
+	puts("\tstart a backup job");
+	puts("\t\t./destor <protected_path>");
+	puts("\tstart a restore job");
+	puts("\t\t./destor -r<JOB_ID> <target_path>");
+	puts("\tprint state of destor");
+	puts("\t\t./destor -s");
+	puts("\tprint this");
+	puts("\t\t./destor -h");
+	puts("OPTIONS");
+	puts("\t--restore or -r");
+	puts("\t\tA restore job, which required a job id following the option.");
+	puts("\t--state or -s");
+	puts("\t\tprint the state of destor.");
+	puts("\t--help or -h");
+	puts("\t\tprint this.");
+	puts("\t--index=[RAM|DDFS|EXBIN|SILO]");
+	puts(
+			"\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO.");
+	puts("\t--cache=[LRU|ASM|OPT]");
+	puts("\t\tAssign read cache type. IT now support LRU, OPT.");
+	puts("\t--cache_size=[number of containers]");
+	puts("\t\tAssign read cache size, e.g. --cache_size=100.");
+	puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]");
+	puts(
+			"\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
+	puts("\t--cfl_p=[p in CFL]");
+	puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
+	puts("\t--rewrite_limit=[rewrite limit for CBR]");
+	puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
+	puts("\t--min_utility=[minimal rewrite utility for CBR]");
+	puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
+	puts("\t--window_size=[size of the slide window for OPT]");
+	puts(
+			"\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
+	puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
+	puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
+	puts("\t--capping_t=[T for CAP]");
+	puts("\t\tSet T for capping, e.g. --T=16.");
+	puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
+	puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
+	puts("\t--enable_hbr");
+	puts("\t\tenable HBR.");
+	puts("\t--enable_cache_filter");
+	puts("\t\tenable cache filter.");
+	puts("\t--enable_simulator");
+	puts("\t\tenable simulator mode.");
 }
 
 int main(int argc, char **argv) {
 
-    if (load_config() == FAILURE) {
-        return 0;
-    }
+	if (load_config() == FAILURE) {
+		return 0;
+	}
 
-    int job_type = BACKUP_JOB;
-    int revision = -1;
-    char path[512];
-    bzero(path, 512);
-    int opt = 0;
-    while((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1){
-        switch(opt){
-            case 'r':
-                job_type = RESTORE_JOB;
-                revision = atoi(optarg);
-                break;
-            case 's':
-                job_type = STAT_JOB;
-                break;
-            case 'i':
-                if(strcmp(optarg, "RAM") == 0){
-                    fingerprint_index_type = RAM_INDEX;
-                }else if(strcmp(optarg, "DDFS") == 0){
-                    fingerprint_index_type = DDFS_INDEX;
-                }else if(strcmp(optarg, "EXBIN") == 0){
-                    fingerprint_index_type = EXBIN_INDEX;
-                }else if(strcmp(optarg, "SILO")  == 0){
-                    fingerprint_index_type = SILO_INDEX;
-                }else{
-                    puts("unknown index type");
-                    puts("type -h or --help for help.");
-                    return 0;
-                }
-                break;
-            case 'c':
-                if(strcmp(optarg, "LRU")==0){
-                    read_cache_type = LRU_CACHE;
-                }else if(strcmp(optarg, "OPT")==0){
-                    read_cache_type = OPT_CACHE;
-                }else if(strcmp(optarg, "ASM")==0){
-                    read_cache_type = ASM_CACHE;
-                }else{
-                    printf("unknown cache type");
-                    puts("type -h or --help for help.");
-                    return 0;
-                }  
-                break;
-            case 'C':
-                read_cache_size = atoi(optarg);
-                break;
-            case 'R':
-                if(strcmp(optarg, "NO")==0){
-                    rewriting_algorithm = NO_REWRITING;
-                }else if(strcmp(optarg, "CFL")==0){
-                    rewriting_algorithm = CFL_REWRITING;
-                }else if(strcmp(optarg, "CBR") == 0){
-                    rewriting_algorithm = CBR_REWRITING;
-                }else if(strcmp(optarg, "HBR") == 0){
-                    rewriting_algorithm = HBR_REWRITING;
-                    enable_hbr = TRUE;
-                }else if(strcmp(optarg, "HBR_CBR") == 0){
-                    rewriting_algorithm = HBR_CBR_REWRITING;
-                    enable_hbr = TRUE;
-                }else if(strcmp(optarg, "CAP") == 0){
-                    rewriting_algorithm = CAP_REWRITING;
-                }else if(strcmp(optarg, "ECAP") == 0){
-                    rewriting_algorithm = ECAP_REWRITING;
-                }else if(strcmp(optarg, "HBR_CAP") == 0){
-                    rewriting_algorithm = HBR_CAP_REWRITING;
-                    enable_hbr = TRUE;
-                }else if(strcmp(optarg, "HBR_CFL") == 0){
-                    rewriting_algorithm = HBR_CFL_REWRITING;
-                    enable_hbr = TRUE;
-                }else{
-                    puts("unknown rewriting algorithm\n");
-                    puts("type -h or --help for help.");
-                    return 0;
-                }
-                break;
-            case 't':
-                capping_T = atoi(optarg);
-                break;
-            case 'a':
-                capping_segment_size = atoi(optarg)*1024*1024;
-                break;
-            case 'p':
-                cfl_usage_threshold = atoi(optarg)/100.0;
-                break;
-            case 'u':
-                hbr_usage_threshold = atof(optarg);
-                break;
-            case 'm':
-                minimal_rewrite_utility= atof(optarg);
-                break;
-            case 'l':
-                rewrite_limit = atof(optarg);
-                break;
-            case 'e':
-                enable_hbr = TRUE;
-                break;
-            case 'w':
-                optimal_cache_window_size = atoi(optarg);
-                break;
-            case 'h':
-                job_type = HELP_JOB;
-                break;
-            case 'S':
-                stream_context_size = atoi(optarg)*1024*1024;
-                break;
-            case 'E':
-                enable_cache_filter = TRUE;
-                break;
-            case 'I':
-                enable_simulator = TRUE;
-                break;
-            default:
-                return 0;
-        }
-    }
+	int job_type = BACKUP_JOB;
+	int revision = -1;
+	char path[512];
+	bzero(path, 512);
+	int opt = 0;
+	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL ))
+			!= -1) {
+		switch (opt) {
+		case 'r':
+			job_type = RESTORE_JOB;
+			revision = atoi(optarg);
+			break;
+		case 's':
+			job_type = STAT_JOB;
+			break;
+		case 'i':
+			if (strcmp(optarg, "RAM") == 0) {
+				fingerprint_index_type = RAM_INDEX;
+			} else if (strcmp(optarg, "DDFS") == 0) {
+				fingerprint_index_type = DDFS_INDEX;
+			} else if (strcmp(optarg, "EXBIN") == 0) {
+				fingerprint_index_type = EXBIN_INDEX;
+			} else if (strcmp(optarg, "SILO") == 0) {
+				fingerprint_index_type = SILO_INDEX;
+			} else if (strcmp(optarg, "SPARSE") == 0) {
+				fingerprint_index_type = SPARSE_INDEX;
+			} else {
+				puts("unknown index type");
+				puts("type -h or --help for help.");
+				return 0;
+			}
+			break;
+		case 'c':
+			if (strcmp(optarg, "LRU") == 0) {
+				read_cache_type = LRU_CACHE;
+			} else if (strcmp(optarg, "OPT") == 0) {
+				read_cache_type = OPT_CACHE;
+			} else if (strcmp(optarg, "ASM") == 0) {
+				read_cache_type = ASM_CACHE;
+			} else {
+				printf("unknown cache type");
+				puts("type -h or --help for help.");
+				return 0;
+			}
+			break;
+		case 'C':
+			read_cache_size = atoi(optarg);
+			break;
+		case 'R':
+			if (strcmp(optarg, "NO") == 0) {
+				rewriting_algorithm = NO_REWRITING;
+			} else if (strcmp(optarg, "CFL") == 0) {
+				rewriting_algorithm = CFL_REWRITING;
+			} else if (strcmp(optarg, "CBR") == 0) {
+				rewriting_algorithm = CBR_REWRITING;
+			} else if (strcmp(optarg, "HBR") == 0) {
+				rewriting_algorithm = HBR_REWRITING;
+				enable_hbr = TRUE;
+			} else if (strcmp(optarg, "HBR_CBR") == 0) {
+				rewriting_algorithm = HBR_CBR_REWRITING;
+				enable_hbr = TRUE;
+			} else if (strcmp(optarg, "CAP") == 0) {
+				rewriting_algorithm = CAP_REWRITING;
+			} else if (strcmp(optarg, "ECAP") == 0) {
+				rewriting_algorithm = ECAP_REWRITING;
+			} else if (strcmp(optarg, "HBR_CAP") == 0) {
+				rewriting_algorithm = HBR_CAP_REWRITING;
+				enable_hbr = TRUE;
+			} else if (strcmp(optarg, "HBR_CFL") == 0) {
+				rewriting_algorithm = HBR_CFL_REWRITING;
+				enable_hbr = TRUE;
+			} else {
+				puts("unknown rewriting algorithm\n");
+				puts("type -h or --help for help.");
+				return 0;
+			}
+			break;
+		case 't':
+			capping_T = atoi(optarg);
+			break;
+		case 'a':
+			capping_segment_size = atoi(optarg) * 1024 * 1024;
+			break;
+		case 'p':
+			cfl_usage_threshold = atoi(optarg) / 100.0;
+			break;
+		case 'u':
+			hbr_usage_threshold = atof(optarg);
+			break;
+		case 'm':
+			minimal_rewrite_utility = atof(optarg);
+			break;
+		case 'l':
+			rewrite_limit = atof(optarg);
+			break;
+		case 'e':
+			enable_hbr = TRUE;
+			break;
+		case 'w':
+			optimal_cache_window_size = atoi(optarg);
+			break;
+		case 'h':
+			job_type = HELP_JOB;
+			break;
+		case 'S':
+			stream_context_size = atoi(optarg) * 1024 * 1024;
+			break;
+		case 'E':
+			enable_cache_filter = TRUE;
+			break;
+		case 'I':
+			enable_simulator = TRUE;
+			break;
+		default:
+			return 0;
+		}
+	}
 
-    if (init_destor_stat() == FAILURE) {
-        puts("Failed to init server stat!");
-        return 0;
-    }
-    switch(job_type){
-        case BACKUP_JOB:
-            if(argc > optind){
-                strcpy(path, argv[optind]);
-            }else{
-                puts("backup job needs a protected path!");
-                puts("type -h or --help for help.");
-                return 0;
-            }
-            init_jobmanage();
-            init_container_volume();
-            backup_server(path);
-            destroy_container_volume();
-            break;
-        case RESTORE_JOB:
-            if(revision < 0){
-                puts("required a job id for restore job!");
-                puts("type -h or --help for help.");
-                return 0;
-            }
-            if(argc>optind){
-                strcpy(path, argv[optind]);
-            }else{
-                puts("restore job needs a target directory!");
-                puts("type -h or --help for help.");
-                return 0;
-            }
-            init_jobmanage();
-            init_container_volume();
-            restore_server(revision, path[0] == 0 ? 0 : path);
-            destroy_container_volume();
-            break;
-        case STAT_JOB:
-            print_destor_stat();
-            break;
-        case HELP_JOB:
-            print_help();
-            break;
-        default:
-            puts("invalid job type!");
-            puts("type -h or --help for help.");
-            return 0;
-    }
-    free_destor_stat();
+	if (init_destor_stat() == FAILURE) {
+		puts("Failed to init server stat!");
+		return 0;
+	}
+	switch (job_type) {
+	case BACKUP_JOB:
+		if (argc > optind) {
+			strcpy(path, argv[optind]);
+		} else {
+			puts("backup job needs a protected path!");
+			puts("type -h or --help for help.");
+			return 0;
+		}
+		init_jobmanage();
+		init_container_volume();
+		backup_server(path);
+		destroy_container_volume();
+		break;
+	case RESTORE_JOB:
+		if (revision < 0) {
+			puts("required a job id for restore job!");
+			puts("type -h or --help for help.");
+			return 0;
+		}
+		if (argc > optind) {
+			strcpy(path, argv[optind]);
+		} else {
+			puts("restore job needs a target directory!");
+			puts("type -h or --help for help.");
+			return 0;
+		}
+		init_jobmanage();
+		init_container_volume();
+		restore_server(revision, path[0] == 0 ? 0 : path);
+		destroy_container_volume();
+		break;
+	case STAT_JOB:
+		print_destor_stat();
+		break;
+	case HELP_JOB:
+		print_help();
+		break;
+	default:
+		puts("invalid job type!");
+		puts("type -h or --help for help.");
+		return 0;
+	}
+	free_destor_stat();
 
-    return 0;
+	return 0;
 }
 

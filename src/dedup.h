@@ -29,15 +29,16 @@ struct chunk_tag {
 	int32_t length;
 	unsigned char *data;
 	//BOOL duplicate;
-    int status;
+	int status;
 	Fingerprint hash;
-    /* for SiLo and Extreme Binning */
-    void *feature;
-    ContainerId container_id;
+	/* for SiLo and Extreme Binning */
+	void *feature;
+	ContainerId container_id;
 };
 
 Chunk* allocate_chunk();
 void free_chunk(Chunk* chunk);
-gboolean g_fingerprint_cmp(gconstpointer k1, 
-        gconstpointer k2);
+gboolean g_fingerprint_equal(gconstpointer k1, gconstpointer k2);
+gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2,
+		gpointer user_data);
 #endif /* DEDUP_H_ */

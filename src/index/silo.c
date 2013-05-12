@@ -38,9 +38,9 @@ static int block_vol_fd;
 static SiloBlock* silo_block_new(){
     SiloBlock* block = (SiloBlock*)malloc(sizeof(SiloBlock));
     block->LHTable = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_cmp, free, free);
+            g_fingerprint_equal, free, free);
     block->id = -1;
-    block->feature_table = g_hash_table_new(g_int64_hash, g_fingerprint_cmp);
+    block->feature_table = g_hash_table_new(g_int64_hash, g_fingerprint_equal);
     block->size = 0;
 
     return block;
@@ -122,7 +122,7 @@ BOOL silo_init(){
 
     char filename[256];
     /* init SHTable */
-    SHTable = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp, 
+    SHTable = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
             free, free);
 
     strcpy(filename, working_path);

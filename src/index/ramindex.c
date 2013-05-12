@@ -24,7 +24,7 @@ int ram_index_init() {
     stat(indexpath, &fileInfo);
     size_t nFileSize = fileInfo.st_size;
 
-    table = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
+    table = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
             free, free);
 
     if (nFileSize > 0) {
