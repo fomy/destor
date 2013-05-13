@@ -46,3 +46,7 @@ Add new feature cache filter, which can used to improve CFL, CBR and CAP.
 v3.2
 Optimize the capping algorithm, and the new algorithm is named Enhanced-CAP
 (ECAP).
+
+v3.3
+New Feature!
+Sparse Index is added.

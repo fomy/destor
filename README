@@ -17,6 +17,7 @@ Features
 10. History-based rewriting algorithm (HBR), and CBR-assisted HBR.
 11. Capping rewriting algorithm, rolling forward assembly area algorithm, and capping-assisted HBR.
 12. Add a cache filter to improve rewriting algorithms.
+13. Sparse Index.
 
 Related papers
 ==============
@@ -27,6 +28,7 @@ Related papers
 5. Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, in MASCOTS'12. 
 6. Reducing impact of data fragmentation caused by in-line deduplication, in SYSTOR'12.
 7. Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, in FAST'13.
+8. Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, in FAST'09.
 
 Environment
 ===========
@@ -51,7 +53,6 @@ make install
 To uninstall destor, run
 make uninstall
 
-
 Running
 =======
 If compile and install are successful, the executable file, destor, should have been moved to /usr/local/bin by default.
@@ -72,7 +73,7 @@ destor has provided four types of services:
 
 There are several options for destor.
 1.backup options
-    --index=[RAM|DDFS|EXBIN|SILO]
+    --index=[RAM|DDFS|EXBIN|SILO|SPARSE]
     --rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]
 2.restore options
     --cache=[LRU|ASM|OPT]
