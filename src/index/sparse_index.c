@@ -486,7 +486,7 @@ void* sparse_prepare(void* arg) {
 
 			/* segment is full, push it */
 			Chunk *buffered_chunk = queue_pop(segment);
-			if (cnt == 0) {
+			if (cnt == 0 && buffered_chunk) {
 				dprint("rarely happen!");
 				hooks = (Hooks*) malloc(sizeof(Hooks) + sizeof(Fingerprint));
 				hooks->size = 1;
@@ -542,7 +542,8 @@ void* sparse_prepare(void* arg) {
 
 			/* segment is full, push it */
 			Chunk *buffered_chunk = queue_pop(segment);
-			if (cnt == 0) {
+			if (cnt == 0 && buffered_chunk) {
+				/* adjacent segment boundries */
 				dprint("rarely happen!");
 				hooks = (Hooks*) malloc(sizeof(Hooks) + sizeof(Fingerprint));
 				hooks->size = 1;

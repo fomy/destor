@@ -25,6 +25,8 @@ int optimal_cache_window_size = 10000;
 int fingerprint_index_type = RAM_INDEX;
 /* ddfs_index parameters */
 int ddfs_cache_size = 100;
+/* sparse index parameter */
+extern int32_t champions_number;
 
 /* filter type */
 int rewriting_algorithm = NO_REWRITING;
@@ -94,6 +96,9 @@ void set_value(char *pname, char *pvalue){
     }
     else if(strcmp(pname, "DDFS_CACHE_SIZE") == 0){
         ddfs_cache_size = atoi(pvalue);
+    }
+    else if(strcmp(pname, "CHAMPIONS_NUMBER") == 0){
+        champions_number = atoi(pvalue);
     }
     else if(strcmp(pname, "CFL_REQUIRE") == 0){
         cfl_require = atof(pvalue);
