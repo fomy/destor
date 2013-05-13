@@ -157,11 +157,12 @@ static GSequence* select_champions(Hooks *hooks) {
 			}
 
 			g_sequence_sort(champions, manifest_cmp_length, NULL );
-			base = g_sequence_iter_next(base);
+			i++;
+			base = g_sequence_get_iter_at_pos(champions, i);
 			if (g_sequence_iter_is_end(base)) {
 				dprint("It can't happen!");
 			}
-			i++;
+
 		}
 
 		GSequenceIter *loser = g_sequence_get_iter_at_pos(champions,
@@ -208,7 +209,7 @@ int64_t write_manifest(Manifest *manifest) {
 	int number = g_hash_table_size(manifest->fingers);
 	int length = 8 + number * (sizeof(Fingerprint) + sizeof(ContainerId));
 	int64_t id = (manifest_volume_length << 0x18) + length;
-/*	printf("write id = %lld, %lld, %d\n", id, manifest_volume_length, length);*/
+	/*	printf("write id = %lld, %lld, %d\n", id, manifest_volume_length, length);*/
 
 	char buffer[length];
 	char *p = buffer;
@@ -321,6 +322,8 @@ void sparse_index_destroy() {
 	if (current_hooks)
 		free(current_hooks);
 	current_hooks = NULL;
+	if (champions)
+		g_sequence_free(champions);
 
 	manifest_volume_destroy();
 
@@ -461,9 +464,6 @@ void* sparse_prepare(void* arg) {
 	Queue *segment = queue_new();
 	Queue *current_hooks = queue_new();
 
-	int32_t segment_mask = 1 << segment_bits - 1;
-	int32_t hook_mask = 1 << sample_bits - 1;
-
 	while (TRUE) {
 		Chunk *chunk = NULL;
 		int signal = recv_hash(&chunk);
@@ -576,5 +576,8 @@ void* sparse_prepare(void* arg) {
 
 		queue_push(segment, chunk);
 	}
+
+	queue_free(segment, free_chunk);
+	queue_free(current_hooks, free);
 	return NULL ;
 }
