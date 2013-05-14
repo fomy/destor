@@ -14,6 +14,8 @@ static int64_t manifest_volume_length;
 static int64_t manifest_number;
 static int mvol_fd = -1;
 
+static Manifest *new_manifest = NULL;
+
 static BOOL and_bits(unsigned char hash[], int32_t bits) {
 	int32_t remainder = bits % 8;
 	int32_t quotient = bits / 8;
@@ -105,13 +107,14 @@ static void free_manifest(Manifest *manifest) {
  * Select champions.
  * hooks is the sampled features of a segment.
  */
-static GSequence* select_champions(Hooks *hooks) {
+static GSequence* select_champions(EigenValue *hooks) {
 	int i = 0;
 	/* manifest sequence */
 	GSequence *champions = g_sequence_new(free_manifest);
-	for (; i < hooks->size; ++i) {
+	for (; i < hooks->value_num; ++i) {
 		/* Get all IDs of manifests associated with hooks. */
-		GSequence *id_seq = g_hash_table_lookup(sparse_index, &hooks->hooks[i]);
+		GSequence *id_seq = g_hash_table_lookup(sparse_index,
+				&hooks->values[i]);
 		if (id_seq == NULL )
 			continue;
 		GSequenceIter *id_seq_iter = g_sequence_get_begin_iter(id_seq);
@@ -135,7 +138,7 @@ static GSequence* select_champions(Hooks *hooks) {
 			}
 			Fingerprint *matched_hook = (Fingerprint*) malloc(
 					sizeof(Fingerprint));
-			memcpy(matched_hook, &hooks->hooks[i], sizeof(Fingerprint));
+			memcpy(matched_hook, &hooks->values[i], sizeof(Fingerprint));
 			/* insert matched hook */
 			g_sequence_insert_sorted(manifest->matched_hooks, matched_hook,
 					g_fingerprint_cmp, NULL );
@@ -238,13 +241,6 @@ int64_t write_manifest(Manifest *manifest) {
 	return id;
 }
 
-/* champion manifest sequence of the current hooks for search*/
-static GSequence *champions = NULL;
-static Hooks *current_hooks = NULL;
-
-/* the new menifest of the current segment for update */
-static Manifest *new_manifest = NULL;
-
 /*
  * indicates the current segment is completely duplicate with the top 1 champion.
  * If the current segment is duplicate with the top 1 champion,
@@ -297,34 +293,6 @@ BOOL sparse_index_init() {
 }
 
 void sparse_index_destroy() {
-	if (completely_duplicate_with_top_1 == FALSE) {
-		int64_t manifest_id = write_manifest(new_manifest);
-
-		int i = 0;
-		for (; i < current_hooks->size; ++i) {
-			GSequence *id_seq = g_hash_table_lookup(sparse_index,
-					&current_hooks->hooks[i]);
-			if (id_seq == NULL ) {
-				Fingerprint *new_hook = (Fingerprint*) malloc(
-						sizeof(Fingerprint));
-				memcpy(new_hook, &current_hooks->hooks[i], sizeof(Fingerprint));
-				id_seq = g_sequence_new(free);
-				g_hash_table_insert(sparse_index, new_hook, id_seq);
-			}
-			int64_t *id = (int64_t*) malloc(sizeof(int64_t));
-			*id = manifest_id;
-			g_sequence_append(id_seq, id);
-		}
-	}
-	if (new_manifest)
-		free_manifest(new_manifest);
-	new_manifest = NULL;
-	if (current_hooks)
-		free(current_hooks);
-	current_hooks = NULL;
-	if (champions)
-		g_sequence_free(champions);
-
 	manifest_volume_destroy();
 
 	char filename[256];
@@ -360,23 +328,102 @@ void sparse_index_destroy() {
 
 }
 
-ContainerId sparse_index_search(Fingerprint *fingerprint, Hooks *hooks) {
-	if (current_hooks == NULL || current_hooks->size != hooks->size
-			|| memcmp(&current_hooks->hooks, &hooks->hooks,
-					hooks->size * sizeof(Fingerprint)) != 0) {
-		/* Write the last manifest */
+ContainerId sparse_index_search(Fingerprint *fingerprint,
+		EigenValue *eigenvalue) {
+	static int chunk_num = 0;
+	static GSequence *champions = NULL;
+
+	if (eigenvalue) {
+		/* A new segment */
+		chunk_num = eigenvalue->chunk_num;
+		champions = select_champions(eigenvalue);
+	}
+
+	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
+	while (!g_sequence_iter_is_end(champion_iter)) {
+		Manifest *manifest = g_sequence_get(champion_iter);
+		load_manifest(manifest);
+		champion_iter = g_sequence_iter_next(champion_iter);
+	}
+
+	ContainerId *cid = NULL;
+	champion_iter = g_sequence_get_begin_iter(champions);
+	while (!g_sequence_iter_is_end(champion_iter)) {
+		if (!g_sequence_iter_is_begin(champion_iter))
+			/* not in top 1 */
+			completely_duplicate_with_top_1 = FALSE;
+		Manifest *manifest = g_sequence_get(champion_iter);
+		cid = g_hash_table_lookup(manifest->fingers, fingerprint);
+		if (cid)
+			break;
+		champion_iter = g_sequence_iter_next(champion_iter);
+	}
+
+	if (cid == NULL && new_manifest) {
+		cid = g_hash_table_lookup(new_manifest->fingers, fingerprint);
+		completely_duplicate_with_top_1 = FALSE;
+	}
+
+	chunk_num--;
+	if (chunk_num == 0) {
+		g_sequence_free(champions);
+		champions = NULL;
+	}
+
+	return cid == NULL ? TMP_CONTAINER_ID : *cid;
+}
+
+/*
+ * update is for rewriting.
+ * We never know whether the container_id is updated without a update flag.
+ * hooks param is obsolete.
+ */
+void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
+		EigenValue *eigenvalue, BOOL update) {
+	static int chunk_num = 0;
+	static EigenValue *current_eigenvalue = NULL;
+
+	if (eigenvalue) {
+		if (new_manifest != NULL )
+			dprint("An error");
+		chunk_num = eigenvalue->chunk_num;
+		new_manifest = (Manifest*) malloc(sizeof(Manifest));
+		new_manifest->matched_hooks = NULL;
+		new_manifest->fingers = g_hash_table_new_full(g_int64_hash,
+				g_fingerprint_equal, free, free);
+		current_eigenvalue = (EigenValue*) malloc(
+				sizeof(EigenValue)
+						+ eigenvalue->value_num * sizeof(Fingerprint));
+		memcpy(&current_eigenvalue, eigenvalue,
+				sizeof(EigenValue)
+						+ eigenvalue->value_num * sizeof(Fingerprint));
+	}
+
+	if (update)
+		completely_duplicate_with_top_1 = FALSE;
+
+	Fingerprint *new_finger = (Fingerprint*) malloc(sizeof(Fingerprint));
+	memcpy(new_finger, fingerprint, sizeof(Fingerprint));
+	ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
+	*cid = container_id;
+
+	g_hash_table_insert(new_manifest->fingers, new_finger, cid);
+
+	chunk_num--;
+	if (chunk_num == 0) {
+		/* The segment is finished, so write the manifest */
 		if (completely_duplicate_with_top_1 == FALSE) {
 			int64_t manifest_id = write_manifest(new_manifest);
 
 			int i = 0;
-			for (; i < current_hooks->size; ++i) {
+			for (; i < current_eigenvalue->value_num; ++i) {
 				GSequence *id_seq = g_hash_table_lookup(sparse_index,
-						&current_hooks->hooks[i]);
+						&current_eigenvalue->values[i]);
 				if (id_seq == NULL ) {
 					id_seq = g_sequence_new(free);
 					Fingerprint *new_hook = (Fingerprint*) malloc(
 							sizeof(Fingerprint));
-					memcpy(new_hook, &current_hooks->hooks[i],
+					memcpy(new_hook, &current_eigenvalue->values[i],
 							sizeof(Fingerprint));
 					g_hash_table_insert(sparse_index, new_hook, id_seq);
 				}
@@ -386,198 +433,48 @@ ContainerId sparse_index_search(Fingerprint *fingerprint, Hooks *hooks) {
 			}
 		}
 
-		if (new_manifest)
-			free_manifest(new_manifest);
-		new_manifest = (Manifest*) malloc(sizeof(Manifest));
-		new_manifest->matched_hooks = NULL;
-		new_manifest->fingers = g_hash_table_new_full(g_int64_hash,
-				g_fingerprint_equal, free, free);
+		free_manifest(new_manifest);
+		new_manifest = NULL;
 
-		if (current_hooks)
-			free(current_hooks);
-
-		current_hooks = (Hooks*) malloc(
-				sizeof(Hooks) + sizeof(Fingerprint) * hooks->size);
-		memcpy(current_hooks, hooks,
-				sizeof(Hooks) + sizeof(Fingerprint) * hooks->size);
-
-		/* hooks is changed. So we need to update the champions. */
-		if (champions)
-			g_sequence_free(champions);
-		champions = select_champions(hooks);
-		GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
-		while (!g_sequence_iter_is_end(champion_iter)) {
-			Manifest *manifest = g_sequence_get(champion_iter);
-			load_manifest(manifest);
-			champion_iter = g_sequence_iter_next(champion_iter);
-		}
+		free(current_eigenvalue);
+		current_eigenvalue = NULL;
 	}
-
-	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
-	while (!g_sequence_iter_is_end(champion_iter)) {
-		if (!g_sequence_iter_is_begin(champion_iter))
-			/* not in top 1 */
-			completely_duplicate_with_top_1 = FALSE;
-		Manifest *manifest = g_sequence_get(champion_iter);
-		ContainerId *cid = g_hash_table_lookup(manifest->fingers, fingerprint);
-		if (cid)
-			return *cid;
-		champion_iter = g_sequence_iter_next(champion_iter);
-	}
-
-	if (new_manifest) {
-		ContainerId *cid = g_hash_table_lookup(new_manifest->fingers,
-				fingerprint);
-		if (cid)
-			return *cid;
-	}
-
-	completely_duplicate_with_top_1 = FALSE;
-	/* not in champions: it's new chunk. */
-	return TMP_CONTAINER_ID;
 }
 
-/*
- * update is for rewriting.
- * We never know whether the container_id is updated without a update flag.
- * hooks param is obsolete.
- */
-void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
-		BOOL update) {
-	if (update)
-		completely_duplicate_with_top_1 = FALSE;
+EigenValue* extract_eigenvalue_sparse(Chunk* chunk) {
+	static int chunk_cnt = 0;
+	static Queue *current_hooks = NULL;
+	if (current_hooks == NULL )
+		current_hooks = queue_new();
 
-	if (new_manifest == NULL )
-		dprint("new_manifest == NULL");
+	if (chunk->length == FILE_END)
+		return NULL ;
+	EigenValue *eigenvalue = NULL;
+	if (chunk->length == STREAM_END || and_bits(chunk->hash, segment_bits)) {
+		int cnt = queue_size(current_hooks);
 
-	Fingerprint *new_finger = (Fingerprint*) malloc(sizeof(Fingerprint));
-	memcpy(new_finger, fingerprint, sizeof(Fingerprint));
-	ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
-	*cid = container_id;
-
-	g_hash_table_insert(new_manifest->fingers, new_finger, cid);
-}
-
-void* sparse_prepare(void* arg) {
-	Jcr *jcr = (Jcr*) arg;
-	Recipe *processing_recipe = 0;
-	Queue *segment = queue_new();
-	Queue *current_hooks = queue_new();
-
-	while (TRUE) {
-		Chunk *chunk = NULL;
-		int signal = recv_hash(&chunk);
-		if (signal == STREAM_END) {
-			int cnt = queue_size(current_hooks);
-			Hooks *hooks = NULL;
-			if (cnt > 0) {
-				hooks = (Hooks*) malloc(
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				hooks->size = 0;
-				Fingerprint *buffered_hook = queue_pop(current_hooks);
-				while (buffered_hook) {
-					memcpy(&hooks->hooks[hooks->size], buffered_hook,
-							sizeof(Fingerprint));
-					hooks->size++;
-					free(buffered_hook);
-					buffered_hook = queue_pop(current_hooks);
-				}
+		if (cnt > 0) {
+			eigenvalue = (EigenValue*) malloc(
+					sizeof(EigenValue) + cnt * sizeof(Fingerprint));
+			int i = 0;
+			for (; i < cnt; ++i) {
+				Fingerprint *hook = queue_pop(current_hooks);
+				memcpy(&eigenvalue->values[i], hook, sizeof(Fingerprint));
+				eigenvalue->value_num++;
 			}
-
-			/* segment is full, push it */
-			Chunk *buffered_chunk = queue_pop(segment);
-			if (cnt == 0 && buffered_chunk) {
-				dprint("rarely happen!");
-				hooks = (Hooks*) malloc(sizeof(Hooks) + sizeof(Fingerprint));
-				hooks->size = 1;
-				memcpy(&hooks->hooks[0], &buffered_chunk->hash,
-						sizeof(Fingerprint));
-			}
-			while (buffered_chunk) {
-				Hooks *new_hooks = (Hooks*) malloc(
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				memcpy(new_hooks, hooks,
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				buffered_chunk->feature = new_hooks;
-
-				send_feature(buffered_chunk);
-				buffered_chunk = queue_pop(segment);
-			}
-
-			free(hooks);
-
-			send_feature(chunk);
-			break;
 		}
-		if (processing_recipe == 0) {
-			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
-			puts(processing_recipe->filename);
-		}
-		if (signal == FILE_END) {
-			/* TO-DO */
-			close(processing_recipe->fd);
-			sync_queue_push(jcr->completed_files_queue, processing_recipe);
-			processing_recipe = 0;
-			free_chunk(chunk);
-			/* FILE notion is meaningless for following threads */
-			continue;
-		}
-		/* TO-DO */
-		if (and_bits(chunk->hash, segment_bits)/*segment boundary is found*/) {
-			int cnt = queue_size(current_hooks);
-			Hooks *hooks = NULL;
-			if (cnt > 0) {
-				hooks = (Hooks*) malloc(
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				hooks->size = 0;
-				Fingerprint *buffered_hook = queue_pop(current_hooks);
-				while (buffered_hook) {
-					memcpy(&hooks->hooks[hooks->size], buffered_hook,
-							sizeof(Fingerprint));
-					hooks->size++;
-					free(buffered_hook);
-					buffered_hook = queue_pop(current_hooks);
-				}
-			}
+		eigenvalue->chunk_num = chunk_cnt;
+		chunk_cnt = 0;
+	}
 
-			/* segment is full, push it */
-			Chunk *buffered_chunk = queue_pop(segment);
-			if (cnt == 0 && buffered_chunk) {
-				/* adjacent segment boundries */
-				dprint("rarely happen!");
-				hooks = (Hooks*) malloc(sizeof(Hooks) + sizeof(Fingerprint));
-				hooks->size = 1;
-				memcpy(&hooks->hooks[0], &buffered_chunk->hash,
-						sizeof(Fingerprint));
-			}
-			while (buffered_chunk) {
-				Hooks *new_hooks = (Hooks*) malloc(
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				memcpy(new_hooks, hooks,
-						sizeof(Hooks) + cnt * sizeof(Fingerprint));
-				buffered_chunk->feature = new_hooks;
-
-				send_feature(buffered_chunk);
-				buffered_chunk = queue_pop(segment);
-			}
-
-			free(hooks);
-		}
-
+	if (chunk->length != STREAM_END) {
+		chunk_cnt++;
 		if (and_bits(chunk->hash, sample_bits)) {
-			/* sample */
-			Fingerprint *hook = (Fingerprint*) malloc(sizeof(Fingerprint));
-			memcpy(hook, &chunk->hash, sizeof(Fingerprint));
-			queue_push(current_hooks, hook);
+			Fingerprint *new_hook = (Fingerprint*) malloc(sizeof(Fingerprint));
+			memcpy(new_hook, &chunk->hash, sizeof(Fingerprint));
+			queue_push(current_hooks, new_hook);
 		}
-
-		processing_recipe->chunknum++;
-		processing_recipe->filesize += chunk->length;
-
-		queue_push(segment, chunk);
 	}
 
-	queue_free(segment, free_chunk);
-	queue_free(current_hooks, free);
-	return NULL ;
+	return eigenvalue;
 }

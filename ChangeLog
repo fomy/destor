@@ -50,3 +50,7 @@ Optimize the capping algorithm, and the new algorithm is named Enhanced-CAP
 v3.3
 New Feature!
 Sparse Index is added.
+
+v4.0
+Rename prepare_phase to segment_phase.
+Redefine the protocol between segment_phase and index module.

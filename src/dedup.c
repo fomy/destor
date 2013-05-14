@@ -6,7 +6,7 @@ Chunk* allocate_chunk() {
 	chunk->container_id = TMP_CONTAINER_ID;
 	chunk->data = 0;
 	chunk->length = 0;
-	chunk->feature = 0;
+	chunk->eigenvalue = 0;
 	chunk->status = UNIQUE;
 
 	return chunk;
@@ -17,8 +17,8 @@ void free_chunk(Chunk* chunk) {
 		return;
 	if (chunk->data && chunk->length > 0)
 		free(chunk->data);
-	if (chunk->feature)
-		free(chunk->feature);
+	if (chunk->eigenvalue)
+		free(chunk->eigenvalue);
 	chunk->data = 0;
 	free(chunk);
 }

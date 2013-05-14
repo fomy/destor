@@ -25,14 +25,19 @@ struct data_buffer_tag {
 	unsigned char data[READ_BUFFER_SIZE];
 };
 
+typedef struct {
+	int value_num;
+	/* indicates how many chunks there are in the segment. */
+	int chunk_num;
+	Fingerprint values[0];
+} EigenValue;
+
 struct chunk_tag {
 	int32_t length;
 	unsigned char *data;
-	//BOOL duplicate;
 	int status;
 	Fingerprint hash;
-	/* for SiLo and Extreme Binning */
-	void *feature;
+	EigenValue *eigenvalue;
 	ContainerId container_id;
 };
 

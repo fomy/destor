@@ -13,12 +13,12 @@
 
 extern void send_fc_signal();
 extern void send_fingerchunk(FingerChunk *fchunk, 
-        void *feature, BOOL update);
+        EigenValue* eigenvalue, BOOL update);
 extern double cfl_require;
 extern double cfl_usage_threshold;
 extern CFLMonitor* cfl_monitor;
 
-extern int recv_feature(Chunk **chunk);
+extern int recv_chunk_with_eigenvalue(Chunk **chunk);
 
 extern ContainerId save_chunk(Chunk *chunk);
 
@@ -43,12 +43,11 @@ static void rewrite_container(Jcr *jcr){
         memcpy(&fchunk->fingerprint, &waiting_chunk->hash, sizeof(Fingerprint));
         fchunk->next = 0;
         if(waiting_chunk->data){
-            memcpy(waiting_chunk->feature, waiting_chunk->feature, sizeof(Fingerprint));
             fchunk->container_id = save_chunk(waiting_chunk);
             jcr->rewritten_chunk_count++;
             jcr->rewritten_chunk_amount += waiting_chunk->length;
         }
-        send_fingerchunk(fchunk, waiting_chunk->feature, TRUE);
+        send_fingerchunk(fchunk, waiting_chunk->eigenvalue, TRUE);
         free_chunk(waiting_chunk);
         waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
     }
@@ -83,7 +82,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
                     }else{
                         update = TRUE;
                     }
-                    send_fingerchunk(fchunk, waiting_chunk->feature, update);
+                    send_fingerchunk(fchunk, waiting_chunk->eigenvalue, update);
                     free_chunk(waiting_chunk);
                     waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
                 }
@@ -116,7 +115,7 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
         memcpy(&fchunk->fingerprint, &new_chunk->hash, sizeof(Fingerprint));
         fchunk->next = 0;
         free_chunk(new_chunk);
-        send_fingerchunk(fchunk, new_chunk->feature, TRUE);
+        send_fingerchunk(fchunk, new_chunk->eigenvalue, TRUE);
     }
 }
 
@@ -143,7 +142,7 @@ static void typical_dedup(Jcr *jcr, Chunk *new_chunk){
         fchunk->container_id = save_chunk(new_chunk);
         update = TRUE;
     }
-    send_fingerchunk(fchunk, new_chunk->feature, update);
+    send_fingerchunk(fchunk, new_chunk->eigenvalue, update);
     free_chunk(new_chunk);
 }
 
@@ -174,7 +173,7 @@ void *cfl_filter(void* arg){
 
     while(TRUE){
         Chunk* new_chunk = NULL;
-        int signal = recv_feature(&new_chunk);
+        int signal = recv_chunk_with_eigenvalue(&new_chunk);
 
         if (signal == STREAM_END) {
             free_chunk(new_chunk);
@@ -208,7 +207,7 @@ void *cfl_filter(void* arg){
                         jcr->dedup_size += fchunk->length;
                         jcr->number_of_dup_chunks++;
                     }
-                    send_fingerchunk(fchunk, chunk->feature, update);
+                    send_fingerchunk(fchunk, chunk->eigenvalue, update);
                     free_chunk(chunk);    
                 }
                 if(queue_size(container_tmp.waiting_chunk_queue)!=0){
@@ -253,7 +252,7 @@ void *cfl_filter(void* arg){
                 }else{
                     update = TRUE;
                 }
-                send_fingerchunk(fchunk, waiting_chunk->feature, update);
+                send_fingerchunk(fchunk, waiting_chunk->eigenvalue, update);
                 free_chunk(waiting_chunk);
                 waiting_chunk = queue_pop(container_tmp.waiting_chunk_queue);
             }

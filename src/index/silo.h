@@ -8,27 +8,27 @@ typedef struct silo_block_tag SiloBlock;
 typedef struct silo_segment_tag SiloSegment;
 
 /* locality unit */
-struct silo_block_tag{
-    /* fingerprint to container id */
-    GHashTable *LHTable;
-    /* rep_fingers of all segments in this block */
-    GHashTable* feature_table;//for write_buffer
-    //Fingerprint current_segment;//for read_cache
-    int32_t id;
-    int32_t size;
+struct silo_block_tag {
+	/* fingerprint to container id */
+	GHashTable *LHTable;
+	/* rep_fingers of all segments in this block */
+	GHashTable* representative_table; //for write_buffer
+	int32_t id;
+	int32_t size;
+	BOOL dirty;
 };
 
 /* similarity unit */
-struct silo_segment_tag{
-    Fingerprint delegate;
-    /* finger-container_id pairs */
-    GHashTable *fingers;
+struct silo_segment_tag {
+	Fingerprint delegate;
+	/* finger-container_id pairs */
+	GHashTable *fingers;
 };
 
 void silo_destroy();
 BOOL silo_init();
-ContainerId silo_search(Fingerprint* fingerprint, Fingerprint* delegate);
+ContainerId silo_search(Fingerprint* fingerprint, EigenValue *eigenvalue);
 void silo_update(Fingerprint* fingerprint, ContainerId containerId,
-        Fingerprint *delegate);
+		EigenValue* eigenvalue, BOOL update);
 
 #endif

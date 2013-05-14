@@ -61,7 +61,7 @@ void index_destroy() {
  * Call index_search() to obtain the container id of the chunk.
  * It should be called immediately after poping a chunk.
  */
-ContainerId index_search(Fingerprint* fingerprint, void* feature) {
+ContainerId index_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	TIMER_DECLARE(b, e);
 	TIMER_BEGIN(b);
 	ContainerId container_id;
@@ -73,13 +73,13 @@ ContainerId index_search(Fingerprint* fingerprint, void* feature) {
 		container_id = ddfs_index_search(fingerprint);
 		break;
 	case EXBIN_INDEX:
-		container_id = extreme_binning_search(fingerprint, feature);
+		container_id = extreme_binning_search(fingerprint, eigenvalue);
 		break;
 	case SILO_INDEX:
-		container_id = silo_search(fingerprint, feature);
+		container_id = silo_search(fingerprint, eigenvalue);
 		break;
 	case SPARSE_INDEX:
-		container_id = sparse_index_search(fingerprint, feature);
+		container_id = sparse_index_search(fingerprint, eigenvalue);
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
@@ -95,7 +95,7 @@ ContainerId index_search(Fingerprint* fingerprint, void* feature) {
  * The update parameter indicates whether the container_id is new.
  */
 void index_update(Fingerprint* fingerprint, ContainerId container_id,
-		void* feature, BOOL update) {
+		EigenValue* eigenvalue, BOOL update) {
 	/* The update determines wheter update except in SILO */
 	TIMER_DECLARE(b, e);
 	TIMER_BEGIN(b);
@@ -111,15 +111,13 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
 		}
 		break;
 	case EXBIN_INDEX:
-		if (update) {
-			extreme_binning_update(fingerprint, container_id, feature);
-		}
+		extreme_binning_update(fingerprint, container_id, eigenvalue, update);
 		break;
 	case SILO_INDEX:
-		silo_update(fingerprint, container_id, feature);
+		silo_update(fingerprint, container_id, eigenvalue, update);
 		break;
 	case SPARSE_INDEX:
-		sparse_index_update(fingerprint, container_id, update);
+		sparse_index_update(fingerprint, container_id, eigenvalue, update);
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
