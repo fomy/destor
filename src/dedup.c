@@ -33,3 +33,7 @@ gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2,
 		gpointer user_data) {
 	return memcmp(k1, k2, sizeof(Fingerprint));
 }
+
+void print_finger(Fingerprint *fingerprint) {
+	printf("fingerprint=%lld\n", *(int64_t*) fingerprint);
+}

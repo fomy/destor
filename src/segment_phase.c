@@ -148,7 +148,9 @@ void *segment_thread(void *arg) {
 
 			Chunk *buffered_chunk = queue_pop(segment);
 			if (buffered_chunk) {
-				lseek(processing_recipe->fd, 0, SEEK_SET);
+				if (buffered_chunk->data == NULL )
+					/* only for extreme binning */
+					lseek(processing_recipe->fd, 0, SEEK_SET);
 				/* The first chunk in segment */
 				buffered_chunk->eigenvalue = (EigenValue*) malloc(
 						sizeof(EigenValue)

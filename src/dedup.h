@@ -46,4 +46,5 @@ void free_chunk(Chunk* chunk);
 gboolean g_fingerprint_equal(gconstpointer k1, gconstpointer k2);
 gboolean g_fingerprint_cmp(gconstpointer k1, gconstpointer k2,
 		gpointer user_data);
+void print_finger(Fingerprint *fingerprint);
 #endif /* DEDUP_H_ */

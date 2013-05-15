@@ -220,6 +220,7 @@ void silo_destroy() {
 
 ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	ContainerId *cid = NULL;
+	static int chunk_num = 0;
 	/* Does it exist in write_buffer? */
 	if (write_buffer)
 		cid = g_hash_table_lookup(write_buffer->LHTable, fingerprint);
@@ -229,9 +230,12 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
 
 	if (eigenvalue) {
+		if (chunk_num != 0)
+			dprint("An error!");
+		chunk_num = eigenvalue->chunk_num;
 		/* Does it exist in SHTable? */
 		int32_t *bid = g_hash_table_lookup(SHTable, &eigenvalue->values[0]);
-		if (bid != 0 && *bid != read_cache->id) {
+		if (bid != 0 && (read_cache == NULL || *bid != read_cache->id)) {
 			/* its block is not in read cache */
 			if (read_cache)
 				silo_block_free(read_cache);
@@ -241,20 +245,28 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 				cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
 		}
 	}
+	chunk_num--;
+	if (cid && *cid < 0)
+		printf("SEARCH:container id less than 0, %d\n", *cid);
 	return cid == NULL ? TMP_CONTAINER_ID : *cid;
 }
 
 void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 		EigenValue* eigenvalue, BOOL update) {
+	if (container_id < 0)
+		printf("UPDATE:container id less than 0, %d\n", container_id);
 	static int chunk_num = 0;
 
-	if (eigenvalue && chunk_num == 0)
+	if (eigenvalue) {
+		if (chunk_num != 0)
+			dprint("Error!");
 		chunk_num = eigenvalue->chunk_num;
+	}
 
 	if (write_buffer == NULL )
 		write_buffer = silo_block_new();
 
-	/* Insert the representative fingerprint of the segment into the block */
+	/* Insert the representeigenvalue->chunk_num;ative fingerprint of the segment into the block */
 	if (eigenvalue
 			&& g_hash_table_lookup(write_buffer->representative_table,
 					&eigenvalue->values[0]) == NULL ) {
@@ -273,6 +285,10 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 	memcpy(new_finger, fingerprint, sizeof(Fingerprint));
 	ContainerId* new_cid = (ContainerId*) malloc(sizeof(ContainerId));
 	memcpy(new_cid, &container_id, sizeof(ContainerId));
+	if (*new_cid < 0) {
+		printf("INSERT:container id less than 0, %d, %d\n", container_id,
+				*new_cid);
+	}
 	g_hash_table_insert(write_buffer->LHTable, new_finger, new_cid);
 
 	if (update) {
@@ -284,6 +300,8 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 
 	/* is write_buffer full? */
 	if ((write_buffer->size + silo_item_size) > silo_block_hash_size) {
+		if (write_buffer->size != silo_block_hash_size)
+			dprint("An error!");
 		if (chunk_num != 0)
 			/* A block boundary must be a segment boundary */
 			dprint("An error!");
@@ -296,10 +314,9 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
 				g_hash_table_insert(SHTable, key, value);
 			}
-			silo_block_free(write_buffer);
-			write_buffer = NULL;
 		}
-		write_buffer->dirty = FALSE;
+		silo_block_free(write_buffer);
+		write_buffer = NULL;
 	}
 }
 
@@ -316,6 +333,7 @@ EigenValue* extract_eigenvalue_silo(Chunk *chunk) {
 		/* segment boundary is found */
 		eigenvalue = (EigenValue*) malloc(
 				sizeof(EigenValue) + sizeof(Fingerprint));
+		print_finger(&representative_fingerprint);
 		memcpy(&eigenvalue->values[0], &representative_fingerprint,
 				sizeof(Fingerprint));
 		eigenvalue->value_num = 1;
@@ -327,8 +345,8 @@ EigenValue* extract_eigenvalue_silo(Chunk *chunk) {
 	}
 	if (chunk->length != STREAM_END) {
 		chunk_cnt++;
-		if (memcmp(&chunk->hash, &representative_fingerprint, sizeof(Fingerprint))
-				< 0) {
+		if (memcmp(&chunk->hash, &representative_fingerprint,
+				sizeof(Fingerprint)) < 0) {
 			memcpy(&representative_fingerprint, &chunk->hash,
 					sizeof(Fingerprint));
 		}

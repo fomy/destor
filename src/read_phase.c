@@ -9,7 +9,7 @@ static void send_data(DataBuffer* data_buffer){
     sync_queue_push(read_queue, data_buffer);
 }
 
-static void send_signal(int signal){
+static void signal_data(int signal){
     DataBuffer *buffer= (DataBuffer*)malloc(sizeof(DataBuffer));
     buffer->size = signal;
     send_data(buffer);
@@ -59,7 +59,7 @@ static int read_file(Jcr *jcr, char *path) {
         TIMER_BEGIN(b);
     }
     free(new_data_buffer);
-    send_signal(FILE_END);
+    signal_data(FILE_END);
     return 0;
 }
 
@@ -128,7 +128,7 @@ static void* read_thread(void *argv) {
         }
     }
 
-    send_signal(STREAM_END);
+    signal_data(STREAM_END);
     return NULL;
 }
 
