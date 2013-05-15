@@ -4,7 +4,7 @@
 extern char working_path[];
 extern void send_feature(Chunk *chunk);
 
-int32_t segment_bits = 10;
+int32_t segment_bits = 11;
 int32_t sample_bits = 8;
 int32_t champions_number = 2;
 
@@ -330,24 +330,27 @@ void sparse_index_destroy() {
 
 ContainerId sparse_index_search(Fingerprint *fingerprint,
 		EigenValue *eigenvalue) {
+	ContainerId ret_id = TMP_CONTAINER_ID;
 	static int chunk_num = 0;
 	static GSequence *champions = NULL;
 
 	if (eigenvalue) {
 		/* A new segment */
+		if (chunk_num != 0 || champions != NULL )
+			dprint("An error!");
 		chunk_num = eigenvalue->chunk_num;
 		champions = select_champions(eigenvalue);
-	}
 
-	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
-	while (!g_sequence_iter_is_end(champion_iter)) {
-		Manifest *manifest = g_sequence_get(champion_iter);
-		load_manifest(manifest);
-		champion_iter = g_sequence_iter_next(champion_iter);
+		GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
+		while (!g_sequence_iter_is_end(champion_iter)) {
+			Manifest *manifest = g_sequence_get(champion_iter);
+			load_manifest(manifest);
+			champion_iter = g_sequence_iter_next(champion_iter);
+		}
 	}
 
 	ContainerId *cid = NULL;
-	champion_iter = g_sequence_get_begin_iter(champions);
+	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
 	while (!g_sequence_iter_is_end(champion_iter)) {
 		if (!g_sequence_iter_is_begin(champion_iter))
 			/* not in top 1 */
@@ -364,13 +367,16 @@ ContainerId sparse_index_search(Fingerprint *fingerprint,
 		completely_duplicate_with_top_1 = FALSE;
 	}
 
+	if (cid)
+		ret_id = *cid;
+
 	chunk_num--;
 	if (chunk_num == 0) {
 		g_sequence_free(champions);
 		champions = NULL;
 	}
 
-	return cid == NULL ? TMP_CONTAINER_ID : *cid;
+	return ret_id;
 }
 
 /*
@@ -394,7 +400,7 @@ void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
 		current_eigenvalue = (EigenValue*) malloc(
 				sizeof(EigenValue)
 						+ eigenvalue->value_num * sizeof(Fingerprint));
-		memcpy(&current_eigenvalue, eigenvalue,
+		memcpy(current_eigenvalue, eigenvalue,
 				sizeof(EigenValue)
 						+ eigenvalue->value_num * sizeof(Fingerprint));
 	}
@@ -456,6 +462,7 @@ EigenValue* extract_eigenvalue_sparse(Chunk* chunk) {
 		if (cnt > 0) {
 			eigenvalue = (EigenValue*) malloc(
 					sizeof(EigenValue) + cnt * sizeof(Fingerprint));
+			eigenvalue->value_num = 0;
 			int i = 0;
 			for (; i < cnt; ++i) {
 				Fingerprint *hook = queue_pop(current_hooks);
