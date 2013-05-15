@@ -219,8 +219,10 @@ void silo_destroy() {
 }
 
 ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
+	ContainerId id = TMP_CONTAINER_ID;
 	ContainerId *cid = NULL;
 	static int chunk_num = 0;
+
 	/* Does it exist in write_buffer? */
 	if (write_buffer)
 		cid = g_hash_table_lookup(write_buffer->LHTable, fingerprint);
@@ -228,6 +230,10 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	/* Does it exist in read cache */
 	if (cid == NULL && read_cache)
 		cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
+
+	if (cid)
+		/* save the result */
+		id = *cid;
 
 	if (eigenvalue) {
 		if (chunk_num != 0)
@@ -238,23 +244,28 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		if (bid != 0 && (read_cache == NULL || *bid != read_cache->id)) {
 			/* its block is not in read cache */
 			if (read_cache)
+				/*
+				 * The cid from the old read cache will be freed too.
+				 */
 				silo_block_free(read_cache);
 			read_cache = read_block_from_volume(*bid);
 			/* filter the fingerprint in read cache */
-			if (cid == NULL )
-				cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
+			cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
+			if (cid)
+				id = *cid;
 		}
 	}
 	chunk_num--;
 	if (cid && *cid < 0)
 		printf("SEARCH:container id less than 0, %d\n", *cid);
-	return cid == NULL ? TMP_CONTAINER_ID : *cid;
+	return id;
 }
 
 void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 		EigenValue* eigenvalue, BOOL update) {
 	if (container_id < 0)
 		printf("UPDATE:container id less than 0, %d\n", container_id);
+
 	static int chunk_num = 0;
 
 	if (eigenvalue) {
@@ -291,9 +302,7 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 	}
 	g_hash_table_insert(write_buffer->LHTable, new_finger, new_cid);
 
-	if (update) {
-		write_buffer->dirty = TRUE;
-	}
+	write_buffer->dirty = TRUE;
 
 	write_buffer->size += silo_item_size;
 	chunk_num--;
@@ -333,7 +342,7 @@ EigenValue* extract_eigenvalue_silo(Chunk *chunk) {
 		/* segment boundary is found */
 		eigenvalue = (EigenValue*) malloc(
 				sizeof(EigenValue) + sizeof(Fingerprint));
-		print_finger(&representative_fingerprint);
+		/*print_finger(&representative_fingerprint);*/
 		memcpy(&eigenvalue->values[0], &representative_fingerprint,
 				sizeof(Fingerprint));
 		eigenvalue->value_num = 1;
