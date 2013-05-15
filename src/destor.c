@@ -49,7 +49,7 @@ struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
 		't' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
 		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, {
-		"enable_simulator", 0, NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0,
+		"simulate", 0, NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0,
 		NULL, 0 } };
 
 void print_help() {
@@ -98,7 +98,7 @@ void print_help() {
 	puts("\t\tenable HBR.");
 	puts("\t--enable_cache_filter");
 	puts("\t\tenable cache filter.");
-	puts("\t--enable_simulator");
+	puts("\t--simulate");
 	puts("\t\tenable simulator mode.");
 }
 

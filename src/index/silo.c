@@ -16,6 +16,8 @@
 
 extern int32_t silo_segment_size; //KB
 extern int32_t silo_block_size; //MB
+extern int32_t silo_read_cache_size;
+
 extern uint32_t chunk_size;
 extern char working_path[];
 /* silo_x_size/average chunk size */
@@ -30,7 +32,7 @@ static GHashTable *SHTable;
 
 static SiloBlock *write_buffer = NULL;
 /* now we only maintain one block-sized cache */
-static SiloBlock *read_cache = NULL;
+static GSequence *read_cache = NULL;
 
 static int32_t block_num;
 static int block_vol_fd;
@@ -171,6 +173,8 @@ BOOL silo_init() {
 		lseek(block_vol_fd, 0, SEEK_SET);
 		write(block_vol_fd, &block_num, 4);
 	}
+
+	read_cache = g_sequence_new(silo_block_free);
 }
 
 void silo_destroy() {
@@ -186,8 +190,8 @@ void silo_destroy() {
 		}
 		silo_block_free(write_buffer);
 	}
-	if (read_cache)
-		silo_block_free(read_cache);
+
+	g_sequence_free(read_cache);
 
 	/*update block volume*/
 	lseek(block_vol_fd, 0, SEEK_SET);
@@ -219,7 +223,6 @@ void silo_destroy() {
 }
 
 ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
-	ContainerId id = TMP_CONTAINER_ID;
 	ContainerId *cid = NULL;
 	static int chunk_num = 0;
 
@@ -227,38 +230,36 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	if (write_buffer)
 		cid = g_hash_table_lookup(write_buffer->LHTable, fingerprint);
 
-	/* Does it exist in read cache */
-	if (cid == NULL && read_cache)
-		cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
-
-	if (cid)
-		/* save the result */
-		id = *cid;
-
 	if (eigenvalue) {
 		if (chunk_num != 0)
 			dprint("An error!");
 		chunk_num = eigenvalue->chunk_num;
 		/* Does it exist in SHTable? */
 		int32_t *bid = g_hash_table_lookup(SHTable, &eigenvalue->values[0]);
-		if (bid != 0 && (read_cache == NULL || *bid != read_cache->id)) {
+		if (bid != NULL ) {
 			/* its block is not in read cache */
-			if (read_cache)
-				/*
-				 * The cid from the old read cache will be freed too.
-				 */
-				silo_block_free(read_cache);
-			read_cache = read_block_from_volume(*bid);
-			/* filter the fingerprint in read cache */
-			cid = g_hash_table_lookup(read_cache->LHTable, fingerprint);
-			if (cid)
-				id = *cid;
+			SiloBlock *read_block = read_block_from_volume(*bid);
+			g_sequence_append(read_cache, read_block);
+			if (g_sequence_get_length(read_cache) > silo_read_cache_size) {
+				g_sequence_remove(g_sequence_get_begin_iter(read_cache));
+			}
 		}
 	}
+
+	/* filter the fingerprint in read cache */
+	GSequenceIter *iter = g_sequence_get_begin_iter(read_cache);
+	while (!g_sequence_iter_is_end(iter)) {
+		SiloBlock *read_block = g_sequence_get(iter);
+		cid = g_hash_table_lookup(read_block->LHTable, fingerprint);
+		if (cid)
+			break;
+		iter = g_sequence_iter_next(iter);
+	}
+
 	chunk_num--;
 	if (cid && *cid < 0)
 		printf("SEARCH:container id less than 0, %d\n", *cid);
-	return id;
+	return cid == NULL ? TMP_CONTAINER_ID : *cid;
 }
 
 void silo_update(Fingerprint* fingerprint, ContainerId container_id,
