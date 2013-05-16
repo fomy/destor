@@ -23,8 +23,7 @@ done
 destor -s >> backup.log
 
 echo "#index=${index}, rewrite=${rewrite}" >>  restore.log
-echo "#cache LRU" >> restore.log
-echo "#cache 100" >> restore.log
+echo "#lru cache 100" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
@@ -33,8 +32,7 @@ destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=100 >>log
 i=$(($i+1))
 done
 
-echo "#cache OPT" >> restore.log
-echo "#cache 100" >> restore.log
+echo "#opt cache 100" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
@@ -43,8 +41,7 @@ destor -r$i /home/fumin/restore/ --cache=OPT --cache_size=100 >>log
 i=$(($i+1))
 done
 
-echo "#cache ASM" >> restore.log
-echo "#cache 100" >> restore.log
+echo "#asm cache 100" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
