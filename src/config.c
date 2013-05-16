@@ -27,6 +27,7 @@ int fingerprint_index_type = RAM_INDEX;
 int ddfs_cache_size = 100;
 /* sparse index parameter */
 extern int32_t champions_number;
+extern int32_t sample_bits;
 
 /* SiLo parameters */
 int32_t silo_segment_size = 2048; //KB
@@ -107,6 +108,8 @@ void set_value(char *pname, char *pvalue) {
 		ddfs_cache_size = atoi(pvalue);
 	} else if (strcmp(pname, "CHAMPIONS_NUMBER") == 0) {
 		champions_number = atoi(pvalue);
+	} else if (strcmp(pname, "SAMPLE_BITS") == 0) {
+		sample_bits = atoi(pvalue);
 	} else if (strcmp(pname, "CFL_REQUIRE") == 0) {
 		cfl_require = atof(pvalue);
 	} else if (strcmp(pname, "CFL_P") == 0) {
