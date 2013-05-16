@@ -1,8 +1,10 @@
-
 #include <stdint.h>/*uint32_t*/
 #include <stdlib.h> /*size_t*/
 #include <string.h>/*memset*/
 #include "rabin_chunking.h"
+#include "../global.h"
+
+extern int chunking_algorithm;
 
 #define SLIDE(m,fingerprint,bufPos,buf) do{	\
 	    unsigned char om;   \
@@ -264,11 +266,30 @@ int rabin_chunk_data(unsigned char *p, int n) {
 	while (i <= n) {
 
 		SLIDE(p[i - 1], fingerprint, bufPos, buf);
-		if (((fingerprint & (chunk_size - 1)) == BREAKMARK_VALUE
-				&& i >= min_chunk_size) || i >= max_chunk_size || i == n) {
-			break;
-		} else
-			i++;
+		if (chunking_algorithm == RABIN_CHUNK) {
+			if (((fingerprint & (chunk_size - 1)) == BREAKMARK_VALUE
+					&& i >= min_chunk_size) || i >= max_chunk_size || i == n) {
+				break;
+			} else
+				i++;
+		} else if (chunking_algorithm == NRABIN_CHUNK) {
+			if (i < chunk_size) {
+				if (((fingerprint & (chunk_size * 2 - 1)) == BREAKMARK_VALUE
+						&& i >= min_chunk_size) || i >= max_chunk_size
+						|| i == n) {
+					break;
+				} else
+					i++;
+			} else {
+				if (((fingerprint & (chunk_size / 2 - 1)) == BREAKMARK_VALUE
+						&& i >= min_chunk_size) || i >= max_chunk_size
+						|| i == n) {
+					break;
+				} else
+					i++;
+			}
+
+		}
 	}
 	return i;
 }

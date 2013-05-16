@@ -10,7 +10,7 @@ extern int chunking_algorithm;
 /* chunk_size must be a power of 2 */
 uint32_t chunk_size = 8192;
 uint32_t max_chunk_size = 65536;
-uint32_t min_chunk_size = 2048;
+uint32_t min_chunk_size = 1024;
 
 /* chunk queue */
 static SyncQueue* chunk_queue;
@@ -74,7 +74,8 @@ static void* rabin_chunk_thread(void *arg) {
 			TIMER_DECLARE(b, e);
 			TIMER_BEGIN(b);
 
-			if (chunking_algorithm == RABIN_CHUNK)
+			if (chunking_algorithm == RABIN_CHUNK
+					|| chunking_algorithm == NRABIN_CHUNK)
 				new_chunk->length = rabin_chunk_data(leftbuf + left_offset,
 						leftlen);
 			else if (chunking_algorithm == FIXED_CHUNK)

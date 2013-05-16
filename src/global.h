@@ -82,5 +82,7 @@ typedef unsigned char Fingerprint[20];
 
 #define FIXED_CHUNK 1
 #define RABIN_CHUNK 2
+/* Normalized rabin chunking */
+#define NRABIN_CHUNK 3
 
 #endif /* SERVER_GLOBAL_H_ */

@@ -54,3 +54,6 @@ Sparse Index is added.
 v4.0
 Rename prepare_phase to segment_phase.
 Redefine the protocol between segment_phase and index module.
+
+v4.1
+Normalized rabin chunking is added.

@@ -70,6 +70,8 @@ void set_value(char *pname, char *pvalue) {
 			chunking_algorithm = FIXED_CHUNK;
 		} else if (strcmp(pvalue, "RABIN") == 0) {
 			chunking_algorithm = RABIN_CHUNK;
+		} else if (strcmp(pvalue, "NRABIN") == 0) {
+			chunking_algorithm = NRABIN_CHUNK;
 		} else {
 			printf("%s, %d: unknown chunking algorithm\n", __FILE__, __LINE__);
 		}
