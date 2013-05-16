@@ -114,8 +114,8 @@ static void selective_dedup(Jcr *jcr, Chunk *new_chunk){
         fchunk->length = new_chunk->length;
         memcpy(&fchunk->fingerprint, &new_chunk->hash, sizeof(Fingerprint));
         fchunk->next = 0;
-        free_chunk(new_chunk);
         send_fingerchunk(fchunk, new_chunk->eigenvalue, TRUE);
+        free_chunk(new_chunk);
     }
 }
 
