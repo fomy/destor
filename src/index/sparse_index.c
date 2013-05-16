@@ -469,9 +469,15 @@ EigenValue* extract_eigenvalue_sparse(Chunk* chunk) {
 				memcpy(&eigenvalue->values[i], hook, sizeof(Fingerprint));
 				eigenvalue->value_num++;
 			}
+			/*
+			 * It is possible that the first segment in the file has no hooks.
+			 * In this case (cnt == 0),
+			 * we ignore the segment boundary,
+			 * and merge it into next segment.
+			 */
+			eigenvalue->chunk_num = chunk_cnt;
+			chunk_cnt = 0;
 		}
-		eigenvalue->chunk_num = chunk_cnt;
-		chunk_cnt = 0;
 	}
 
 	if (chunk->length != STREAM_END) {
