@@ -53,6 +53,9 @@ int32_t capping_segment_size = 20 * 1024 * 1024;
 BOOL enable_hbr = FALSE;
 double hbr_usage_threshold = 0.7;
 
+/* chunking algorithms */
+int chunking_algorithm = RABIN_CHUNK;
+
 /* 
  * enable cache monitor to filter unnecessary
  * out of order chunks
@@ -62,6 +65,14 @@ BOOL enable_cache_filter = FALSE;
 void set_value(char *pname, char *pvalue) {
 	if (strcmp(pname, "WORKING_PATH") == 0) {
 		strcpy(working_path, pvalue);
+	} else if (strcmp(pname, "CHUNKING_ALGORITHM") == 0) {
+		if (strcmp(pvalue, "FIXED") == 0) {
+			chunking_algorithm = FIXED_CHUNK;
+		} else if (strcmp(pvalue, "RABIN") == 0) {
+			chunking_algorithm = RABIN_CHUNK;
+		} else {
+			printf("%s, %d: unknown chunking algorithm\n", __FILE__, __LINE__);
+		}
 	} else if (strcmp(pname, "READ_CACHE_SIZE") == 0) {
 		read_cache_size = atoi(pvalue);
 	} else if (strcmp(pname, "READ_CACHE_TYPE") == 0) {
@@ -100,6 +111,14 @@ void set_value(char *pname, char *pvalue) {
 		cfl_usage_threshold = atoi(pvalue) / 100.0;
 	} else if (strcmp(pname, "HBR_USAGE_THRESHOLD") == 0) {
 		hbr_usage_threshold = atof(pvalue);
+	} else if (strcmp(pname, "HBR") == 0) {
+		if (strcmp(pvalue, "TRUE") == 0) {
+			enable_hbr = TRUE;
+		} else if (strcmp(pvalue, "FALSE") == 0) {
+			enable_hbr = FALSE;
+		} else {
+			printf("%s, %d: bad parameter hbr\n", __FILE__, __LINE__);
+		}
 	} else if (strcmp(pname, "REWRITE") == 0) {
 		if (strcmp(pvalue, "NO") == 0) {
 			rewriting_algorithm = NO_REWRITING;
@@ -107,20 +126,8 @@ void set_value(char *pname, char *pvalue) {
 			rewriting_algorithm = CFL_REWRITING;
 		} else if (strcmp(pvalue, "CBR") == 0) {
 			rewriting_algorithm = CBR_REWRITING;
-		} else if (strcmp(pvalue, "HBR") == 0) {
-			rewriting_algorithm = HBR_REWRITING;
-			enable_hbr = TRUE;
-		} else if (strcmp(pvalue, "HBR_CBR") == 0) {
-			rewriting_algorithm = HBR_CBR_REWRITING;
-			enable_hbr = TRUE;
 		} else if (strcmp(pvalue, "CAP") == 0) {
 			rewriting_algorithm = CAP_REWRITING;
-		} else if (strcmp(pvalue, "HBR_CAP") == 0) {
-			rewriting_algorithm = HBR_CAP_REWRITING;
-			enable_hbr = TRUE;
-		} else if (strcmp(pvalue, "HBR_CFL") == 0) {
-			rewriting_algorithm = HBR_CFL_REWRITING;
-			enable_hbr = TRUE;
 		} else if (strcmp(pvalue, "ECAP") == 0) {
 			rewriting_algorithm = ECAP_REWRITING;
 		} else {

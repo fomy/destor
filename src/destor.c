@@ -163,22 +163,10 @@ int main(int argc, char **argv) {
 				rewriting_algorithm = CFL_REWRITING;
 			} else if (strcmp(optarg, "CBR") == 0) {
 				rewriting_algorithm = CBR_REWRITING;
-			} else if (strcmp(optarg, "HBR") == 0) {
-				rewriting_algorithm = HBR_REWRITING;
-				enable_hbr = TRUE;
-			} else if (strcmp(optarg, "HBR_CBR") == 0) {
-				rewriting_algorithm = HBR_CBR_REWRITING;
-				enable_hbr = TRUE;
 			} else if (strcmp(optarg, "CAP") == 0) {
 				rewriting_algorithm = CAP_REWRITING;
 			} else if (strcmp(optarg, "ECAP") == 0) {
 				rewriting_algorithm = ECAP_REWRITING;
-			} else if (strcmp(optarg, "HBR_CAP") == 0) {
-				rewriting_algorithm = HBR_CAP_REWRITING;
-				enable_hbr = TRUE;
-			} else if (strcmp(optarg, "HBR_CFL") == 0) {
-				rewriting_algorithm = HBR_CFL_REWRITING;
-				enable_hbr = TRUE;
 			} else {
 				puts("unknown rewriting algorithm\n");
 				puts("type -h or --help for help.");

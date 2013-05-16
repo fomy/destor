@@ -5,7 +5,7 @@ The destor is an experimental tool that may help implementing great ideas.
 
 Features
 ========
-1. Context-based chunking by rabin hash.
+1. Context-based chunking by rabin hash, and fixed-sized chunking.
 2. Chunk-level pipeline;
 3. Container-based storage;
 4. in-memory index and DDFS index;

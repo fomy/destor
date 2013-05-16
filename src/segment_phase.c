@@ -25,6 +25,10 @@ int64_t sparse_chunk_amount = 0;
 int in_cache_count = 0;
 int64_t in_cache_amount = 0;
 
+static int segment_num = 0;
+static double avg_segment_size = 0;
+static double avg_eigenvalue_num = 0;
+
 void send_chunk_with_eigenvalue(Chunk *chunk) {
 	sync_queue_push(eigenvalue_queue, chunk);
 }
@@ -113,6 +117,7 @@ void * no_segment(void *arg) {
 EigenValue *(*extract_eigenvalue)(Chunk *);
 
 void *segment_thread(void *arg) {
+	static int segment_size = 0;
 	Jcr *jcr = (Jcr*) arg;
 	Recipe *processing_recipe = 0;
 	Queue *segment = queue_new();
@@ -172,9 +177,17 @@ void *segment_thread(void *arg) {
 					read(processing_recipe->fd, buffered_chunk->data,
 							buffered_chunk->length);
 				}
+				segment_size += buffered_chunk->length;
 				send_chunk_with_eigenvalue(buffered_chunk);
 				buffered_chunk = queue_pop(segment);
 			}
+			avg_segment_size = (avg_segment_size * segment_num + segment_size)
+					/ (segment_num + 1);
+			avg_eigenvalue_num = (avg_eigenvalue_num * segment_num
+					+ eigenvalue->value_num) / (segment_num + 1);
+			segment_num++;
+			segment_size = 0;
+
 			if (eigenvalue)
 				free(eigenvalue);
 			eigenvalue = NULL;
@@ -196,6 +209,9 @@ void *segment_thread(void *arg) {
 		processing_recipe->filesize += chunk->length;
 	}
 	queue_free(segment, free_chunk);
+	printf(
+			"segment_thread is finished:\nsegment_num=%d, avg_segment_size=%.3fMB, avg_eigenvalue_num=%.3f\n",
+			segment_num, avg_segment_size / 1024 / 1024, avg_eigenvalue_num);
 	return NULL ;
 }
 

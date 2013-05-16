@@ -79,24 +79,12 @@ int start_filter_phase(Jcr *jcr) {
 	} else if (rewriting_algorithm == CBR_REWRITING) {
 		puts("rewriting_algorithm=CBR");
 		pthread_create(&filter_t, NULL, cbr_filter, jcr);
-	} else if (rewriting_algorithm == HBR_REWRITING) {
-		puts("rewriting_algorithm=HBR");
-		pthread_create(&filter_t, NULL, simply_filter, jcr);
-	} else if (rewriting_algorithm == HBR_CBR_REWRITING) {
-		puts("rewriting_algorithm=HBR_CBR");
-		pthread_create(&filter_t, NULL, cbr_filter, jcr);
 	} else if (rewriting_algorithm == CAP_REWRITING) {
 		puts("rewriting_algorithm=CAP");
 		pthread_create(&filter_t, NULL, cap_filter, jcr);
 	} else if (rewriting_algorithm == ECAP_REWRITING) {
 		puts("rewriting_algorithm=ECAP");
 		pthread_create(&filter_t, NULL, cap_filter, jcr);
-	} else if (rewriting_algorithm == HBR_CAP_REWRITING) {
-		puts("rewriting_algorithm=HBR_CAP");
-		pthread_create(&filter_t, NULL, cap_filter, jcr);
-	} else if (rewriting_algorithm == HBR_CFL_REWRITING) {
-		puts("rewriting_algorithm=HBR_CFL");
-		pthread_create(&filter_t, NULL, cfl_filter, jcr);
 	} else {
 		dprint("invalid rewriting algorithm\n");
 		return FAILURE;

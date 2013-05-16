@@ -57,11 +57,11 @@ typedef int BOOL;
 #define NO_REWRITING 1
 #define CFL_REWRITING 2
 #define CBR_REWRITING 3
-#define HBR_REWRITING 4
-#define HBR_CBR_REWRITING 5
-#define HBR_CFL_REWRITING 6
+//#define HBR_REWRITING 4
+//#define HBR_CBR_REWRITING 5
+//#define HBR_CFL_REWRITING 6
 #define CAP_REWRITING 7
-#define HBR_CAP_REWRITING 8
+//#define HBR_CAP_REWRITING 8
 #define ECAP_REWRITING 9
 
 #define READ_BUFFER_SIZE (1024*1024)
@@ -79,5 +79,8 @@ typedef unsigned char Fingerprint[20];
 #define EXBIN_INDEX 3
 #define SILO_INDEX 4
 #define SPARSE_INDEX 5
+
+#define FIXED_CHUNK 1
+#define RABIN_CHUNK 2
 
 #endif /* SERVER_GLOBAL_H_ */

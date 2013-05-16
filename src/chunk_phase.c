@@ -5,6 +5,7 @@
 #include "tools/sync_queue.h"
 
 extern int recv_data(DataBuffer** data_buffer);
+extern int chunking_algorithm;
 
 /* chunk_size must be a power of 2 */
 uint32_t chunk_size = 8192;
@@ -14,6 +15,9 @@ uint32_t min_chunk_size = 2048;
 /* chunk queue */
 static SyncQueue* chunk_queue;
 static pthread_t chunk_t;
+
+static int64_t chunk_num = 0;
+static double total_size = 0;
 
 static void send_chunk(Chunk* chunk) {
 	sync_queue_push(chunk_queue, chunk);
@@ -70,7 +74,16 @@ static void* rabin_chunk_thread(void *arg) {
 			TIMER_DECLARE(b, e);
 			TIMER_BEGIN(b);
 
-			new_chunk->length = chunk_data(leftbuf + left_offset, leftlen);
+			if (chunking_algorithm == RABIN_CHUNK)
+				new_chunk->length = rabin_chunk_data(leftbuf + left_offset,
+						leftlen);
+			else if (chunking_algorithm == FIXED_CHUNK)
+				new_chunk->length = chunk_size > leftlen ? leftlen : chunk_size;
+			else
+				dprint("Unknown chunking algorithm!");
+
+			chunk_num++;
+			total_size += new_chunk->length;
 
 			TIMER_END(jcr->chunk_time, b, e);
 
@@ -100,67 +113,8 @@ static void* rabin_chunk_thread(void *arg) {
 			}
 		}
 	}
-	return NULL ;
-}
-
-static void* fixed_chunk_thread(void *arg) {
-	int leftlen = 0;
-	int left_offset = 0;
-	unsigned char leftbuf[READ_BUFFER_SIZE + chunk_size];
-	int signal = 0;
-
-	Jcr *jcr = (Jcr*) arg;
-
-	char zeros[chunk_size];
-	bzero(zeros, chunk_size);
-	while (TRUE) {
-		Chunk *new_chunk = allocate_chunk();
-
-		if (signal >= 0 && leftlen < chunk_size) {
-			DataBuffer *data_buffer = NULL;
-			signal = recv_data(&data_buffer);
-			/* save this signal */
-			if (signal == SUCCESS) {
-				memmove(leftbuf, leftbuf + left_offset, leftlen);
-				left_offset = 0;
-				memcpy(leftbuf + leftlen, data_buffer->data, data_buffer->size);
-				leftlen += data_buffer->size;
-			}
-			free(data_buffer);
-		}
-
-		if (leftlen > 0) {
-			TIMER_DECLARE(b, e);
-			TIMER_BEGIN(b);
-
-			new_chunk->length = chunk_size > leftlen ? leftlen : chunk_size;
-
-			TIMER_END(jcr->chunk_time, b, e);
-
-			new_chunk->data = (unsigned char*) malloc(new_chunk->length);
-			memcpy(new_chunk->data, leftbuf + left_offset, new_chunk->length);
-			leftlen -= new_chunk->length;
-			left_offset += new_chunk->length;
-			if (memcmp(zeros, new_chunk->data, new_chunk->length) == 0) {
-				jcr->zero_chunk_count++;
-				jcr->zero_chunk_amount += new_chunk->length;
-			}
-			sync_queue_push(chunk_queue, new_chunk);
-		} else {
-			if (signal == FILE_END) {
-				leftlen = 0;
-				left_offset = 0;
-				signal = 0;
-				new_chunk->length = FILE_END;
-				sync_queue_push(chunk_queue, new_chunk);
-			} else if (signal == STREAM_END) {
-				new_chunk->length = STREAM_END;
-				new_chunk->data = 0;
-				sync_queue_push(chunk_queue, new_chunk);
-				break;
-			}
-		}
-	}
+	printf("chunk phase is finished:\nchunk_num=%ld, avg_chunk_size=%.3f\n",
+			chunk_num, total_size / chunk_num);
 	return NULL ;
 }
 

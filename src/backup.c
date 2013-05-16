@@ -88,7 +88,7 @@ int backup_server(char *path) {
 	printf("job id: %d\n", jcr->job_id);
 	printf("backup path: %s\n", jcr->backup_path);
 	printf("number of files: %d\n", jcr->file_num);
-	printf("number of chunks: %d\n", jcr->chunk_num);
+	//printf("number of chunks: %d\n", jcr->chunk_num);
 	printf("number of dup chunks: %d\n", jcr->number_of_dup_chunks);
 	printf("total size: %ld\n", jcr->job_size);
 	printf("dedup size: %ld\n", jcr->dedup_size);
