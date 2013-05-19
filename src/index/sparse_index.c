@@ -67,7 +67,7 @@ static void manifest_volume_destroy() {
 }
 /* ascending */
 static gint manifest_cmp(Manifest *a, Manifest *b, gpointer user_data) {
-	return a->id - b->id;
+	return (a->id >> 0x18) - (b->id >> 0x18);
 }
 
 /* descending */
@@ -75,7 +75,7 @@ static gint manifest_cmp_length(Manifest *a, Manifest* b, gpointer user_data) {
 	if (g_sequence_get_length(b->matched_hooks)
 			== g_sequence_get_length(a->matched_hooks)) {
 		/* we prefer recent manifests */
-		return b->id - a->id;
+		return (b->id >> 0x18) - (a->id >> 0x18);
 	}
 	return g_sequence_get_length(b->matched_hooks)
 			- g_sequence_get_length(a->matched_hooks);
@@ -125,7 +125,7 @@ static GSequence* select_champions(EigenValue *hooks) {
 			Manifest *manifest = NULL;
 			if (manifest_iter)
 				manifest = g_sequence_get(manifest_iter);
-			if (manifest == NULL ) {
+			else if (manifest == NULL ) {
 				/* Construct a new manifest */
 				manifest = (Manifest*) malloc(sizeof(Manifest));
 				manifest->id = *id;
@@ -152,7 +152,7 @@ static GSequence* select_champions(EigenValue *hooks) {
 		/* We now select the Top champion_number manifests. */
 		GSequenceIter *base = g_sequence_get_begin_iter(champions);
 		int i = 0;
-		while (i < champions_number) {
+		for (; i < champions_number; ++i) {
 			GSequenceIter *next = g_sequence_iter_next(base);
 			while (!g_sequence_iter_is_end(next)) {
 				unscore(g_sequence_get(base), g_sequence_get(next));
@@ -160,12 +160,10 @@ static GSequence* select_champions(EigenValue *hooks) {
 			}
 
 			g_sequence_sort(champions, manifest_cmp_length, NULL );
-			i++;
-			base = g_sequence_get_iter_at_pos(champions, i);
+			base = g_sequence_get_iter_at_pos(champions, i + 1);
 			if (g_sequence_iter_is_end(base)) {
 				dprint("It can't happen!");
 			}
-
 		}
 
 		GSequenceIter *loser = g_sequence_get_iter_at_pos(champions,

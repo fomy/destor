@@ -4,7 +4,7 @@
 #include "index.h"
 
 typedef struct manifest {
-	int64_t id; //first 6 bytes are address, last 2 bytes are length
+	int64_t id; //first 5 bytes are address, last 3 bytes are length
 	GSequence *matched_hooks; //Fingerprint sequence
 	GHashTable *fingers;
 } Manifest;
