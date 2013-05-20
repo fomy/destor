@@ -181,12 +181,14 @@ void *segment_thread(void *arg) {
 				send_chunk_with_eigenvalue(buffered_chunk);
 				buffered_chunk = queue_pop(segment);
 			}
-			avg_segment_size = (avg_segment_size * segment_num + segment_size)
-					/ (segment_num + 1);
-			avg_eigenvalue_num = (avg_eigenvalue_num * segment_num
-					+ eigenvalue->value_num) / (segment_num + 1);
-			segment_num++;
-			segment_size = 0;
+			if (eigenvalue) {
+				avg_segment_size = (avg_segment_size * segment_num
+						+ segment_size) / (segment_num + 1);
+				avg_eigenvalue_num = (avg_eigenvalue_num * segment_num
+						+ eigenvalue->value_num) / (segment_num + 1);
+				segment_num++;
+				segment_size = 0;
+			}
 
 			if (eigenvalue)
 				free(eigenvalue);
