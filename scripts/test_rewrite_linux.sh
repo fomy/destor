@@ -19,6 +19,9 @@ elif [ $1 = "CBR" ]; then
 param="--rewrite_limit=$2"
 elif [ $1 = "CAP" ]; then
 param="--capping_t=$2"
+elif [ $1 = "HBR" ]; then
+rewrite="--enable_hbr"
+param="--hbr_usage=$2"
 fi
 
 if [ $3 -gt 0 ]; then
@@ -37,91 +40,93 @@ done
 jobid=$(($jobid-1));
 destor -s >> backup.log;
 
-echo "rewrite=$1 param=$2 pcache=$3" >> restore.log
-echo "lru_cache=32" >> restore.log
+for cache_type in LRU ASM OPT; do
+echo "rewrite=$1 param=$2 pcache=$3 cache=$cache_type" >> restore.log
+echo "cache=32" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=32 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=32 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=28" >> restore.log
+echo "cache=28" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=28 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=28 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=24" >> restore.log
+echo "cache=24" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=24 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=24 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=20" >> restore.log
+echo "cache=20" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=20 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=20 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=16" >> restore.log
+echo "cache=16" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=16 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=16 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=12" >> restore.log
+echo "cache=12" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=12 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=12 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=10" >> restore.log
+echo "cache=10" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=10 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=10 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=8" >> restore.log
+echo "cache=8" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=8 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=8 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=6" >> restore.log
+echo "cache=6" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=6 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=6 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "#lru_cache=4" >> restore.log
+echo "cache=4" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=4 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=4 --enable_simulator >>log;
 i=$(($i+1));
 done
 
-echo "lru_cache=2" >> restore.log
+echo "cache=2" >> restore.log
 i=0
 while [ $i -le $jobid ]
 do
-destor -r$i /home/fumin/restore/ --cache=LRU --cache_size=2 --enable_simulator >>log;
+destor -r$i /home/fumin/restore/ --cache=$cache_type --cache_size=2 --enable_simulator >>log;
 i=$(($i+1));
+done
 done
