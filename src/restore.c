@@ -313,7 +313,7 @@ static void* read_chunk_thread(void *arg) {
         puts("cache=ASM");
         monitor = cfl_monitor_new(0);
         jcr->asm_buffer = 0;
-        area_length = jcr->read_cache_size*4*1024*1024;
+        area_length = 4L*jcr->read_cache_size*1024*1024;
         chunks_length = 0;
         area_offset = 0;
         assembly_area = malloc(area_length);
