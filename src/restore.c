@@ -386,12 +386,12 @@ static void* read_chunk_thread(void *arg) {
      * minimal container number,
      * actually read container number,
      * CFL,
-     * mean containers read per MB
+     * speed factor
      * throughput
      */
     sprintf(buf, "%d %d %d %.2f %.4f %.2f\n", jcr->job_id, 
             monitor->ocf, monitor->ccf,  get_cfl(monitor),
-            monitor->ccf*1024.0*1024/jcr->job_size,
+            1.0*jcr->job_size/(monitor->ccf*1024.0*1024),
             (double) jcr->job_size * 1000000 / (jcr->read_chunk_time * 1024 * 1024));
     write(fd, buf, strlen(buf));
     close(fd);
