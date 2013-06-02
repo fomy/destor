@@ -48,8 +48,8 @@ libstorage_a_AR = $(AR) $(ARFLAGS)
 libstorage_a_LIBADD =
 am_libstorage_a_OBJECTS = container.$(OBJEXT) \
 	container_volume.$(OBJEXT) container_cache.$(OBJEXT) \
-	optimal_container_cache.$(OBJEXT) cfl_monitor.$(OBJEXT) \
-	container_usage_monitor.$(OBJEXT)
+	optimal_container_cache.$(OBJEXT) forward_assembly.$(OBJEXT) \
+	cfl_monitor.$(OBJEXT) container_usage_monitor.$(OBJEXT)
 libstorage_a_OBJECTS = $(am_libstorage_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -152,7 +152,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libstorage.a
-libstorage_a_SOURCES = container.c container_volume.c container_cache.c optimal_container_cache.c cfl_monitor.c container_usage_monitor.c
+libstorage_a_SOURCES = container.c container_volume.c container_cache.c optimal_container_cache.c forward_assembly.c cfl_monitor.c container_usage_monitor.c
 all: all-am
 
 .SUFFIXES:
@@ -206,6 +206,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/container_cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/container_usage_monitor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/container_volume.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/forward_assembly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/optimal_container_cache.Po@am__quote@
 
 .c.o:

@@ -14,5 +14,6 @@
 #include "optimal_container_cache.h"
 #include "container_usage_monitor.h"
 #include "cfl_monitor.h"
+#include "forward_assembly.h"
 
 #endif /* PROTOS_H_ */
