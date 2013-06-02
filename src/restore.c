@@ -21,7 +21,7 @@ extern int read_cache_size;
 extern BOOL enable_data_cache;
 extern int read_cache_type;
 extern int optimal_cache_window_size;
-extern BOOL enable_simulator;
+extern int simulation_level;
 
 static SyncQueue *recovery_queue;
 
@@ -155,7 +155,7 @@ static int restore_one_file(Jcr *jcr, Recipe *recipe) {
 		TIMER_DECLARE(b1, e1);
 		TIMER_BEGIN(b1);
 		/* cherish your disk */
-		if (enable_simulator == FALSE)
+		if (simulation_level == SIMULATION_NO)
 			write(fd, chunk->data, chunk->length);
 		jcr->job_size += chunk->length;
 		TIMER_END(jcr->write_file_time, b1, e1);

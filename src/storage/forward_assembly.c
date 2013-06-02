@@ -2,7 +2,7 @@
 #include "container.h"
 #include "container_volume.h"
 
-extern int enable_simulator;
+extern int simulation_level;
 /* rolling forward assembly area */
 static char *assembly_area;
 static int64_t area_length;
@@ -98,7 +98,7 @@ Chunk* asm_get_chunk() {
 	if (fchunks_head->container_id != TMP_CONTAINER_ID) {
 		ContainerId cid = fchunks_head->container_id;
 		Container *container = NULL;
-		if (enable_simulator) {
+		if (simulation_level >= SIMULATION_RECOVERY) {
 			container = read_container_meta_only(cid);
 		} else {
 			container = read_container(cid);

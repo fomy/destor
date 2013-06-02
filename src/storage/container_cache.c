@@ -9,7 +9,7 @@
 #include "container_volume.h"
 #include "../dedup.h"
 
-extern BOOL enable_simulator;
+extern int simulation_level;
 extern char working_path[];
 
 static FILE* fragment_stream = 0;
@@ -124,7 +124,7 @@ Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid)
 	/* read container */
 	Container *container = 0;
 	if (cc->enable_data) {
-		if (enable_simulator) {
+		if (simulation_level >= SIMULATION_RECOVERY) {
 			container = read_container_meta_only(cid);
 		} else {
 			container = read_container(cid);

@@ -85,4 +85,9 @@ typedef unsigned char Fingerprint[20];
 /* Normalized rabin chunking */
 #define NRABIN_CHUNK 3
 
+/* Simuation-level, ascending */
+#define SIMULATION_NO 0
+#define SIMULATION_RECOVERY 1
+#define SIMULATION_APPEND 2
+#define SIMULATION_ALL 3
 #endif /* SERVER_GLOBAL_H_ */

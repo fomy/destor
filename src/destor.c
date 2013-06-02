@@ -15,7 +15,7 @@ extern int restore_server(int revision, char *path);
 
 extern int load_config();
 
-extern BOOL enable_simulator;
+extern int simulation_level;
 extern BOOL enable_hbr;
 extern BOOL enable_cache_filter;
 extern int read_cache_type;
@@ -48,9 +48,8 @@ struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		'm' }, { "rewrite_limit", 1, NULL, 'l' }, { "stream_context_size", 1,
 		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
 		't' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
-		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, {
-		"simulate", 0, NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0,
-		NULL, 0 } };
+		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, { "simulation", 1,
+		NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
 void print_help() {
 	puts("GENERAL USAGE");
@@ -78,7 +77,7 @@ void print_help() {
 	puts("\t\tAssign read cache size, e.g. --cache_size=100.");
 	puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]");
 	puts(
-			"\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP,  HBR ,HBR_CBR, HBR_CAP.");
+			"\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP, HBR.");
 	puts("\t--cfl_p=[p in CFL]");
 	puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
 	puts("\t--rewrite_limit=[rewrite limit for CBR]");
@@ -98,8 +97,8 @@ void print_help() {
 	puts("\t\tenable HBR.");
 	puts("\t--enable_cache_filter");
 	puts("\t\tenable cache filter.");
-	puts("\t--simulate");
-	puts("\t\tenable simulator mode.");
+	puts("\t--simulation=[NO|RECOVERY|APPEND|ALL]");
+	puts("\t\tenable simulation mode.");
 }
 
 int main(int argc, char **argv) {
@@ -167,6 +166,8 @@ int main(int argc, char **argv) {
 				rewriting_algorithm = CAP_REWRITING;
 			} else if (strcmp(optarg, "ECAP") == 0) {
 				rewriting_algorithm = ECAP_REWRITING;
+			} else if (strcmp(optarg, "HBR") == 0) {
+				enable_hbr = TRUE;
 			} else {
 				puts("unknown rewriting algorithm\n");
 				puts("type -h or --help for help.");
@@ -207,7 +208,17 @@ int main(int argc, char **argv) {
 			enable_cache_filter = TRUE;
 			break;
 		case 'I':
-			enable_simulator = TRUE;
+			if (strcmp(optarg, "NO") == 0) {
+				simulation_level = SIMULATION_NO;
+			} else if (strcmp(optarg, "RECOVERY") == 0) {
+				simulation_level = SIMULATION_RECOVERY;
+			} else if (strcmp(optarg, "APPEND") == 0) {
+				simulation_level = SIMULATION_APPEND;
+			} else if (strcmp(optarg, "ALL") == 0) {
+				simulation_level = SIMULATION_ALL;
+			} else {
+				dprint("An wrong simulation_level!");
+			}
 			break;
 		default:
 			return 0;

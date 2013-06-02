@@ -12,7 +12,7 @@
 char working_path[200] = "/home/data/working/";
 
 /* simulator mode */
-BOOL enable_simulator = FALSE;
+int simulation_level = SIMULATION_NO;
 
 /* read cahce parameters */
 int read_cache_size = 100;
@@ -156,6 +156,18 @@ void set_value(char *pname, char *pvalue) {
 		capping_T = atoi(pvalue);
 	} else if (strcmp(pname, "CAP_SEGMENT_SIZE") == 0) {
 		capping_segment_size = atoi(pvalue) * 1024 * 1024;
+	} else if (strcmp(pname, "SIMULATION_LEVEL") == 0) {
+		if (strcmp(pvalue, "NO") == 0) {
+			simulation_level = SIMULATION_NO;
+		} else if (strcmp(pvalue, "RECOVERY") == 0) {
+			simulation_level = SIMULATION_RECOVERY;
+		} else if (strcmp(pvalue, "APPEND") == 0) {
+			simulation_level = SIMULATION_APPEND;
+		} else if (strcmp(pvalue, "ALL") == 0) {
+			simulation_level = SIMULATION_ALL;
+		} else {
+			dprint("An wrong simulation_level!");
+		}
 	} else {
 		printf("%s, %d: no such param name %s.\n", __FILE__, __LINE__, pname);
 	}
