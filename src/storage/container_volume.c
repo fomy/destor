@@ -100,6 +100,38 @@ ContainerId seal_container(Container* container) {
 	return container->id;
 }
 
+static char* container_ser_meta(Container* container) {
+	if ((g_hash_table_size(container->meta) * CONTAINER_META_ENTRY_SIZE
+			+ CONTAINER_DES_SIZE) > CONTAINER_MAX_META_SIZE) {
+		dprint("Meta Overflow!");
+		return 0;
+	}
+
+	char *buff;
+	int ret = posix_memalign(&buff, getpagesize(), CONTAINER_SIZE);
+
+	ser_declare;
+	ser_begin(buff, 0);
+	ser_int32(container->id);
+	ser_int32(container->chunk_num);
+	ser_int32(container->data_size);
+
+	GHashTableIter iter;
+	g_hash_table_iter_init(&iter, container->meta);
+	gpointer key, value;
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerMetaEntry *cm = (ContainerMetaEntry*) value;
+		ser_bytes(&cm->hash, sizeof(Fingerprint));
+		ser_int32(cm->offset);
+		ser_int32(cm->length);
+	}
+
+	if (ser_length(buff) < CONTAINER_MAX_META_SIZE) {
+		memset(buff + ser_length(buff), 0,
+				CONTAINER_MAX_META_SIZE - ser_length(buff));
+	}
+	return buff;
+}
 /*
  * serialize container into bit string.
  * unserialize bit string into hash table.
@@ -201,28 +233,57 @@ BOOL append_container(Container* container) {
 	if (simulation_level == SIMULATION_NO)
 		check_container(container);
 
-	char *buffer = container_ser(container);
+	char *buffer = 0;
+	if (simulation_level < SIMULATION_APPEND) {
+		/* The simulation level is below APPEND */
+		buffer = container_ser(container);
+	} else {
+		/* simulate appending */
+		buffer = container_ser_meta(container);
+	}
 	int len = 0;
 	while (TRUE) {
 		if (pthread_mutex_lock(&container_volume.mutex)) {
-			printf("%s, %d:failed to lock!\n", __FILE__, __LINE__);
+			dprint("failed to lock!\n");
 		}
-		if (lseek(container_volume.file_descriptor,
-				((off_t) container->id) * CONTAINER_SIZE, SEEK_SET) == -1) {
-			printf("%s, %d: seal container lseek error!\n", __FILE__, __LINE__);
-			free(buffer);
-			pthread_mutex_unlock(&container_volume.mutex);
-			return FALSE;
+
+		if (simulation_level < SIMULATION_APPEND) {
+			if (lseek(container_volume.file_descriptor,
+					((off_t) container->id) * CONTAINER_SIZE, SEEK_SET) == -1) {
+				dprint("seal container lseek error!\n");
+				free(buffer);
+				pthread_mutex_unlock(&container_volume.mutex);
+				return FALSE;
+			}
+			len = write(container_volume.file_descriptor, buffer,
+					CONTAINER_SIZE);
+			if (len != CONTAINER_SIZE) {
+				puts("Failed to seal container! Retry!");
+				pthread_mutex_unlock(&container_volume.mutex);
+				continue;
+			}
+		} else {
+			if (lseek(container_volume.file_descriptor,
+					((off_t) container->id) * CONTAINER_MAX_META_SIZE, SEEK_SET)
+					== -1) {
+				dprint("seal container lseek error!\n");
+				free(buffer);
+				pthread_mutex_unlock(&container_volume.mutex);
+				return FALSE;
+			}
+			len = write(container_volume.file_descriptor, buffer,
+					CONTAINER_MAX_META_SIZE);
+			if (len != CONTAINER_MAX_META_SIZE) {
+				dprint("Failed to seal container! Retry!");
+				pthread_mutex_unlock(&container_volume.mutex);
+				continue;
+			}
 		}
-		len = write(container_volume.file_descriptor, buffer, CONTAINER_SIZE);
-		if (len != CONTAINER_SIZE) {
-			puts("Failed to seal container! Retry!");
-			pthread_mutex_unlock(&container_volume.mutex);
-			continue;
-		}
+
 		pthread_mutex_unlock(&container_volume.mutex);
 		break;
 	}
+
 	free(buffer);
 	return TRUE;
 }
@@ -242,8 +303,14 @@ Container *read_container_meta_only(ContainerId id) {
 	if (pthread_mutex_lock(&container_volume.mutex)) {
 		printf("%s, %d: failed to lock!\n", __FILE__, __LINE__);
 	}
-	lseek(container_volume.file_descriptor, (off_t) id * CONTAINER_SIZE,
-			SEEK_SET);
+
+	if (simulation_level < SIMULATION_APPEND)
+		lseek(container_volume.file_descriptor, (off_t) id * CONTAINER_SIZE,
+				SEEK_SET);
+	else
+		lseek(container_volume.file_descriptor,
+				(off_t) id * CONTAINER_MAX_META_SIZE, SEEK_SET);
+
 	int len = read(container_volume.file_descriptor, buff,
 			CONTAINER_MAX_META_SIZE);
 	if (len != (CONTAINER_MAX_META_SIZE)) {
