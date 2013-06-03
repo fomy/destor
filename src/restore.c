@@ -12,6 +12,7 @@
 #include "index/index.h"
 #include "storage/cfl_monitor.h"
 #include "tools/sync_queue.h"
+#include "statistic.h"
 
 static int restore_one_file(Jcr*, Recipe *psRp);
 static void* read_chunk_thread(void *arg);
@@ -22,6 +23,7 @@ extern BOOL enable_data_cache;
 extern int read_cache_type;
 extern int optimal_cache_window_size;
 extern int simulation_level;
+extern DestorStat *destor_stat;
 
 static SyncQueue *recovery_queue;
 
@@ -32,6 +34,12 @@ int restore_server(int revision, char *restore_path) {
 
 	if ((jcr->job_volume = open_job_volume(jobId)) == NULL ) {
 		printf("Doesn't exist such job!\n");
+		return FAILURE;
+	}
+
+	if (simulation_level != destor_stat->simulation_level) {
+		dprint(
+				"the current simulation level is not matched with the destor stat!");
 		return FAILURE;
 	}
 
@@ -124,9 +132,11 @@ int restore(Jcr *jcr) {
 }
 
 static int restore_one_file(Jcr *jcr, Recipe *recipe) {
-	char filepath[512];
+	char *filepath = (char*) malloc(
+			strlen(jcr->restore_path) + strlen(recipe->filename) + 1);
 	strcpy(filepath, jcr->restore_path);
 	strcat(filepath, recipe->filename);
+
 	int len = strlen(jcr->restore_path);
 	char *q = filepath + len;
 	char *p;

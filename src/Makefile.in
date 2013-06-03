@@ -52,7 +52,7 @@ am_libserver_a_OBJECTS = dedup.$(OBJEXT) read_phase.$(OBJEXT) \
 	append_phase.$(OBJEXT) cfl_filter.$(OBJEXT) destor.$(OBJEXT) \
 	backup.$(OBJEXT) restore.$(OBJEXT) statistic.$(OBJEXT) \
 	jcr.$(OBJEXT) config.$(OBJEXT) cbr_filter.$(OBJEXT) \
-	cap_filter.$(OBJEXT)
+	cap_filter.$(OBJEXT) make_trace.$(OBJEXT)
 libserver_a_OBJECTS = $(am_libserver_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -155,7 +155,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libserver.a
-libserver_a_SOURCES = dedup.c read_phase.c chunk_phase.c hash_phase.c segment_phase.c filter_phase.c append_phase.c cfl_filter.c destor.c backup.c restore.c statistic.c jcr.c config.c cbr_filter.c cap_filter.c
+libserver_a_SOURCES = dedup.c read_phase.c chunk_phase.c hash_phase.c segment_phase.c filter_phase.c append_phase.c cfl_filter.c destor.c backup.c restore.c statistic.c jcr.c config.c cbr_filter.c cap_filter.c make_trace.c
 all: all-am
 
 .SUFFIXES:
@@ -216,6 +216,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hash_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jcr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_trace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/restore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segment_phase.Po@am__quote@

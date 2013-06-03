@@ -57,3 +57,7 @@ Redefine the protocol between segment_phase and index module.
 
 v4.1
 Normalized rabin chunking is added.
+
+v4.2
+The bug caused by deep directory tree is fixed.
+Simulation level is added.

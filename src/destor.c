@@ -12,6 +12,7 @@
 
 extern int backup_server(char *path);
 extern int restore_server(int revision, char *path);
+extern void make_trace(char *raw_files);
 
 extern int load_config();
 
@@ -35,11 +36,12 @@ extern int32_t capping_segment_size;
 #define RESTORE_JOB 2
 #define STAT_JOB 3
 #define HELP_JOB 4 
+#define MAKE_TRACE 5
 
 /* : means argument is required.
  * :: means argument is required and no space.
  */
-const char * const short_options = "sr::h";
+const char * const short_options = "sr::t::h";
 
 struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		NULL, 's' }, { "index", 1, NULL, 'i' }, { "cache", 1, NULL, 'c' }, {
@@ -47,7 +49,7 @@ struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		NULL, 'p' }, { "hbr_usage", 1, NULL, 'u' }, { "min_utility", 1, NULL,
 		'm' }, { "rewrite_limit", 1, NULL, 'l' }, { "stream_context_size", 1,
 		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
-		't' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
+		'T' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
 		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, { "simulation", 1,
 		NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
@@ -61,6 +63,9 @@ void print_help() {
 	puts("\t\t./destor -s");
 	puts("\tprint this");
 	puts("\t\t./destor -h");
+	puts("\tMake a trance");
+	puts("\t\t./destor -t <input raw file>");
+
 	puts("OPTIONS");
 	puts("\t--restore or -r");
 	puts("\t\tA restore job, which required a job id following the option.");
@@ -98,7 +103,9 @@ void print_help() {
 	puts("\t--enable_cache_filter");
 	puts("\t\tenable cache filter.");
 	puts("\t--simulation=[NO|RECOVERY|APPEND|ALL]");
-	puts("\t\tenable simulation mode.");
+	puts("\t\tSelect the simulation level.");
+	puts(
+			"\t\tThere are four simulation levels, and each level simulates more phases from NO to ALL.");
 }
 
 int main(int argc, char **argv) {
@@ -121,6 +128,9 @@ int main(int argc, char **argv) {
 			break;
 		case 's':
 			job_type = STAT_JOB;
+			break;
+		case 't':
+			job_type = MAKE_TRACE;
 			break;
 		case 'i':
 			if (strcmp(optarg, "RAM") == 0) {
@@ -174,7 +184,7 @@ int main(int argc, char **argv) {
 				return 0;
 			}
 			break;
-		case 't':
+		case 'T':
 			capping_T = atoi(optarg);
 			break;
 		case 'a':
@@ -218,6 +228,7 @@ int main(int argc, char **argv) {
 				simulation_level = SIMULATION_ALL;
 			} else {
 				dprint("An wrong simulation_level!");
+				return 0;
 			}
 			break;
 		default:
@@ -267,6 +278,18 @@ int main(int argc, char **argv) {
 	case HELP_JOB:
 		print_help();
 		break;
+	case MAKE_TRACE: {
+		if (argc > optind) {
+			strcpy(path, argv[optind]);
+		} else {
+			puts("Making a trance needs an input raw file!");
+			puts("type -h or --help for help.");
+			return 0;
+		}
+
+		make_trace(path);
+		break;
+	}
 	default:
 		puts("invalid job type!");
 		puts("type -h or --help for help.");

@@ -70,11 +70,13 @@ destor has provided four types of services:
     destor -s
 4. help
     destor -h
+5. make a trace
+    destor -t <path of raw files>
 
 There are several options for destor.
 1.backup options
     --index=[RAM|DDFS|EXBIN|SILO|SPARSE]
-    --rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]
+    --rewrite=[NO|CFL|CBR|CAP|HBR]
 2.restore options
     --cache=[LRU|ASM|OPT]
 
@@ -89,7 +91,7 @@ Actually it offers several parameters of deduplication system, such as index typ
 
 Bugs
 ====
-1. Don't backup directories with extremely long path. If the dir tree of your dataset is complicated, you can use concat.py to concatenate all files into a single file. 
+1. The path of the backup/restore directory doesn't exceed 200 bytes. 
 2. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
 3. Does NOT backup extremely large dataset with a huger number of chunk than 2^31.
 4. Does NOT support concurrent backup/restore.

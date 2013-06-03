@@ -24,6 +24,7 @@ extern double search_time;
 extern double update_time;
 extern int sparse_chunk_count;
 extern int64_t sparse_chunk_amount;
+extern int simulation_level;
 
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
@@ -69,6 +70,14 @@ int backup_server(char *path) {
 		free(jcr);
 		return FAILURE;
 	}
+	if (jcr->job_id > 0 && simulation_level != destor_stat->simulation_level) {
+		dprint(
+				"the current simulation level is not matched with the destor stat!");
+		return FAILURE;
+	} else {
+		destor_stat->simulation_level = simulation_level;
+	}
+
 	jcr->job_volume = create_job_volume(jcr->job_id);
 
 	struct timeval begin, end;
