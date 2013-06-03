@@ -14,7 +14,10 @@ extern int fingerprint_index_type;
 extern BOOL enable_hbr;
 extern BOOL enable_cache_filter;
 extern int recv_hash(Chunk **chunk);
+extern int recv_trace_chunk(Chunk **chunk);
 extern CFLMonitor* cfl_monitor;
+extern int simulation_level;
+
 /* output of prepare_thread */
 static SyncQueue* eigenvalue_queue;
 static pthread_t prepare_t;
@@ -79,7 +82,12 @@ void * no_segment(void *arg) {
 	Recipe *processing_recipe = 0;
 	while (TRUE) {
 		Chunk *chunk = NULL;
-		int signal = recv_hash(&chunk);
+		int signal;
+		if (simulation_level == SIMULATION_ALL)
+			signal = recv_trace_chunk(&chunk);
+		else
+			signal = recv_hash(&chunk);
+
 		if (signal == STREAM_END) {
 			send_chunk_with_eigenvalue(chunk);
 			break;
@@ -90,7 +98,8 @@ void * no_segment(void *arg) {
 		}
 		if (signal == FILE_END) {
 			/* TO-DO */
-			close(processing_recipe->fd);
+			if (simulation_level < SIMULATION_ALL)
+				close(processing_recipe->fd);
 			sync_queue_push(jcr->completed_files_queue, processing_recipe);
 			processing_recipe = 0;
 			free_chunk(chunk);
@@ -123,7 +132,11 @@ void *segment_thread(void *arg) {
 	Queue *segment = queue_new();
 	while (TRUE) {
 		Chunk *chunk = NULL;
-		int signal = recv_hash(&chunk);
+		int signal;
+		if (simulation_level == SIMULATION_ALL)
+			signal = recv_trace_chunk(&chunk);
+		else
+			signal = recv_hash(&chunk);
 
 		if (signal != STREAM_END && processing_recipe == 0) {
 			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
@@ -153,7 +166,8 @@ void *segment_thread(void *arg) {
 
 			Chunk *buffered_chunk = queue_pop(segment);
 			if (buffered_chunk) {
-				if (buffered_chunk->data == NULL )
+				if (buffered_chunk->data == NULL
+						&& simulation_level < SIMULATION_APPEND)
 					/* only for extreme binning */
 					lseek(processing_recipe->fd, 0, SEEK_SET);
 				/* The first chunk in segment */
@@ -174,8 +188,11 @@ void *segment_thread(void *arg) {
 					 * due to the length of its segments is unlimited.
 					 */
 					buffered_chunk->data = malloc(buffered_chunk->length);
-					read(processing_recipe->fd, buffered_chunk->data,
-							buffered_chunk->length);
+					if (simulation_level < SIMULATION_APPEND) {
+
+						read(processing_recipe->fd, buffered_chunk->data,
+								buffered_chunk->length);
+					}
 				}
 				segment_size += buffered_chunk->length;
 				send_chunk_with_eigenvalue(buffered_chunk);
@@ -199,7 +216,8 @@ void *segment_thread(void *arg) {
 			send_chunk_with_eigenvalue(chunk);
 			break;
 		} else if (signal == FILE_END) {
-			close(processing_recipe->fd);
+			if (simulation_level < SIMULATION_ALL)
+				close(processing_recipe->fd);
 			sync_queue_push(jcr->completed_files_queue, processing_recipe);
 			processing_recipe = 0;
 			free_chunk(chunk);

@@ -230,12 +230,11 @@ BOOL append_container(Container* container) {
 		puts("append a empty container!");
 		return FAILURE;
 	}
-	if (simulation_level == SIMULATION_NO)
-		check_container(container);
 
 	char *buffer = 0;
 	if (simulation_level < SIMULATION_APPEND) {
 		/* The simulation level is below APPEND */
+		check_container(container);
 		buffer = container_ser(container);
 	} else {
 		/* simulate appending */

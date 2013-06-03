@@ -139,11 +139,11 @@ void make_trace(char* raw_files) {
 			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
 			puts(processing_recipe->filename);
 
-			fprintf(trace, "file index = %d\n", file_index);
+			fprintf(trace, "fileindex=%d\n", file_index);
 		}
 		if (signal == FILE_END) {
 			/* TO-DO */
-			fprintf(trace, "FILE END\n");
+			fprintf(trace, "FILE_END\n");
 			close(processing_recipe->fd);
 			processing_recipe->fd = -1;
 
@@ -167,7 +167,7 @@ void make_trace(char* raw_files) {
 		free_chunk(chunk);
 	}
 
-	fprintf(trace, "STREAM END");
+	fprintf(trace, "STREAM_END");
 
 	stop_read_phase();
 	stop_chunk_phase();
@@ -175,4 +175,96 @@ void make_trace(char* raw_files) {
 
 	fclose(trace);
 
+}
+
+static SyncQueue* trace_queue;
+static pthread_t trace_t;
+
+int recv_trace_chunk(Chunk **new_chunk) {
+	Chunk *chunk = sync_queue_pop(trace_queue);
+	if (chunk->length == FILE_END) {
+		*new_chunk = chunk;
+		return FILE_END;
+	} else if (chunk->length == STREAM_END) {
+		*new_chunk = chunk;
+		return STREAM_END;
+	}
+	*new_chunk = chunk;
+	return SUCCESS;
+}
+
+static void send_trace_chunk(Chunk* chunk) {
+	sync_queue_push(trace_queue, chunk);
+}
+
+static void signal_trace_chunk(int signal) {
+	Chunk *chunk = allocate_chunk();
+	chunk->length = signal;
+	sync_queue_push(trace_queue, chunk);
+}
+
+static void* read_trace_thread(void *argv) {
+	Jcr* jcr = (Jcr*) argv;
+
+	struct stat state;
+	if (stat(jcr->backup_path, &state) != 0) {
+		puts("The trace does not exist!");
+		return NULL ;
+	}
+
+	if (!S_ISREG(state.st_mode)) {
+		dprint("It is not a file!");
+		return NULL ;
+	}
+
+	FILE *trace_file = fopen(jcr->backup_path, "r");
+	char line[128];
+
+	while (TRUE) {
+		fgets(line, 128, trace_file);
+		if (strncmp(line, "STREAM_END", 10) == 0) {
+			signal_trace_chunk(STREAM_END);
+			break;
+		}
+		if (strncmp(line, "fileindex=", 10) == 0) {
+			char fileindex[10];
+			strncpy(fileindex, line + 10, strlen(line + 10) - 1);
+			fileindex[strlen(line + 10) - 1] = 0;
+
+			Recipe *recipe = recipe_new_full(fileindex);
+			jcr->file_num++;
+			sync_queue_push(jcr->waiting_files_queue, recipe);
+
+			continue;
+		}
+		if (strncmp(line, "FILE_END", 8) == 0) {
+			signal_trace_chunk(FILE_END);
+			continue;
+		}
+
+		Chunk * new_chunk = allocate_chunk();
+		char code[41];
+		strncpy(code, line, 40);
+		code2hash(code, new_chunk->hash);
+
+		new_chunk->length = atoi(line + 41);
+
+		/* useless */
+		new_chunk->data = malloc(new_chunk->length);
+		jcr->job_size += new_chunk->length;
+
+		send_trace_chunk(new_chunk);
+	}
+
+	fclose(trace_file);
+
+}
+
+int start_read_trace_phase(Jcr *jcr) {
+	trace_queue = sync_queue_new(100);
+	pthread_create(&trace_t, NULL, read_trace_thread, jcr);
+}
+
+void stop_read_trace_phase() {
+	pthread_join(trace_t, NULL );
 }

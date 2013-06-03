@@ -91,8 +91,10 @@ double container_get_usage(Container* container) {
 }
 
 int32_t container_add_chunk(Container* container, Chunk* chunk) {
-	if (check_chunk(chunk) == FALSE) {
-		dprint("invalid chunk!");
+	if (simulation_level < SIMULATION_APPEND) {
+		if (check_chunk(chunk) == FALSE) {
+			dprint("invalid chunk!");
+		}
 	}
 	if (container_contains(container, &chunk->hash)) {
 		/*printf("%s, %d: Already exists!\n",__FILE__,__LINE__);*/

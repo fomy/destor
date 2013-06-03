@@ -44,6 +44,9 @@ extern void stop_filter_phase();
 extern int start_append_phase(Jcr*);
 extern void stop_append_phase();
 
+extern int start_read_trace_phase(Jcr *jcr);
+extern void stop_read_trace_phase();
+
 int backup(Jcr* jcr);
 static SyncQueue* fingerchunk_queue;
 
@@ -225,9 +228,13 @@ int backup(Jcr* jcr) {
 	ContainerUsageMonitor* usage_monitor = container_usage_monitor_new();
 	cfl_monitor = cfl_monitor_new(read_cache_size);
 
-	start_read_phase(jcr);
-	start_chunk_phase(jcr);
-	start_hash_phase(jcr);
+	if (simulation_level == SIMULATION_ALL) {
+		start_read_trace_phase(jcr);
+	} else {
+		start_read_phase(jcr);
+		start_chunk_phase(jcr);
+		start_hash_phase(jcr);
+	}
 	start_segment_phase(jcr);
 	start_filter_phase(jcr);
 	start_append_phase(jcr);
@@ -283,9 +290,13 @@ int backup(Jcr* jcr) {
 	stop_append_phase();
 	stop_filter_phase();
 	stop_segment_phase();
-	stop_hash_phase();
-	stop_chunk_phase();
-	stop_read_phase();
+	if (simulation_level == SIMULATION_ALL) {
+		stop_read_trace_phase(jcr);
+	} else {
+		stop_hash_phase();
+		stop_chunk_phase();
+		stop_read_phase();
+	}
 
 	container_usage_monitor_free(usage_monitor);
 	print_cfl(cfl_monitor);
