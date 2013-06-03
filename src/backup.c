@@ -62,23 +62,30 @@ int backup_server(char *path) {
 		return -1;
 	}
 
-	puts("==== backup begin ====");
-	puts("==== transfering begin ====");
 	jcr->job_id = get_next_job_id();
 	if (is_job_existed(jcr->job_id)) {
 		printf("job existed!\n");
 		free(jcr);
 		return FAILURE;
 	}
-	if (jcr->job_id > 0 && simulation_level != destor_stat->simulation_level) {
-		dprint(
-				"the current simulation level is not matched with the destor stat!");
-		return FAILURE;
-	} else {
+
+	if (jcr->job_id == 0) {
 		destor_stat->simulation_level = simulation_level;
+	} else {
+		if (simulation_level <= SIMULATION_RECOVERY
+				&& destor_stat->simulation_level >= SIMULATION_APPEND
+				|| simulation_level >= SIMULATION_APPEND
+						&& destor_stat->simulation_level <= SIMULATION_RECOVERY) {
+			dprint(
+					"the current simulation level is not matched with the destor stat!");
+			return FAILURE;
+		}
 	}
 
 	jcr->job_volume = create_job_volume(jcr->job_id);
+
+	puts("==== backup begin ====");
+	puts("==== transfering begin ====");
 
 	struct timeval begin, end;
 	gettimeofday(&begin, 0);

@@ -37,7 +37,10 @@ int restore_server(int revision, char *restore_path) {
 		return FAILURE;
 	}
 
-	if (simulation_level != destor_stat->simulation_level) {
+	if (simulation_level <= SIMULATION_RECOVERY
+			&& destor_stat->simulation_level >= SIMULATION_APPEND
+			|| simulation_level >= SIMULATION_APPEND
+					&& destor_stat->simulation_level <= SIMULATION_RECOVERY) {
 		dprint(
 				"the current simulation level is not matched with the destor stat!");
 		return FAILURE;
