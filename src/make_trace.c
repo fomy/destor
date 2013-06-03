@@ -145,6 +145,7 @@ void make_trace(char* raw_files) {
 			/* TO-DO */
 			fprintf(trace, "FILE END\n");
 			close(processing_recipe->fd);
+			processing_recipe->fd = -1;
 
 			recipe_free(processing_recipe);
 			processing_recipe = 0;
@@ -159,11 +160,11 @@ void make_trace(char* raw_files) {
 		code[40] = 0;
 		fprintf(trace, "%s:%d\n", code, chunk->length);
 
-		free_chunk(chunk);
-
 		/* TO-DO */
 		processing_recipe->chunknum++;
 		processing_recipe->filesize += chunk->length;
+
+		free_chunk(chunk);
 	}
 
 	fprintf(trace, "STREAM END");
