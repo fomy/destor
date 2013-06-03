@@ -127,39 +127,46 @@ void make_trace(char* raw_files) {
 	unsigned char code[41];
 	int32_t file_index = 0;
 	Recipe *processing_recipe = NULL;
-	Chunk *recv_chunk = NULL;
-	int signal = recv_hash(&recv_chunk);
 
-	while (signal != STREAM_END) {
-		if (processing_recipe == NULL ) {
+	while (TRUE) {
+		Chunk *chunk = NULL;
+		int signal = recv_hash(&chunk);
+		if (signal == STREAM_END) {
+			free_chunk(chunk);
+			break;
+		}
+		if (processing_recipe == 0) {
 			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
 			puts(processing_recipe->filename);
 
 			fprintf(trace, "file index = %d\n", file_index);
 		}
 		if (signal == FILE_END) {
+			/* TO-DO */
 			fprintf(trace, "FILE END\n");
 			close(processing_recipe->fd);
+
 			recipe_free(processing_recipe);
-			processing_recipe = NULL;
+			processing_recipe = 0;
+			free_chunk(chunk);
 
 			file_index++;
-
-			free_chunk(recv_chunk);
-			signal = recv_hash(&recv_chunk);
+			/* FILE notion is meaningless for following threads */
 			continue;
 		}
 
-		hash2code(recv_chunk->hash, code);
+		hash2code(chunk->hash, code);
 		code[40] = 0;
-		fprintf(trace, "%s:%d\n", code, recv_chunk->length);
+		fprintf(trace, "%s:%d\n", code, chunk->length);
 
-		free_chunk(recv_chunk);
-		signal = recv_hash(&recv_chunk);
+		free_chunk(chunk);
+
+		/* TO-DO */
+		processing_recipe->chunknum++;
+		processing_recipe->filesize += chunk->length;
 	}
 
 	fprintf(trace, "STREAM END");
-	free_chunk(recv_chunk);
 
 	stop_read_phase();
 	stop_chunk_phase();
