@@ -156,8 +156,10 @@ static int restore_one_file(Jcr *jcr, Recipe *recipe) {
 		q = p + 1;
 	}
 	puts(filepath);
-	int fd = open(filepath, O_CREAT | O_TRUNC | O_WRONLY,
-			S_IRWXU | S_IRWXG | S_IRWXO);
+	int fd;
+	if (simulation_level == SIMULATION_NO)
+		fd = open(filepath, O_CREAT | O_TRUNC | O_WRONLY,
+				S_IRWXU | S_IRWXG | S_IRWXO);
 	/*
 	 * retrieve file data
 	 * jcr->time = 0;
@@ -178,7 +180,8 @@ static int restore_one_file(Jcr *jcr, Recipe *recipe) {
 		free_chunk(chunk);
 	}
 
-	close(fd);
+	if (simulation_level == SIMULATION_NO)
+		close(fd);
 
 	return SUCCESS;
 }
