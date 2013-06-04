@@ -63,23 +63,41 @@ void code2hash(unsigned char code[40], unsigned char hash[20]) {
 	for (i = 0; i < 20; i++) {
 		for (j = 0; j < 2; j++) {
 			a = code[2 * i + j];
-			switch (a) {
+			switch (a) { //A is equal to a
 			case 'A':
+				b = 10;
+				break;
+			case 'a':
 				b = 10;
 				break;
 			case 'B':
 				b = 11;
 				break;
+			case 'b':
+				b = 11;
+				break;
 			case 'C':
+				b = 12;
+				break;
+			case 'c':
 				b = 12;
 				break;
 			case 'D':
 				b = 13;
 				break;
+			case 'd':
+				b = 13;
+				break;
 			case 'E':
 				b = 14;
 				break;
+			case 'e':
+				b = 14;
+				break;
 			case 'F':
+				b = 15;
+				break;
+			case 'f':
 				b = 15;
 				break;
 			default:
