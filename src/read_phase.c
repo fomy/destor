@@ -87,6 +87,7 @@ static int find_one_file(Jcr *jcr, char *path) {
 				continue;
 			while (path_length < strlen(newpath) + strlen(entry->d_name) + 1) {
 				newpath = realloc(newpath, path_length + 128);
+				path_length += 128;
 			}
 			strcpy(newpath, path);
 			strcat(newpath, entry->d_name);
