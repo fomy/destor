@@ -239,11 +239,16 @@ static void* read_trace_thread(void *argv) {
 	char line[128];
 
 	while (TRUE) {
+		TIMER_DECLARE(b, e);
+		TIMER_BEGIN(b);
 		fgets(line, 128, trace_file);
+		TIMER_END(jcr->read_time, b, e);
+
 		if (strncmp(line, "STREAM_END", 10) == 0) {
 			signal_trace_chunk(STREAM_END);
 			break;
 		}
+
 		if (strncmp(line, "fileindex=", 10) == 0) {
 			char fileindex[10];
 			strncpy(fileindex, line + 10, strlen(line + 10) - 1);
