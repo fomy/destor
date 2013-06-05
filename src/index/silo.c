@@ -13,6 +13,7 @@
  */
 #include "silo.h"
 #include "../jcr.h"
+#include "../tools/lru_cache.h"
 
 extern int32_t silo_segment_size; //KB
 extern int32_t silo_block_size; //MB
@@ -32,7 +33,7 @@ static GHashTable *SHTable;
 
 static SiloBlock *write_buffer = NULL;
 /* now we only maintain one block-sized cache */
-static GSequence *read_cache = NULL;
+static LRUCache *read_cache = NULL;
 
 static int32_t block_num;
 static int block_vol_fd;
@@ -93,7 +94,7 @@ static void append_block_to_volume(SiloBlock *block) {
 static SiloBlock* read_block_from_volume(int32_t block_id) {
 	if (block_id < 0) {
 		dprint("invalid id!");
-		return NULL ;
+		return NULL;
 	}
 	lseek(block_vol_fd,
 			sizeof(block_num)
@@ -109,7 +110,7 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	unser_int32(block->id);
 	if (block->id != block_id) {
 		dprint("inconsistent block id!");
-		return NULL ;
+		return NULL;
 	}
 	int64_t num = 0;
 	unser_int32(num);
@@ -125,6 +126,10 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	}
 
 	return block;
+}
+
+static gint block_cmp(gconstpointer a, gconstpointer b) {
+	return ((SiloBlock*) a)->id - ((SiloBlock*) b)->id;
 }
 
 BOOL silo_init() {
@@ -175,7 +180,8 @@ BOOL silo_init() {
 		write(block_vol_fd, &block_num, 4);
 	}
 
-	read_cache = g_sequence_new(silo_block_free);
+	/*read_cache = g_sequence_new(silo_block_free);*/
+	read_cache = lru_cache_new(silo_read_cache_size, block_cmp);
 }
 
 void silo_destroy() {
@@ -192,7 +198,7 @@ void silo_destroy() {
 		silo_block_free(write_buffer);
 	}
 
-	g_sequence_free(read_cache);
+	lru_cache_free(read_cache, silo_block_free);
 
 	/*update block volume*/
 	lseek(block_vol_fd, 0, SEEK_SET);
@@ -237,24 +243,25 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		chunk_num = eigenvalue->chunk_num;
 		/* Does it exist in SHTable? */
 		int32_t *bid = g_hash_table_lookup(SHTable, &eigenvalue->values[0]);
-		if (bid != NULL ) {
+		if (bid != NULL) {
 			/* its block is not in read cache */
-			SiloBlock *read_block = read_block_from_volume(*bid);
-			g_sequence_append(read_cache, read_block);
-			if (g_sequence_get_length(read_cache) > silo_read_cache_size) {
-				g_sequence_remove(g_sequence_get_begin_iter(read_cache));
+			SiloBlock *read_block = lru_cache_lookup(read_cache, bid);
+			if (read_block == NULL) {
+				read_block = read_block_from_volume(*bid);
+				SiloBlock *block = lru_cache_insert(read_cache, read_block);
+				if (block)
+					silo_block_free(block);
 			}
 		}
 	}
 
 	/* filter the fingerprint in read cache */
-	GSequenceIter *iter = g_sequence_get_begin_iter(read_cache);
-	while (!g_sequence_iter_is_end(iter)) {
-		SiloBlock *read_block = g_sequence_get(iter);
-		cid = htable_lookup(read_block->LHTable, fingerprint);
+	SiloBlock* block = lru_cache_first(read_cache);
+	while (block) {
+		cid = htable_lookup(block->LHTable, fingerprint);
 		if (cid)
 			break;
-		iter = g_sequence_iter_next(iter);
+		block = lru_cache_next(read_cache);
 	}
 
 	chunk_num--;
@@ -276,13 +283,13 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 		chunk_num = eigenvalue->chunk_num;
 	}
 
-	if (write_buffer == NULL )
+	if (write_buffer == NULL)
 		write_buffer = silo_block_new();
 
 	/* Insert the representeigenvalue->chunk_num;ative fingerprint of the segment into the block */
 	if (eigenvalue
 			&& g_hash_table_lookup(write_buffer->representative_table,
-					&eigenvalue->values[0]) == NULL ) {
+					&eigenvalue->values[0]) == NULL) {
 		/* a new segement */
 		if (write_buffer->size + silo_segment_hash_size > silo_block_hash_size)
 			dprint("Error! It can't happen!");
@@ -337,7 +344,7 @@ EigenValue* extract_eigenvalue_silo(Chunk *chunk) {
 
 	EigenValue *eigenvalue = NULL;
 	if (chunk->length == FILE_END)
-		return NULL ;
+		return NULL;
 	if (chunk->length == STREAM_END
 			|| (current_segment_size + silo_item_size)
 					> silo_segment_hash_size) {
