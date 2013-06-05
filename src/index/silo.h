@@ -3,6 +3,7 @@
 
 #include "../global.h"
 #include "../dedup.h"
+#include "htable.h"
 
 typedef struct silo_block_tag SiloBlock;
 typedef struct silo_segment_tag SiloSegment;
@@ -10,7 +11,7 @@ typedef struct silo_segment_tag SiloSegment;
 /* locality unit */
 struct silo_block_tag {
 	/* fingerprint to container id */
-	GHashTable *LHTable;
+	HTable *LHTable;
 	/* rep_fingers of all segments in this block */
 	GHashTable* representative_table; //for write_buffer
 	int32_t id;

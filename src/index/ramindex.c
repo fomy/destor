@@ -73,7 +73,6 @@ void ram_index_flush() {
 	char buf[INDEX_ITEM_SIZE * 1024];
 	int len = 0;
 
-
 	hlink* item = htable_first(table);
 	while (item) {
 		if (len == INDEX_ITEM_SIZE * 1024) {
@@ -100,8 +99,8 @@ void ram_index_destroy() {
 }
 
 ContainerId ram_index_search(Fingerprint *fp) {
-	ContainerId addr = htable_lookup(table, fp);
-	return addr;
+	ContainerId* addr = htable_lookup(table, fp);
+	return addr == NULL ? TMP_CONTAINER_ID : *addr;
 }
 
 void ram_index_update(Fingerprint* finger, ContainerId id) {

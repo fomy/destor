@@ -122,7 +122,7 @@ void htable_insert(HTable *htable, Fingerprint *key, ContainerId value) {
 	}
 }
 
-ContainerId htable_lookup(HTable *htable, Fingerprint *key) {
+ContainerId* htable_lookup(HTable *htable, Fingerprint *key) {
 	int64_t index = *(int64_t*) key;
 	index = index % htable->buckets;
 	if (index < 0)
@@ -131,12 +131,12 @@ ContainerId htable_lookup(HTable *htable, Fingerprint *key) {
 	hlink *hp = htable->table[index];
 	while (hp) {
 		if (memcmp(key, &hp->key, sizeof(Fingerprint)) == 0) {
-			return hp->value;
+			return &hp->value;
 		}
 		hp = hp->next;
 	}
 
-	return TMP_CONTAINER_ID;
+	return NULL;
 }
 
 /*void *htable::remove(unsigned char *key)

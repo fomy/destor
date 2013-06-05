@@ -27,7 +27,7 @@ typedef struct htable {
 HTable *htable_new(int64_t tsize);
 void htable_destroy(HTable*);
 void htable_insert(HTable*, Fingerprint*, ContainerId);
-ContainerId htable_lookup(HTable*, Fingerprint*);
+ContainerId* htable_lookup(HTable*, Fingerprint*);
 hlink *htable_first(HTable*); /* get first item in table */
 hlink *htable_next(HTable *); /* get next item in table */
 void htable_stats(HTable*); /* print stats about the table */

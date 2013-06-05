@@ -41,8 +41,7 @@ static Fingerprint representative_fingerprint;
 
 static SiloBlock* silo_block_new() {
 	SiloBlock* block = (SiloBlock*) malloc(sizeof(SiloBlock));
-	block->LHTable = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-			free, free);
+	block->LHTable = htable_new(silo_block_size * 1024L * 1024 / chunk_size);
 	block->id = -1;
 	block->representative_table = g_hash_table_new(g_int64_hash,
 			g_fingerprint_equal);
@@ -53,7 +52,7 @@ static SiloBlock* silo_block_new() {
 }
 
 static void silo_block_free(SiloBlock* block) {
-	g_hash_table_destroy(block->LHTable);
+	htable_destroy(block->LHTable);
 	g_hash_table_destroy(block->representative_table);
 
 	free(block);
@@ -66,14 +65,14 @@ static void append_block_to_volume(SiloBlock *block) {
 	ser_declare;
 	ser_begin(buffer, 0);
 	ser_int32(block->id);
-	ser_uint32(g_hash_table_size(block->LHTable));
+	int32_t num = (int32_t) htable_size(block->LHTable);
+	ser_int32(num);
 
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, block->LHTable);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		ser_bytes(key, sizeof(Fingerprint));
-		ser_bytes(value, sizeof(ContainerId));
+	hlink* item = htable_first(block->LHTable);
+	while (item) {
+		ser_bytes(&item->key, sizeof(Fingerprint));
+		ser_bytes(&item->value, sizeof(ContainerId));
+		item = htable_next(block->LHTable);
 	}
 
 	int length = ser_length(buffer);
@@ -112,15 +111,17 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 		dprint("inconsistent block id!");
 		return NULL ;
 	}
-	int32_t num = 0;
-	unser_uint32(num);
+	int64_t num = 0;
+	unser_int32(num);
 	int i;
 	for (i = 0; i < num; ++i) {
 		Fingerprint *finger = (Fingerprint*) malloc(sizeof(Fingerprint));
 		ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
 		unser_bytes(finger, sizeof(Fingerprint));
 		unser_bytes(cid, sizeof(ContainerId));
-		g_hash_table_insert(block->LHTable, finger, cid);
+		htable_insert(block->LHTable, finger, *cid);
+		free(finger);
+		free(cid);
 	}
 
 	return block;
@@ -228,7 +229,7 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 
 	/* Does it exist in write_buffer? */
 	if (write_buffer)
-		cid = g_hash_table_lookup(write_buffer->LHTable, fingerprint);
+		cid = htable_lookup(write_buffer->LHTable, fingerprint);
 
 	if (eigenvalue) {
 		if (chunk_num != 0)
@@ -250,7 +251,7 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	GSequenceIter *iter = g_sequence_get_begin_iter(read_cache);
 	while (!g_sequence_iter_is_end(iter)) {
 		SiloBlock *read_block = g_sequence_get(iter);
-		cid = g_hash_table_lookup(read_block->LHTable, fingerprint);
+		cid = htable_lookup(read_block->LHTable, fingerprint);
 		if (cid)
 			break;
 		iter = g_sequence_iter_next(iter);
@@ -301,7 +302,7 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 		printf("INSERT:container id less than 0, %d, %d\n", container_id,
 				*new_cid);
 	}
-	g_hash_table_insert(write_buffer->LHTable, new_finger, new_cid);
+	htable_insert(write_buffer->LHTable, new_finger, *new_cid);
 
 	write_buffer->dirty = TRUE;
 
