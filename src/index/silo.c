@@ -245,7 +245,9 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		int32_t *bid = g_hash_table_lookup(SHTable, &eigenvalue->values[0]);
 		if (bid != NULL) {
 			/* its block is not in read cache */
-			SiloBlock *read_block = lru_cache_lookup(read_cache, bid);
+			SiloBlock sample;
+			sample.id = *bid;
+			SiloBlock *read_block = lru_cache_lookup(read_cache, &sample);
 			if (read_block == NULL) {
 				read_block = read_block_from_volume(*bid);
 				SiloBlock *block = lru_cache_insert(read_cache, read_block);
