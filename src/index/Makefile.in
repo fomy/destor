@@ -48,7 +48,7 @@ libindex_a_AR = $(AR) $(ARFLAGS)
 libindex_a_LIBADD =
 am_libindex_a_OBJECTS = index.$(OBJEXT) ramindex.$(OBJEXT) \
 	ddfsindex.$(OBJEXT) extreme_binning.$(OBJEXT) silo.$(OBJEXT) \
-	sparse_index.$(OBJEXT)
+	sparse_index.$(OBJEXT) htable.$(OBJEXT)
 libindex_a_OBJECTS = $(am_libindex_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -151,7 +151,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libindex.a
-libindex_a_SOURCES = index.c ramindex.c ddfsindex.c extreme_binning.c silo.c sparse_index.c
+libindex_a_SOURCES = index.c ramindex.c ddfsindex.c extreme_binning.c silo.c sparse_index.c htable.c
 all: all-am
 
 .SUFFIXES:
@@ -202,6 +202,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ddfsindex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extreme_binning.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/htable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/index.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ramindex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/silo.Po@am__quote@

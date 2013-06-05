@@ -1,5 +1,6 @@
 #include "../global.h"
 #include "../dedup.h"
+#include "htable.h"
 
 #define INDEX_ITEM_SIZE 24
 
@@ -7,7 +8,7 @@ extern char working_path[];
 
 static char indexpath[256];
 /* hash table */
-static GHashTable *table;
+static HTable *table;
 
 static BOOL dirty = FALSE;
 
@@ -24,14 +25,12 @@ int ram_index_init() {
 	stat(indexpath, &fileInfo);
 	size_t nFileSize = fileInfo.st_size;
 
-	table = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, free,
-			free);
-
 	if (nFileSize > 0) {
-		uint32_t itemNum;
-		if (read(fd, &itemNum, 4) != 4) {
+		int64_t itemNum;
+		if (read(fd, &itemNum, 8) != 8) {
 			puts("error!");
 		}
+		table = htable_new(itemNum);
 		char buf[INDEX_ITEM_SIZE * 1024];
 		while (itemNum) {
 			int rlen = read(fd, buf, INDEX_ITEM_SIZE * 1024);
@@ -44,10 +43,14 @@ int ram_index_init() {
 				memcpy(addr, buf + off, sizeof(ContainerId));
 				off += sizeof(ContainerId);
 
-				g_hash_table_replace(table, fp, addr);
+				htable_insert(table, fp, *addr);
+				free(fp);
+				free(addr);
 				--itemNum;
 			}
 		}
+	} else {
+		table = htable_new(1024 * 1024L);
 	}
 	close(fd);
 
@@ -63,24 +66,25 @@ void ram_index_flush() {
 		printf("Can not open RAMDedup/hash.db!\n");
 		return;
 	}
-	uint32_t itemNum = g_hash_table_size(table);
-	write(fd, &itemNum, 4);
+
+	int64_t itemNum = htable_size(table);
+	write(fd, &itemNum, 8);
 
 	char buf[INDEX_ITEM_SIZE * 1024];
 	int len = 0;
 
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, table);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
+
+	hlink* item = htable_first(table);
+	while (item) {
 		if (len == INDEX_ITEM_SIZE * 1024) {
 			write(fd, buf, len);
 			len = 0;
 		}
-		memcpy(buf + len, key, sizeof(Fingerprint));
+		memcpy(buf + len, &item->key, sizeof(Fingerprint));
 		len += sizeof(Fingerprint);
-		memcpy(buf + len, value, sizeof(ContainerId));
+		memcpy(buf + len, &item->value, sizeof(ContainerId));
 		len += sizeof(ContainerId);
+		item = htable_next(table);
 	}
 
 	if (len > 0)
@@ -92,33 +96,15 @@ void ram_index_flush() {
 
 void ram_index_destroy() {
 	ram_index_flush();
-	g_hash_table_destroy(table);
+	htable_destroy(table);
 }
 
 ContainerId ram_index_search(Fingerprint *fp) {
-	ContainerId* addr = g_hash_table_lookup(table, fp);
-	return addr == 0 ? -1 : *addr;
+	ContainerId addr = htable_lookup(table, fp);
+	return addr;
 }
 
-/*void ram_index_update(Fingerprint* fingers, int32_t fingernum, ContainerId id) {*/
-/*int i = 0;*/
-/*for (; i < fingernum; ++i) {*/
-/*ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));*/
-/**addr = id;*/
-/*Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));*/
-/*memcpy(fp, fingers[i], sizeof(Fingerprint));*/
-
-/*g_hash_table_replace(table, fp, addr);*/
-/*}*/
-/*dirty = TRUE;*/
-/*}*/
-
 void ram_index_update(Fingerprint* finger, ContainerId id) {
-	ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));
-	*addr = id;
-	Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));
-	memcpy(fp, finger, sizeof(Fingerprint));
-
-	g_hash_table_replace(table, fp, addr);
+	htable_insert(table, finger, id);
 	dirty = TRUE;
 }
