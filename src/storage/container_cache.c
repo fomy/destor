@@ -11,6 +11,7 @@
 
 extern int simulation_level;
 extern char working_path[];
+extern double read_container_time;
 
 static FILE* fragment_stream = 0;
 static char fragment_template[256];
@@ -88,7 +89,7 @@ Container* container_cache_lookup_special(ContainerCache *cc,
 	if (container_list) {
 		/*container = g_sequence_get(g_sequence_get_begin_iter(container_list));*/
 		GSequenceIter *iter = g_sequence_lookup(container_list, &tmp,
-				container_cmp_des, NULL );
+				container_cmp_des, NULL);
 		if (iter) {
 			container = g_sequence_get(iter);
 			if (container) {
@@ -123,6 +124,8 @@ Chunk *container_cache_get_chunk(ContainerCache *cc, Fingerprint *finger,
 Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid) {
 	/* read container */
 	Container *container = 0;
+	TIMER_DECLARE(b, e);
+	TIMER_BEGIN(b);
 	if (cc->enable_data) {
 		if (simulation_level >= SIMULATION_RECOVERY) {
 			container = read_container_meta_only(cid);
@@ -132,10 +135,11 @@ Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid)
 	} else {
 		container = read_container_meta_only(cid);
 	}
+	TIMER_END(read_container_time, b, e);
 	/* If this container is newly appended,
 	 * maybe we can read nothing. */
-	if (container == NULL )
-		return NULL ;
+	if (container == NULL)
+		return NULL;
 
 	/* insert */
 	Container *evictor = lru_cache_insert(cc->lru_cache, container);
@@ -151,7 +155,7 @@ Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid)
 					&fingers[i]);
 			/* remove the specified container from list */
 			GSequenceIter *iter = g_sequence_lookup(container_list, evictor,
-					container_cmp_des, NULL );
+					container_cmp_des, NULL);
 			if (iter)
 				g_sequence_remove(iter);
 			else
@@ -174,13 +178,13 @@ Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid)
 	for (; i < num; ++i) {
 		GSequence* container_list = g_hash_table_lookup(cc->map, &nfingers[i]);
 		if (container_list == 0) {
-			container_list = g_sequence_new(NULL );
+			container_list = g_sequence_new(NULL);
 			Fingerprint *finger = (Fingerprint *) malloc(sizeof(Fingerprint));
 			memcpy(finger, &nfingers[i], sizeof(Fingerprint));
 			g_hash_table_insert(cc->map, finger, container_list);
 		}
 		g_sequence_insert_sorted(container_list, container, container_cmp_des,
-				NULL );
+				NULL);
 	}
 	free(nfingers);
 	return container;

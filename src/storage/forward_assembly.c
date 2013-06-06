@@ -3,6 +3,7 @@
 #include "container_volume.h"
 
 extern int simulation_level;
+extern double read_container_time;
 /* rolling forward assembly area */
 static char *assembly_area;
 static int64_t area_length;
@@ -52,7 +53,7 @@ static void assemble_area(Container *container) {
 	while (p) {
 		if (p->container_id == container->id) {
 			Chunk *chunk = container_get_chunk(container, &p->fingerprint);
-			if (chunk == NULL )
+			if (chunk == NULL)
 				dprint("container is corrupted!");
 			if ((off + chunk->length) > area_length) {
 				memcpy(assembly_area + off, chunk->data, area_length - off);
@@ -98,11 +99,14 @@ Chunk* asm_get_chunk() {
 	if (fchunks_head->container_id != TMP_CONTAINER_ID) {
 		ContainerId cid = fchunks_head->container_id;
 		Container *container = NULL;
+		TIMER_DECLARE(b, e);
+		TIMER_BEGIN(b);
 		if (simulation_level >= SIMULATION_RECOVERY) {
 			container = read_container_meta_only(cid);
 		} else {
 			container = read_container(cid);
 		}
+		TIMER_END(read_container_time, b, e);
 
 		assemble_area(container);
 		container_free_full(container);

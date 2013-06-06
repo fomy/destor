@@ -27,6 +27,8 @@ extern DestorStat *destor_stat;
 
 static SyncQueue *recovery_queue;
 
+double read_container_time = 0;
+
 int restore_server(int revision, char *restore_path) {
 	Jcr *jcr = new_read_jcr(read_cache_size, enable_data_cache);
 
@@ -84,9 +86,12 @@ int restore_server(int revision, char *restore_path) {
 	printf("throughput: %.2fMB/s\n",
 			(double) jcr->job_size * 1000000 / (1024 * 1024 * jcr->time));
 
-	printf("read_chunk_time: %.3fs, %.2fMB/s\n", jcr->read_chunk_time / 1000000,
+	printf("read_cache_efficiency: %.3fs, %.2fMB/s\n", jcr->read_chunk_time / 1000000,
 			(double) jcr->job_size * 1000000
 					/ (jcr->read_chunk_time * 1024 * 1024));
+	printf("read_container_time: %.3fs, %.2fMB/s\n", read_container_time / 1000000,
+			(double) jcr->job_size * 1000000
+					/ (read_container_time * 1024 * 1024));
 	printf("write_file_time: %.3fs, %.2fMB/s\n", jcr->write_file_time / 1000000,
 			(double) jcr->job_size * 1000000
 					/ (jcr->write_file_time * 1024 * 1024));

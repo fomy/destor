@@ -11,7 +11,7 @@
 
 #define INFINITE -1
 extern int simulation_level;
-
+extern double read_container_time;
 static int read_nseed(FILE *seed_file, Seed *start, int count) {
 	if (count == 0)
 		return;
@@ -86,8 +86,8 @@ static ContainerPool* container_pool_new() {
 	ContainerPool* container_pool = (ContainerPool*) malloc(
 			sizeof(ContainerPool));
 	container_pool->pool = g_hash_table_new_full(g_int_hash, g_int_equal, NULL,
-			NULL );
-	container_pool->distance_sequence = g_sequence_new(NULL );
+			NULL);
+	container_pool->distance_sequence = g_sequence_new(NULL);
 	return container_pool;
 }
 
@@ -125,7 +125,7 @@ static void container_pool_free(ContainerPool* container_pool) {
 static Seed* seed_window_slide(OptimalContainerCache *opt_cache) {
 	if (opt_cache->seed_count == 0) {
 		printf("%s, %d: no other seeds\n", __FILE__, __LINE__);
-		return NULL ;
+		return NULL;
 	}
 	if (opt_cache->seed_file_is_end == FALSE
 			&& opt_cache->seed_count == opt_cache->window_size) {
@@ -178,8 +178,11 @@ static Seed* seed_window_slide(OptimalContainerCache *opt_cache) {
 	}
 
 	/* neccesary */
-	g_sequence_sort(opt_cache->container_pool->distance_sequence,
-			distance_cmp_func, NULL );
+	GSequenceIter* last_item = g_sequence_iter_prev(
+			g_sequence_get_end_iter(
+					opt_cache->container_pool->distance_sequence));
+	if (!g_sequence_iter_is_end(last_item))
+		g_sequence_sort(last_item, distance_cmp_func, NULL);
 	return new_active_seed;
 }
 
@@ -200,7 +203,7 @@ static Container* container_pool_insert(ContainerPool *container_pool,
 
 	/* descending order */
 	g_sequence_insert_sorted(container_pool->distance_sequence, distance,
-			distance_cmp_func, NULL );
+			distance_cmp_func, NULL);
 	return evictor;
 }
 
@@ -230,7 +233,7 @@ OptimalContainerCache* optimal_container_cache_new(int cache_size,
 		free(opt_cache->seed_buffer);
 		fclose(opt_cache->seed_file);
 		free(opt_cache);
-		return NULL ;
+		return NULL;
 	}
 	/*opt_cache->total_seed_count = opt_cache->seed_count;*/
 	opt_cache->current_distance = 0;
@@ -283,6 +286,8 @@ static Container *optimal_container_cache_insert(
 		OptimalContainerCache *opt_cache, ContainerId container_id) {
 	/* read and insert container */
 	Container *required_container = 0;
+	TIMER_DECLARE(b, e);
+	TIMER_BEGIN(b);
 	if (opt_cache->enable_data) {
 		if (simulation_level >= SIMULATION_RECOVERY) {
 			required_container = read_container_meta_only(container_id);
@@ -292,12 +297,14 @@ static Container *optimal_container_cache_insert(
 	} else {
 		required_container = read_container_meta_only(container_id);
 	}
+	TIMER_END(read_container_time, b, e);
 
 	DistanceItem *distance = g_hash_table_lookup(opt_cache->distance_table,
 			&container_id);
 	Container *evictor = container_pool_insert(opt_cache->container_pool,
 			opt_cache->cache_size, required_container, distance);
 
+	/* 40% */
 	if (evictor) {
 		int32_t chunknum = container_get_chunk_num(evictor);
 		Fingerprint* fingers = container_get_all_fingers(evictor);
@@ -307,7 +314,7 @@ static Container *optimal_container_cache_insert(
 					&fingers[i]);
 			g_sequence_remove(
 					g_sequence_lookup(container_list, evictor,
-							container_cmp_des, NULL ));
+							container_cmp_des, NULL));
 			if (g_sequence_get_length(container_list) == 0) {
 				g_hash_table_remove(opt_cache->map, &fingers[i]);
 			}
@@ -326,17 +333,18 @@ static Container *optimal_container_cache_insert(
 	int32_t num = container_get_chunk_num(required_container);
 	Fingerprint *nfingers = container_get_all_fingers(required_container);
 	int i = 0;
+	/* 50% */
 	for (; i < num; ++i) {
 		GSequence* container_list = g_hash_table_lookup(opt_cache->map,
 				&nfingers[i]);
-		if (container_list == NULL ) {
-			container_list = g_sequence_new(NULL );
+		if (container_list == NULL) {
+			container_list = g_sequence_new(NULL);
 			Fingerprint *finger = (Fingerprint*) malloc(sizeof(Fingerprint));
 			memcpy(finger, &nfingers[i], sizeof(Fingerprint));
 			g_hash_table_insert(opt_cache->map, finger, container_list);
 		}
 		g_sequence_insert_sorted(container_list, required_container,
-				container_cmp_des, NULL );
+				container_cmp_des, NULL);
 	}
 	free(nfingers);
 
@@ -355,7 +363,7 @@ Chunk* optimal_container_cache_get_chunk(OptimalContainerCache* opt_cache,
 
 	if (opt_cache->active_seed->container_id != container_id) {
 		printf("%s, %d: inconsistent id\n", __FILE__, __LINE__);
-		return NULL ;
+		return NULL;
 	}
 
 	BOOL is_new = FALSE;
@@ -373,7 +381,7 @@ Chunk* optimal_container_cache_get_chunk(OptimalContainerCache* opt_cache,
 	if (!result) {
 		printf("%s, %d: container does not contain this fingerprint\n",
 				__FILE__, __LINE__);
-		return NULL ;
+		return NULL;
 	}
 	update_cfl_directly(opt_cache->cfl_monitor, result->length, is_new);
 	opt_cache->active_seed->remaining_size -= result->length;
