@@ -114,15 +114,13 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	}
 	int64_t num = 0;
 	unser_int32(num);
+	Fingerprint finger;
+	ContainerId cid;
 	int i;
 	for (i = 0; i < num; ++i) {
-		Fingerprint *finger = (Fingerprint*) malloc(sizeof(Fingerprint));
-		ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
-		unser_bytes(finger, sizeof(Fingerprint));
-		unser_bytes(cid, sizeof(ContainerId));
-		htable_insert(block->LHTable, finger, *cid);
-		free(finger);
-		free(cid);
+		unser_bytes(&finger, sizeof(Fingerprint));
+		unser_bytes(&cid, sizeof(ContainerId));
+		htable_insert(block->LHTable, &finger, cid);
 	}
 
 	return block;

@@ -25,6 +25,8 @@ int ram_index_init() {
 	stat(indexpath, &fileInfo);
 	size_t nFileSize = fileInfo.st_size;
 
+	Fingerprint fp;
+	ContainerId addr;
 	if (nFileSize > 0) {
 		int64_t itemNum;
 		if (read(fd, &itemNum, 8) != 8) {
@@ -36,16 +38,12 @@ int ram_index_init() {
 			int rlen = read(fd, buf, INDEX_ITEM_SIZE * 1024);
 			int off = 0;
 			while (off < rlen) {
-				Fingerprint* fp = (Fingerprint*) malloc(sizeof(Fingerprint));
-				memcpy(fp, buf + off, sizeof(Fingerprint));
+				memcpy(&fp, buf + off, sizeof(Fingerprint));
 				off += sizeof(Fingerprint);
-				ContainerId *addr = (ContainerId*) malloc(sizeof(ContainerId));
-				memcpy(addr, buf + off, sizeof(ContainerId));
+				memcpy(&addr, buf + off, sizeof(ContainerId));
 				off += sizeof(ContainerId);
 
-				htable_insert(table, fp, *addr);
-				free(fp);
-				free(addr);
+				htable_insert(table, &fp, addr);
 				--itemNum;
 			}
 		}
