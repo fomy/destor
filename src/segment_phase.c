@@ -142,7 +142,8 @@ void *segment_thread(void *arg) {
 
 		if (signal != STREAM_END && processing_recipe == 0) {
 			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
-			puts(processing_recipe->filename);
+			if (simulation_level == SIMULATION_NO)
+				puts(processing_recipe->filename);
 		}
 
 		/*
