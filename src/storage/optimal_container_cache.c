@@ -182,7 +182,7 @@ static Seed* seed_window_slide(OptimalContainerCache *opt_cache) {
 			g_sequence_get_end_iter(
 					opt_cache->container_pool->distance_sequence));
 	if (!g_sequence_iter_is_end(last_item))
-		g_sequence_sort(g_sequence_get(last_item), distance_cmp_func, NULL);
+		g_sequence_sort_changed(last_item, distance_cmp_func, NULL);
 	return new_active_seed;
 }
 
