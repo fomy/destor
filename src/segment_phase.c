@@ -239,7 +239,7 @@ void *segment_thread(void *arg) {
 }
 
 int start_segment_phase(Jcr *jcr) {
-	eigenvalue_queue = sync_queue_new(100);
+	eigenvalue_queue = sync_queue_new(6000);
 	jcr->historical_sparse_containers = load_historical_sparse_containers(
 			jcr->job_id);
 	sparse_containers = jcr->historical_sparse_containers;
