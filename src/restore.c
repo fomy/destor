@@ -32,7 +32,7 @@ int restore_server(int revision, char *restore_path) {
 
 	int jobId = revision;
 
-	if ((jcr->job_volume = open_job_volume(jobId)) == NULL ) {
+	if ((jcr->job_volume = open_job_volume(jobId)) == NULL) {
 		printf("Doesn't exist such job!\n");
 		return FAILURE;
 	}
@@ -71,7 +71,7 @@ int restore_server(int revision, char *restore_path) {
 		free_jcr(jcr);
 		return FAILURE;
 	}
-	pthread_join(read_t, NULL );
+	pthread_join(read_t, NULL);
 
 	if (sync_queue_size(recovery_queue) != 0)
 		dprint("recovery_queue is not empty");
@@ -155,7 +155,8 @@ static int restore_one_file(Jcr *jcr, Recipe *recipe) {
 		*p = '/';
 		q = p + 1;
 	}
-	puts(filepath);
+	if (simulation_level == SIMULATION_NO)
+		puts(filepath);
 	int fd;
 	if (simulation_level == SIMULATION_NO)
 		fd = open(filepath, O_CREAT | O_TRUNC | O_WRONLY,
@@ -266,5 +267,5 @@ static void* read_chunk_thread(void *arg) {
 	print_cfl(monitor);
 	cfl_monitor_free(monitor);
 
-	return NULL ;
+	return NULL;
 }

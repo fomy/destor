@@ -50,7 +50,7 @@ int recv_chunk_with_eigenvalue(Chunk **new_chunk) {
 		chunk->status |= DUPLICATE;
 		if (enable_hbr && sparse_containers
 				&& g_hash_table_lookup(sparse_containers, &chunk->container_id)
-						!= NULL ) {
+						!= NULL) {
 			++sparse_chunk_count;
 			sparse_chunk_amount += chunk->length;
 			chunk->status |= SPARSE;
@@ -94,7 +94,9 @@ void * no_segment(void *arg) {
 		}
 		if (processing_recipe == 0) {
 			processing_recipe = sync_queue_pop(jcr->waiting_files_queue);
-			puts(processing_recipe->filename);
+			if (simulation_level == SIMULATION_NO)
+				/* It is cost */
+				puts(processing_recipe->filename);
 		}
 		if (signal == FILE_END) {
 			/* TO-DO */
@@ -111,7 +113,7 @@ void * no_segment(void *arg) {
 		processing_recipe->filesize += chunk->length;
 		send_chunk_with_eigenvalue(chunk);
 	}
-	return NULL ;
+	return NULL;
 }
 
 /* A function pointer.
@@ -154,7 +156,7 @@ void *segment_thread(void *arg) {
 			 * which indicates a segment boundary is found.
 			 *  */
 			int size = queue_size(segment);
-			if (size > 0 && eigenvalue == NULL ) {
+			if (size > 0 && eigenvalue == NULL) {
 				/* It is possible that the stream is end but the eigenvalue is NULL. */
 				Chunk *buffered_chunk = queue_top(segment);
 				eigenvalue = (EigenValue*) malloc(
@@ -166,9 +168,9 @@ void *segment_thread(void *arg) {
 
 			Chunk *buffered_chunk = queue_pop(segment);
 			if (buffered_chunk) {
-				if (buffered_chunk->data == NULL
-						&& simulation_level < SIMULATION_APPEND)
-					/* only for extreme binning */
+				if (buffered_chunk->data
+						== NULL&& simulation_level < SIMULATION_APPEND)
+				/* only for extreme binning */
 					lseek(processing_recipe->fd, 0, SEEK_SET);
 				/* The first chunk in segment */
 				buffered_chunk->eigenvalue = (EigenValue*) malloc(
@@ -180,7 +182,7 @@ void *segment_thread(void *arg) {
 								+ eigenvalue->value_num * sizeof(Fingerprint));
 			}
 			while (buffered_chunk) {
-				if (buffered_chunk->data == NULL ) {
+				if (buffered_chunk->data == NULL) {
 					/*
 					 * Some kinds of Fingerprint indexes,
 					 * such as extreme binning,
@@ -232,7 +234,7 @@ void *segment_thread(void *arg) {
 	printf(
 			"segment_thread is finished:\nsegment_num=%d, avg_segment_size=%.3fMB, avg_eigenvalue_num=%.3f\n",
 			segment_num, avg_segment_size / 1024 / 1024, avg_eigenvalue_num);
-	return NULL ;
+	return NULL;
 }
 
 int start_segment_phase(Jcr *jcr) {
@@ -269,7 +271,7 @@ int start_segment_phase(Jcr *jcr) {
 }
 
 void stop_segment_phase() {
-	pthread_join(prepare_t, NULL );
+	pthread_join(prepare_t, NULL);
 	if (sparse_containers)
 		destroy_historical_sparse_containers(sparse_containers);
 }
