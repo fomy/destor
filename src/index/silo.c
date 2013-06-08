@@ -84,7 +84,7 @@ static void append_block_to_volume(SiloBlock *block) {
 
 	lseek(block_vol_fd,
 			sizeof(block_num)
-					+ block_num * (silo_block_hash_size + BLOCK_HEAD_SIZE),
+					+ ((off_t)block_num) * (silo_block_hash_size + BLOCK_HEAD_SIZE),
 			SEEK_SET);
 	write(block_vol_fd, buffer, BLOCK_HEAD_SIZE + silo_block_hash_size);
 
@@ -98,7 +98,7 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	}
 	lseek(block_vol_fd,
 			sizeof(block_num)
-					+ block_id * (silo_block_hash_size + BLOCK_HEAD_SIZE),
+					+ ((off_t)block_id) * (silo_block_hash_size + BLOCK_HEAD_SIZE),
 			SEEK_SET);
 	char buffer[silo_block_hash_size + BLOCK_HEAD_SIZE];
 	read(block_vol_fd, buffer, silo_block_hash_size + BLOCK_HEAD_SIZE);
@@ -109,7 +109,9 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	unser_begin(buffer, 0);
 	unser_int32(block->id);
 	if (block->id != block_id) {
-		dprint("inconsistent block id!");
+		printf("%s,%d: inconsistent block id!%d != %d!\n", __FILE__, __LINE__,
+				block->id, block_id);
+		silo_block_free(block);
 		return NULL;
 	}
 	int64_t num = 0;
