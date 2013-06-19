@@ -104,15 +104,26 @@ void htable_insert(HTable *htable, Fingerprint *key, ContainerId value) {
 		return;
 	}
 
-	hlink *hp = (hlink*) malloc(sizeof(hlink));
-	memcpy(&hp->key, key, sizeof(Fingerprint));
-	memcpy(&hp->value, &value, sizeof(ContainerId));
-	hp->next = NULL;
-
 	int64_t index = *(int64_t*) key;
 	index = index % htable->buckets;
 	if (index < 0)
 		index += htable->buckets;
+
+	/* find it*/
+	hlink *hp = htable->table[index];
+	while (hp) {
+		if (memcmp(key, &hp->key, sizeof(Fingerprint)) == 0) {
+			/* update it */
+			memcpy(&hp->value, &value, sizeof(ContainerId));
+			return;
+		}
+		hp = hp->next;
+	}
+
+	hp = (hlink*) malloc(sizeof(hlink));
+	memcpy(&hp->key, key, sizeof(Fingerprint));
+	memcpy(&hp->value, &value, sizeof(ContainerId));
+	hp->next = NULL;
 
 	hp->next = htable->table[index]; /*some pro*/
 	htable->table[index] = hp;
