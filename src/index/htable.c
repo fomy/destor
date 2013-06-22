@@ -211,3 +211,25 @@ void htable_destroy(HTable *htable) {
 	free(htable);
 }
 
+void htable_delete(HTable* htable, Fingerprint* key) {
+	int64_t index = *(int64_t*) key;
+	index = index % htable->buckets;
+	if (index < 0)
+		index += htable->buckets;
+
+	hlink *hp = htable->table[index];
+	hlink *pre = NULL;
+	while (hp) {
+		if (memcmp(key, &hp->key, sizeof(Fingerprint)) == 0) {
+			/* Assuming key is unique */
+			if (pre == NULL) /* first elem */
+				htable->table[index] = hp->next;
+			else
+				pre->next = hp->next;
+			free(hp);
+			return;
+		}
+		pre = hp;
+		hp = hp->next;
+	}
+}
