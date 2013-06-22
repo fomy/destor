@@ -28,6 +28,7 @@ int delete_server(int jobid) {
 	}
 
 	GHashTable *container_manifest = read_container_manifest();
+	int32_t manifest_size = g_hash_table_size(container_manifest);
 	GHashTable *delete_containers = g_hash_table_new_full(g_int_hash,
 			g_int_equal, NULL, free);
 
@@ -70,6 +71,19 @@ int delete_server(int jobid) {
 
 	index_destroy();
 
+	char logfile[] = "delete.log";
+	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
+	lseek(fd, 0, SEEK_END);
+	char buf[100];
+
+	/*
+	 * number of containers deleted
+	 * number of live containers
+	 */
+	sprintf(buf, "%d %d\n", delete_container_num,
+			manifest_size - delete_container_num);
+	write(fd, buf, strlen(buf));
+	close(fd);
 	return SUCCESS;
 }
 

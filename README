@@ -66,11 +66,13 @@ destor has provided four types of services:
     destor <directory or file>
 2. start a recovery job,
     destor -r<jobid> <dest directory>
-3. lookup statistics of system,
+3. start a delete job,
+    destor -d<jobid>
+4. lookup statistics of system,
     destor -s
-4. help
+5. help
     destor -h
-5. make a trace
+6. make a trace
     destor -t <path of raw files>
 
 There are several options for destor.

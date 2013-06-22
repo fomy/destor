@@ -61,3 +61,6 @@ Normalized rabin chunking is added.
 v4.2
 The bug caused by deep directory tree is fixed.
 Simulation level is added.
+
+v4.3
+Add garbage collection.
