@@ -227,6 +227,7 @@ void htable_delete(HTable* htable, Fingerprint* key) {
 			else
 				pre->next = hp->next;
 			free(hp);
+			htable->num_items--;
 			return;
 		}
 		pre = hp;

@@ -124,3 +124,22 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
 	}
 	TIMER_END(update_time, b, e);
 }
+
+/*
+ * Only support RAM index currently.
+ */
+void index_delete(Fingerprint *fingerprint) {
+	switch (fingerprint_index_type) {
+	case RAM_INDEX:
+		ram_index_delete(fingerprint);
+		break;
+	case DDFS_INDEX:
+	case EXBIN_INDEX:
+	case SILO_INDEX:
+	case SPARSE_INDEX:
+		dprint("Do not support this index!");
+		break;
+	default:
+		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
+	}
+}

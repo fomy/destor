@@ -11,6 +11,7 @@
 #include "statistic.h"
 
 extern int backup_server(char *path);
+extern int delete_server(int revision);
 extern int restore_server(int revision, char *path);
 extern void make_trace(char *raw_files);
 
@@ -37,11 +38,12 @@ extern int32_t capping_segment_size;
 #define STAT_JOB 3
 #define HELP_JOB 4 
 #define MAKE_TRACE 5
+#define DELETE_JOB 6
 
 /* : means argument is required.
  * :: means argument is required and no space.
  */
-const char * const short_options = "sr::t::h";
+const char * const short_options = "sr::d::t::h";
 
 struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		NULL, 's' }, { "index", 1, NULL, 'i' }, { "cache", 1, NULL, 'c' }, {
@@ -60,6 +62,8 @@ void print_help() {
 	puts("\tstart a restore job");
 	puts("\t\t./destor -r<JOB_ID> <target_path>");
 	puts("\tprint state of destor");
+	puts("\t\t./destor -d<JOB_ID>");
+	puts("\tsimulate deleting backups before JOB_ID.");
 	puts("\t\t./destor -s");
 	puts("\tprint this");
 	puts("\t\t./destor -h");
@@ -119,7 +123,7 @@ int main(int argc, char **argv) {
 	char path[512];
 	bzero(path, 512);
 	int opt = 0;
-	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL ))
+	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL))
 			!= -1) {
 		switch (opt) {
 		case 'r':
@@ -131,6 +135,10 @@ int main(int argc, char **argv) {
 			break;
 		case 't':
 			job_type = MAKE_TRACE;
+			break;
+		case 'd':
+			job_type = DELETE_JOB;
+			revision = atoi(optarg);
 			break;
 		case 'i':
 			if (strcmp(optarg, "RAM") == 0) {
@@ -290,6 +298,16 @@ int main(int argc, char **argv) {
 		make_trace(path);
 		break;
 	}
+	case DELETE_JOB:
+		if (revision < 0) {
+			puts("required a job id for delete job!");
+			puts("type -h or --help for help.");
+			return 0;
+		}
+		init_container_volume();
+		delete_server(revision);
+		destroy_container_volume();
+		break;
 	default:
 		puts("invalid job type!");
 		puts("type -h or --help for help.");

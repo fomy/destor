@@ -96,6 +96,94 @@ void container_usage_monitor_update(ContainerUsageMonitor* cntnr_usg_mntr,
 	}
 }
 
+GHashTable* read_container_manifest() {
+	GHashTable *container_manifest = g_hash_table_new_full(g_int_hash,
+			g_int_equal, NULL, container_usage_free);
+
+	char path[500];
+	strcpy(path, working_path);
+	strcat(path, "jobs/container_manifest");
+
+	FILE *manifest_file = fopen(path, "r+");
+
+	/* read the old file */
+	if (manifest_file) {
+		ContainerId id;
+		int32_t time;
+		while (fscanf(manifest_file, "%d:%d", &id, &time) != EOF) {
+			ContainerUsage* usage = (ContainerUsage*) malloc(
+					sizeof(ContainerUsage));
+			usage->cntnr_id = id;
+			/* We consider the read_size as time for convenience */
+			usage->read_size = time;
+			g_hash_table_insert(container_manifest, &usage->cntnr_id, usage);
+		}
+		fclose(manifest_file);
+	}
+
+	return container_manifest;
+}
+
+/* only update container with a time later than jobid.*/
+void update_container_manifest(GHashTable* container_manifest, int32_t jobid) {
+	char path[500];
+	strcpy(path, working_path);
+	strcat(path, "jobs/container_manifest");
+
+	FILE *manifest_file = fopen(path, "w+");
+
+	if (manifest_file == NULL) {
+		dprint("can not open manifest_file");
+		return;
+	}
+
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, container_manifest);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerUsage* cntnr_usg = (ContainerUsage*) value;
+		if (cntnr_usg->read_size > jobid)
+			fprintf(manifest_file, "%d:%d\n", cntnr_usg->cntnr_id,
+					cntnr_usg->read_size);
+	}
+}
+
+/* generate new manifest of used containers after backup */
+int container_usage_monitor_update_manifest(
+		ContainerUsageMonitor *cntnr_usg_mntr, int32_t job_id) {
+	GHashTable *container_manifest = read_container_manifest();
+
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, cntnr_usg_mntr->sparse_map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerUsage *old_time = g_hash_table_lookup(container_manifest, key);
+		if (old_time == NULL) {
+			old_time = container_usage_new(*(ContainerId*) key);
+			g_hash_table_insert(container_manifest, &old_time->cntnr_id,
+					old_time);
+		}
+		old_time->read_size = job_id;
+	}
+
+	g_hash_table_iter_init(&iter, cntnr_usg_mntr->dense_map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerUsage *old_time = g_hash_table_lookup(container_manifest, key);
+		if (old_time == NULL) {
+			old_time = container_usage_new(*(ContainerId*) key);
+			g_hash_table_insert(container_manifest, &old_time->cntnr_id,
+					old_time);
+		}
+		old_time->read_size = job_id;
+	}
+
+	/* no jobid is less than 0, so all container are update. */
+	update_container_manifest(container_manifest, -1);
+
+	g_hash_table_destroy(container_manifest);
+	return 0;
+}
+
 /* --------------------------------------------------------------------------*/
 /**
  * @Synopsis record all sparse containers in usage file. 
@@ -133,6 +221,8 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 		perror(strerror(errno));
 		return -1;
 	}
+
+	container_usage_monitor_update_manifest(cntnr_usg_mntr, job_id);
 	return old_sparse_num;
 }
 

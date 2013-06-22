@@ -60,7 +60,7 @@ void ram_index_flush() {
 	if (dirty == FALSE)
 		return;
 	int fd;
-	if ((fd = open(indexpath, O_WRONLY | O_CREAT, S_IRWXU)) <= 0) {
+	if ((fd = open(indexpath, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU)) <= 0) {
 		printf("Can not open RAMDedup/hash.db!\n");
 		return;
 	}
@@ -104,4 +104,9 @@ ContainerId ram_index_search(Fingerprint *fp) {
 void ram_index_update(Fingerprint* finger, ContainerId id) {
 	htable_insert(table, finger, id);
 	dirty = TRUE;
+}
+
+void ram_index_delete(Fingerprint* fingerprint) {
+	dirty = TRUE;
+	htable_delete(table, fingerprint);
 }
