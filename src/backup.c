@@ -25,6 +25,7 @@ extern double update_time;
 extern int sparse_chunk_count;
 extern int64_t sparse_chunk_amount;
 extern int simulation_level;
+extern ContainerVolume container_volume;
 
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
@@ -138,6 +139,7 @@ int backup_server(char *path) {
 	destor_stat->rewritten_chunk_amount += jcr->rewritten_chunk_amount;
 	destor_stat->sparse_chunk_count += sparse_chunk_count;
 	destor_stat->sparse_chunk_amount += sparse_chunk_amount;
+	destor_stat->container_num = container_volume.container_num;
 
 	printf("read_time : %.3fs, %.2fMB/s\n", jcr->read_time / 1000000,
 			jcr->job_size * 1000000 / jcr->read_time / 1024 / 1024);
@@ -262,7 +264,7 @@ int backup(Jcr* jcr) {
 
 	if (seed_len > 0)
 		jvol_append_seed(jcr->job_volume, seed_id, seed_len);
-	sync_queue_free(fingerchunk_queue, NULL );
+	sync_queue_free(fingerchunk_queue, NULL);
 
 	jcr->sparse_container_num = g_hash_table_size(usage_monitor->sparse_map);
 	jcr->total_container_num = g_hash_table_size(usage_monitor->dense_map)

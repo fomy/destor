@@ -35,6 +35,9 @@ int init_destor_stat() {
 		read(fd, &destor_stat->sparse_chunk_count, 4);
 		read(fd, &destor_stat->sparse_chunk_amount, 8);
 
+		read(fd, &destor_stat->container_num, 4);
+		read(fd, &destor_stat->deleted_container_num, 4);
+
 		read(fd, &destor_stat->simulation_level, 4);
 
 	} else {
@@ -54,6 +57,9 @@ int init_destor_stat() {
 
 		destor_stat->sparse_chunk_count = 0;
 		destor_stat->sparse_chunk_amount = 0;
+
+		destor_stat->container_num = 0;
+		destor_stat->deleted_container_num = 0;
 
 		destor_stat->simulation_level = SIMULATION_NO;
 
@@ -90,6 +96,9 @@ int free_destor_stat() {
 	write(fd, &destor_stat->sparse_chunk_count, 4);
 	write(fd, &destor_stat->sparse_chunk_amount, 8);
 
+	write(fd, &destor_stat->container_num, 4);
+	write(fd, &destor_stat->deleted_container_num, 4);
+
 	write(fd, &destor_stat->simulation_level, 4);
 
 	close(fd);
@@ -122,6 +131,10 @@ void print_destor_stat() {
 
 	printf("sparse chunk count: %d\n", destor_stat->sparse_chunk_count);
 	printf("sparse chunk amount: %ld\n", destor_stat->sparse_chunk_amount);
+
+	printf("the number of containers: %d\n", destor_stat->container_num);
+	printf("the number of live containers: %d\n",
+			destor_stat->container_num - destor_stat->deleted_container_num);
 
 	if (destor_stat->simulation_level == SIMULATION_NO)
 		printf("simulation level is %s\n", "NO");
@@ -163,6 +176,11 @@ int update_destor_stat() {
 
 	write(fd, &destor_stat->sparse_chunk_count, 4);
 	write(fd, &destor_stat->sparse_chunk_amount, 8);
+
+	write(fd, &destor_stat->container_num, 4);
+	write(fd, &destor_stat->deleted_container_num, 4);
+
+	write(fd, &destor_stat->simulation_level, 4);
 
 	close(fd);
 	return SUCCESS;

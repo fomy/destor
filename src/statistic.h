@@ -23,6 +23,9 @@ typedef struct destor_stat {
 	int32_t sparse_chunk_count;
 	int64_t sparse_chunk_amount;
 
+	int32_t container_num;
+	int32_t deleted_container_num;
+
 	int simulation_level;
 } DestorStat;
 
