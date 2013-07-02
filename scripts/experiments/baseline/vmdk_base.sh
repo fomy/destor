@@ -22,7 +22,7 @@ destor -s >> backup.log
 
 echo "index=${index}" >>  restore.log
 
-for cache_size in 32 64 128 256 512 1024; do
+for cache_size in 32 64 128 256 512 1024 2048; do
 echo "lru $cache_size" >> restore.log
 i=0
 while [ $i -lt $jobid ]
@@ -32,7 +32,7 @@ i=$(($i+1))
 done
 done
 
-for cache_size in 32 64 128 256 512 1024; do
+for cache_size in 32 64 128 256 512 1024 2048; do
 echo "asm $cache_size" >> restore.log
 i=0
 while [ $i -lt $jobid ]
@@ -42,7 +42,7 @@ i=$(($i+1))
 done
 done
 
-for cache_size in 32 64 128 256 512 1024; do
+for cache_size in 32 64 128 256 512 1024 2048; do
 echo "opt $cache_size" >> restore.log
 i=0
 while [ $i -lt $jobid ]
