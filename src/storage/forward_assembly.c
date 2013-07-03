@@ -55,12 +55,14 @@ static void assemble_area(Container *container) {
 			Chunk *chunk = container_get_chunk(container, &p->fingerprint);
 			if (chunk == NULL)
 				dprint("container is corrupted!");
-			if ((off + chunk->length) > area_length) {
-				memcpy(assembly_area + off, chunk->data, area_length - off);
-				memcpy(assembly_area, chunk->data + area_length - off,
-						off + chunk->length - area_length);
-			} else {
-				memcpy(assembly_area + off, chunk->data, chunk->length);
+			if (simulation_level < SIMULATION_RECOVERY) {
+				if ((off + chunk->length) > area_length) {
+					memcpy(assembly_area + off, chunk->data, area_length - off);
+					memcpy(assembly_area, chunk->data + area_length - off,
+							off + chunk->length - area_length);
+				} else {
+					memcpy(assembly_area + off, chunk->data, chunk->length);
+				}
 			}
 			len += chunk->length;
 			free_chunk(chunk);
@@ -79,7 +81,12 @@ void init_assembly_area(int read_cache_size, JobVolume *jvol, int64_t number) {
 	area_length = 4L * read_cache_size * 1024 * 1024;
 	chunks_length = 0;
 	area_offset = 0;
-	assembly_area = malloc(area_length);
+	if (simulation_level >= SIMULATION_RECOVERY) {
+		assembly_area = NULL;
+	} else {
+		assembly_area = malloc(area_length);
+	}
+
 	fchunks_head = 0;
 	fchunks_tail = 0;
 	remaining_fchunk = 0;
@@ -89,7 +96,8 @@ void init_assembly_area(int read_cache_size, JobVolume *jvol, int64_t number) {
 }
 
 CFLMonitor* destroy_assembly_area() {
-	free(assembly_area);
+	if (assembly_area)
+		free(assembly_area);
 	return monitor;
 }
 
@@ -114,14 +122,16 @@ Chunk* asm_get_chunk() {
 
 	ret_chunk->data = malloc(fchunks_head->length);
 	ret_chunk->length = fchunks_head->length;
-	if ((area_offset + fchunks_head->length) <= area_length) {
-		memcpy(ret_chunk->data, assembly_area + area_offset,
-				fchunks_head->length);
-	} else {
-		memcpy(ret_chunk->data, assembly_area + area_offset,
-				area_length - area_offset);
-		memcpy(ret_chunk->data + area_length - area_offset, assembly_area,
-				fchunks_head->length - area_length + area_offset);
+	if (simulation_level < SIMULATION_RECOVERY) {
+		if ((area_offset + fchunks_head->length) <= area_length) {
+			memcpy(ret_chunk->data, assembly_area + area_offset,
+					fchunks_head->length);
+		} else {
+			memcpy(ret_chunk->data, assembly_area + area_offset,
+					area_length - area_offset);
+			memcpy(ret_chunk->data + area_length - area_offset, assembly_area,
+					fchunks_head->length - area_length + area_offset);
+		}
 	}
 
 	area_offset = (area_offset + fchunks_head->length) % area_length;
