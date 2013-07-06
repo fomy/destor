@@ -11,6 +11,7 @@ dataset=/home/dataset/vmdk_trace
 
 ./rebuild
 echo "index ${index} rewrite $rewrite" >>  backup.log
+echo "rewrite $rewrite" >>  delete.log
 jobid=0
 for file in $(ls $dataset); do
 destor $dataset/$file --index=$index --rewrite=$rewrite >>log
