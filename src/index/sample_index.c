@@ -1,23 +1,36 @@
+/*
+ * sample_index.c
+ *
+ *  Created on: Jul 9, 2013
+ *      Author: fumin
+ */
+
 #include "../global.h"
-#include "../dedup.h"
+#include "../storage/container_cache.h"
 #include "htable.h"
 
 #define INDEX_ITEM_SIZE 24
 
+extern int32_t sample_rate;
+
 extern char working_path[];
+extern int ddfs_cache_size;
 
-static char indexpath[256];
-/* hash table */
 static HTable *table;
+static char indexpath[256];
+static ContainerCache *fingers_cache;
 
-static BOOL dirty = FALSE;
+/* interfaces */
+BOOL sample_index_init() {
 
-int ram_index_init() {
+	fingers_cache = container_cache_new(ddfs_cache_size, FALSE, -1);
+
+	/* read bloom filter */
 	strcpy(indexpath, working_path);
-	strcat(indexpath, "index/ramindex.db");
+	strcat(indexpath, "index/sample_index");
 	int fd;
 	if ((fd = open(indexpath, O_RDONLY | O_CREAT, S_IRWXU)) <= 0) {
-		dprint("Can not open index/ramindex.db!");
+		printf("Can not open index/sample_index!");
 		return FALSE;
 	}
 
@@ -52,16 +65,13 @@ int ram_index_init() {
 	}
 	close(fd);
 
-	dirty = FALSE;
 	return TRUE;
 }
 
-void ram_index_flush() {
-	if (dirty == FALSE)
-		return;
+void sample_index_flush() {
 	int fd;
 	if ((fd = open(indexpath, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU)) <= 0) {
-		printf("Can not open index/ramindex.db!\n");
+		printf("Can not open index/sample_index!\n");
 		return;
 	}
 
@@ -88,25 +98,35 @@ void ram_index_flush() {
 		write(fd, buf, len);
 
 	close(fd);
-	dirty = FALSE;
 }
 
-void ram_index_destroy() {
-	ram_index_flush();
+void sample_index_destroy() {
+	sample_index_flush();
 	htable_destroy(table);
+	container_cache_free(fingers_cache);
 }
 
-ContainerId ram_index_search(Fingerprint *fp) {
-	ContainerId* addr = htable_lookup(table, fp);
+ContainerId sample_index_search(Fingerprint *fingerprint) {
+	/* search in cache */
+	Container *container = container_cache_lookup(fingers_cache, fingerprint);
+	if (container != 0) {
+		return container->id;
+	}
+
+	ContainerId* addr = htable_lookup(table, fingerprint);
+
+	if (addr != NULL) {
+		container_cache_insert_container(fingers_cache, *addr);
+	}
+
 	return addr == NULL ? TMP_CONTAINER_ID : *addr;
 }
 
-void ram_index_update(Fingerprint* finger, ContainerId id) {
-	htable_insert(table, finger, id);
-	dirty = TRUE;
-}
-
-void ram_index_delete(Fingerprint* fingerprint) {
-	dirty = TRUE;
-	htable_delete(table, fingerprint);
+void sample_index_update(Fingerprint* finger, ContainerId id) {
+	static int count = 0;
+	if (count % sample_rate == 0) {
+		htable_insert(table, finger, id);
+		count = 0;
+	}
+	++count;
 }

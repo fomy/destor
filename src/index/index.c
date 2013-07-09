@@ -29,6 +29,9 @@ BOOL index_init() {
 	case SPARSE_INDEX:
 		puts("index=SPARSE_INDEX");
 		return sparse_index_init();
+	case SAMPLE_INDEX:
+		puts("index=SAMPLE_INDEX");
+		return sample_index_init();
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
 		return FALSE;
@@ -51,6 +54,9 @@ void index_destroy() {
 		break;
 	case SPARSE_INDEX:
 		sparse_index_destroy();
+		break;
+	case SAMPLE_INDEX:
+		sample_index_destroy();
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
@@ -80,6 +86,9 @@ ContainerId index_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		break;
 	case SPARSE_INDEX:
 		container_id = sparse_index_search(fingerprint, eigenvalue);
+		break;
+	case SAMPLE_INDEX:
+		container_id = sample_index_search(fingerprint);
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
@@ -119,6 +128,10 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
 	case SPARSE_INDEX:
 		sparse_index_update(fingerprint, container_id, eigenvalue, update);
 		break;
+	case SAMPLE_INDEX:
+		if (update)
+			sample_index_update(fingerprint, container_id);
+		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
 	}
@@ -137,7 +150,8 @@ void index_delete(Fingerprint *fingerprint) {
 	case EXBIN_INDEX:
 	case SILO_INDEX:
 	case SPARSE_INDEX:
-		dprint("Do not support this index!");
+		dprint("Do not support this index!")
+		;
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);

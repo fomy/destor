@@ -248,6 +248,7 @@ int start_segment_phase(Jcr *jcr) {
 	switch (fingerprint_index_type) {
 	case RAM_INDEX:
 	case DDFS_INDEX:
+	case SAMPLE_INDEX:
 		extract_eigenvalue = NULL;
 		pthread_create(&prepare_t, NULL, no_segment, jcr);
 		break;

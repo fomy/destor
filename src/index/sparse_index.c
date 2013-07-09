@@ -5,8 +5,8 @@ extern char working_path[];
 extern void send_feature(Chunk *chunk);
 
 int32_t segment_bits = 11;
-int32_t sample_bits = 8;
-int32_t champions_number = 2;
+extern int32_t sample_bits;
+extern int32_t champions_number;
 
 static GHashTable *sparse_index; //Fingerprint (hook) -> manifest id sequence
 

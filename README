@@ -18,17 +18,19 @@ Features
 11. Capping rewriting algorithm, rolling forward assembly area algorithm, and capping-assisted HBR.
 12. Add a cache filter to improve rewriting algorithms.
 13. Sparse Index.
+14. Sample Index.
 
 Related papers
 ==============
 1. Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, in FAST'08.
 2. Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, in MASCOTS'09.
-3. SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, in USENIX'11.
+3. SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, in USENIX ATC'11.
 4. Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, in HPCC'11.
 5. Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, in MASCOTS'12. 
 6. Reducing impact of data fragmentation caused by in-line deduplication, in SYSTOR'12.
 7. Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, in FAST'13.
 8. Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, in FAST'09.
+9. Building a High-Performance Deduplication System, in USENIX ATC'11.
 
 Environment
 ===========
@@ -77,7 +79,7 @@ destor has provided four types of services:
 
 There are several options for destor.
 1.backup options
-    --index=[RAM|DDFS|EXBIN|SILO|SPARSE]
+    --index=[RAM|DDFS|EXBIN|SILO|SPARSE|SAMPLE]
     --rewrite=[NO|CFL|CBR|CAP|HBR]
 2.restore options
     --cache=[LRU|ASM|OPT]
@@ -85,10 +87,10 @@ There are several options for destor.
 Configure
 =========
 The configure file of destor, destor.config, is a little complicated.
-Actually it offers several parameters of deduplication system, such as index type(RAM, DDFS, etc.), cache type(LRU, OPT and ASM), rewriting algorithms(NO, CFL, CBR, etc.) and so on.
-1.INDEX_TYPE : indicates the type of the fingerprint index. The destor supports RAM, DDFS, EXBIN, SILO currently;
-2.READ_CACHE_TYPE : the cache for recovery, and the destor now supports LRU, OPT and ASM;
-3.REWRITE : indicates whether using rewriting algorithm, and the destor supports NO, CFL, CBR, CAP, HBR etc.
+Actually it offers several parameters of deduplication system, such as index type(RAM, DDFS, etc.), cache type(LRU, OPT and ASM), rewriting algorithms(CFL, CBR, etc.) and so on.
+1.INDEX_TYPE : indicates the type of the fingerprint index. Destor supports RAM, DDFS, EXBIN, SILO, SPARSE, SAMPLE currently;
+2.READ_CACHE_TYPE : the cache for recovery, and destor now supports LRU, OPT and ASM;
+3.REWRITE : indicates whether using rewriting algorithm, and destor supports NO, CFL, CBR, CAP, HBR etc.
 4.There are many parameters for these algorithms, be careful.
 
 Bugs

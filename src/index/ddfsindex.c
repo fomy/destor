@@ -129,9 +129,6 @@ void ddfs_index_flush(){
     }
     close(fd);
 
-    container_cache_free(fingers_cache);
-    fingers_cache = container_cache_new(ddfs_cache_size, FALSE, -1);
-
     dirty = FALSE;
 }
 
@@ -141,6 +138,7 @@ void ddfs_index_destroy(){
     mysql_stmt_close(insert_stmt);
 
     ddfs_index_flush();
+    container_cache_free(fingers_cache);
     free(filter);
 }
 
@@ -166,33 +164,6 @@ ContainerId ddfs_index_search(Fingerprint *finger){
 
     return resultId;
 }
-
-/*void ddfs_index_update(Fingerprint* fingers, int32_t fingernum, ContainerId id){*/
-    /*unsigned long hashlen = sizeof(Fingerprint);*/
-    /*int i = 0;*/
-    /*for(;i<fingernum; ++i){*/
-        /*MYSQL_BIND param[3];*/
-        /*memset(param, 0, sizeof(param));*/
-        /*param[0].buffer_type = MYSQL_TYPE_BLOB;*/
-        /*param[0].buffer = &fingers[i];*/
-        /*param[0].buffer_length = hashlen;*/
-        /*param[0].length = &hashlen;*/
-        /*param[1].buffer_type = MYSQL_TYPE_LONG;*/
-        /*param[1].buffer = &id;*/
-        /*param[2].buffer_type = MYSQL_TYPE_LONG;*/
-        /*param[2].buffer = &id;*/
-
-        /*if(mysql_stmt_bind_param(insert_stmt, param)){*/
-            /*printf("%s, %d: failed to update index! %s\n",__FILE__,__LINE__, mysql_stmt_error(insert_stmt));*/
-        /*}*/
-        /*if(mysql_stmt_execute(insert_stmt)!=0){*/
-            /*printf("%s, %d: failed to update index! %s\n",__FILE__,__LINE__, mysql_stmt_error(insert_stmt));*/
-        /*}*/
-
-        /*insert_word(filter, (char*)&fingers[i], sizeof(Fingerprint));*/
-    /*}*/
-    /*dirty = TRUE;*/
-/*}*/
 
 void ddfs_index_update(Fingerprint* finger, ContainerId id){
     unsigned long hashlen = sizeof(Fingerprint);

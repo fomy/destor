@@ -26,8 +26,10 @@ int fingerprint_index_type = RAM_INDEX;
 /* ddfs_index parameters */
 int ddfs_cache_size = 100;
 /* sparse index parameter */
-extern int32_t champions_number;
-extern int32_t sample_bits;
+int32_t champions_number = 8;
+int32_t sample_bits = 2;
+/*sample index parameter*/
+int32_t sample_rate = 50;
 
 /* SiLo parameters */
 int32_t silo_segment_size = 2048; //KB
@@ -101,11 +103,15 @@ void set_value(char *pname, char *pvalue) {
 			fingerprint_index_type = SILO_INDEX;
 		} else if (strcmp(pvalue, "SPARSE") == 0) {
 			fingerprint_index_type = SPARSE_INDEX;
+		} else if (strcmp(pvalue, "SAMPLE") == 0) {
+			fingerprint_index_type = SAMPLE_INDEX;
 		} else {
 			printf("%s, %d: unknown index type\n", __FILE__, __LINE__);
 		}
 	} else if (strcmp(pname, "DDFS_CACHE_SIZE") == 0) {
 		ddfs_cache_size = atoi(pvalue);
+	} else if (strcmp(pname, "SAMPLE_RATE") == 0) {
+		sample_rate = atoi(pvalue);
 	} else if (strcmp(pname, "CHAMPIONS_NUMBER") == 0) {
 		champions_number = atoi(pvalue);
 	} else if (strcmp(pname, "SAMPLE_BITS") == 0) {

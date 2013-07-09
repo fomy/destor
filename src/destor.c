@@ -151,6 +151,8 @@ int main(int argc, char **argv) {
 				fingerprint_index_type = SILO_INDEX;
 			} else if (strcmp(optarg, "SPARSE") == 0) {
 				fingerprint_index_type = SPARSE_INDEX;
+			} else if (strcmp(optarg, "SAMPLE") == 0) {
+				fingerprint_index_type = SAMPLE_INDEX;
 			} else {
 				puts("unknown index type");
 				puts("type -h or --help for help.");
