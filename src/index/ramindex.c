@@ -5,6 +5,7 @@
 #define INDEX_ITEM_SIZE 24
 
 extern char working_path[];
+extern int64_t index_memory_overhead;
 
 static char indexpath[256];
 /* hash table */
@@ -57,6 +58,9 @@ int ram_index_init() {
 }
 
 void ram_index_flush() {
+	int64_t itemNum = htable_size(table);
+	index_memory_overhead = INDEX_ITEM_SIZE * itemNum;
+
 	if (dirty == FALSE)
 		return;
 	int fd;
@@ -65,7 +69,6 @@ void ram_index_flush() {
 		return;
 	}
 
-	int64_t itemNum = htable_size(table);
 	write(fd, &itemNum, 8);
 
 	char buf[INDEX_ITEM_SIZE * 1024];

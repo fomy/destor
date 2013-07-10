@@ -18,6 +18,7 @@
 extern int32_t silo_segment_size; //KB
 extern int32_t silo_block_size; //MB
 extern int32_t silo_read_cache_size;
+extern int64_t index_memory_overhead;
 
 extern uint32_t chunk_size;
 extern char working_path[];
@@ -216,6 +217,7 @@ void silo_destroy() {
 		return;
 	}
 	uint32_t hash_num = g_hash_table_size(SHTable);
+	index_memory_overhead = hash_num *(sizeof(Fingerprint) + sizeof(int32_t));
 	write(fd, &hash_num, 4);
 	GHashTableIter iter;
 	gpointer key, value;

@@ -10,6 +10,8 @@ extern int fingerprint_index_type;
 double search_time;
 double update_time;
 
+int64_t index_memory_overhead = 0;
+
 BOOL index_init() {
 	search_time = 0;
 	update_time = 0;

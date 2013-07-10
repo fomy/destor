@@ -15,6 +15,7 @@ extern int32_t sample_rate;
 
 extern char working_path[];
 extern int ddfs_cache_size;
+extern int64_t index_memory_overhead;
 
 static HTable *table;
 static char indexpath[256];
@@ -76,6 +77,7 @@ void sample_index_flush() {
 	}
 
 	int64_t itemNum = htable_size(table);
+	index_memory_overhead = itemNum * INDEX_ITEM_SIZE;
 	write(fd, &itemNum, 8);
 
 	char buf[INDEX_ITEM_SIZE * 1024];

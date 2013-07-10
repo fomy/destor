@@ -7,6 +7,7 @@ extern void send_feature(Chunk *chunk);
 int32_t segment_bits = 11;
 extern int32_t sample_bits;
 extern int32_t champions_number;
+extern int64_t index_memory_overhead;
 
 static GHashTable *sparse_index; //Fingerprint (hook) -> manifest id sequence
 
@@ -87,7 +88,7 @@ static void unscore(Manifest *base, Manifest *dest) {
 		if (g_sequence_get_length(dest->matched_hooks) == 0)
 			break;
 		GSequenceIter *remove_iter = g_sequence_lookup(dest->matched_hooks,
-				g_sequence_get(iter), g_fingerprint_cmp, NULL );
+				g_sequence_get(iter), g_fingerprint_cmp, NULL);
 		if (remove_iter) {
 			g_sequence_remove(remove_iter);
 		}
@@ -115,17 +116,17 @@ static GSequence* select_champions(EigenValue *hooks) {
 		/* Get all IDs of manifests associated with hooks. */
 		GSequence *id_seq = g_hash_table_lookup(sparse_index,
 				&hooks->values[i]);
-		if (id_seq == NULL )
+		if (id_seq == NULL)
 			continue;
 		GSequenceIter *id_seq_iter = g_sequence_get_begin_iter(id_seq);
 		while (!g_sequence_iter_is_end(id_seq_iter)) {
 			int64_t *id = g_sequence_get(id_seq_iter);
 			GSequenceIter *manifest_iter = g_sequence_lookup(champions, id,
-					manifest_cmp, NULL );
+					manifest_cmp, NULL);
 			Manifest *manifest = NULL;
 			if (manifest_iter)
 				manifest = g_sequence_get(manifest_iter);
-			else if (manifest == NULL ) {
+			else if (manifest == NULL) {
 				/* Construct a new manifest */
 				manifest = (Manifest*) malloc(sizeof(Manifest));
 				manifest->id = *id;
@@ -133,7 +134,7 @@ static GSequence* select_champions(EigenValue *hooks) {
 				manifest->fingers = NULL;
 
 				g_sequence_insert_sorted(champions, manifest, manifest_cmp,
-						NULL );
+						NULL);
 
 			}
 			Fingerprint *matched_hook = (Fingerprint*) malloc(
@@ -141,13 +142,13 @@ static GSequence* select_champions(EigenValue *hooks) {
 			memcpy(matched_hook, &hooks->values[i], sizeof(Fingerprint));
 			/* insert matched hook */
 			g_sequence_insert_sorted(manifest->matched_hooks, matched_hook,
-					g_fingerprint_cmp, NULL );
+					g_fingerprint_cmp, NULL);
 
 			id_seq_iter = g_sequence_iter_next(id_seq_iter);
 		}
 	}
 
-	g_sequence_sort(champions, manifest_cmp_length, NULL );
+	g_sequence_sort(champions, manifest_cmp_length, NULL);
 	if (g_sequence_get_length(champions) > champions_number) {
 		/* We now select the Top champion_number manifests. */
 		GSequenceIter *base = g_sequence_get_begin_iter(champions);
@@ -159,7 +160,7 @@ static GSequence* select_champions(EigenValue *hooks) {
 				next = g_sequence_iter_next(next);
 			}
 
-			g_sequence_sort(champions, manifest_cmp_length, NULL );
+			g_sequence_sort(champions, manifest_cmp_length, NULL);
 			base = g_sequence_get_iter_at_pos(champions, i + 1);
 			if (g_sequence_iter_is_end(base)) {
 				dprint("It can't happen!");
@@ -311,6 +312,7 @@ void sparse_index_destroy() {
 	g_hash_table_iter_init(&iter, sparse_index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		write(fd, key, sizeof(Fingerprint));
+		index_memory_overhead += sizeof(Fingerprint);
 		GSequence *sequence = (GSequence*) value;
 		int mnum = g_sequence_get_length(sequence);
 		write(fd, &mnum, 4);
@@ -318,6 +320,7 @@ void sparse_index_destroy() {
 		while (!g_sequence_iter_is_end(s_iter)) {
 			int64_t *id = g_sequence_get(s_iter);
 			write(fd, id, 8);
+			index_memory_overhead += sizeof(int64_t);
 			s_iter = g_sequence_iter_next(s_iter);
 		}
 	}
@@ -334,7 +337,7 @@ ContainerId sparse_index_search(Fingerprint *fingerprint,
 
 	if (eigenvalue) {
 		/* A new segment */
-		if (chunk_num != 0 || champions != NULL )
+		if (chunk_num != 0 || champions != NULL)
 			dprint("An error!");
 		chunk_num = eigenvalue->chunk_num;
 		champions = select_champions(eigenvalue);
@@ -388,7 +391,7 @@ void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
 	static EigenValue *current_eigenvalue = NULL;
 
 	if (eigenvalue) {
-		if (new_manifest != NULL )
+		if (new_manifest != NULL)
 			dprint("An error");
 		chunk_num = eigenvalue->chunk_num;
 		new_manifest = (Manifest*) malloc(sizeof(Manifest));
@@ -423,7 +426,7 @@ void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
 			for (; i < current_eigenvalue->value_num; ++i) {
 				GSequence *id_seq = g_hash_table_lookup(sparse_index,
 						&current_eigenvalue->values[i]);
-				if (id_seq == NULL ) {
+				if (id_seq == NULL) {
 					id_seq = g_sequence_new(free);
 					Fingerprint *new_hook = (Fingerprint*) malloc(
 							sizeof(Fingerprint));
@@ -448,11 +451,11 @@ void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
 EigenValue* extract_eigenvalue_sparse(Chunk* chunk) {
 	static int chunk_cnt = 0;
 	static Queue *current_hooks = NULL;
-	if (current_hooks == NULL )
+	if (current_hooks == NULL)
 		current_hooks = queue_new();
 
 	if (chunk->length == FILE_END)
-		return NULL ;
+		return NULL;
 	EigenValue *eigenvalue = NULL;
 	if (chunk->length == STREAM_END || and_bits(chunk->hash, segment_bits)) {
 		int cnt = queue_size(current_hooks);

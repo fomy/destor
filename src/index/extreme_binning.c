@@ -28,6 +28,7 @@ static Queue *bin_queue;
 static GHashTable* bin_table;
 
 extern char working_path[];
+extern int64_t index_memory_overhead;
 
 static BinVolume* bin_volume_init(int64_t level) {
 	BinVolume* bvol = (BinVolume*) malloc(sizeof(BinVolume));
@@ -182,7 +183,7 @@ static int64_t write_bin_to_volume(Bin *bin) {
 
 static Bin* read_bin_from_volume(int64_t address) {
 	if (address == 0) {
-		return NULL ;
+		return NULL;
 	}
 	int64_t level = address >> 56;
 	int64_t offset = address & BIN_ADDR_MASK;
@@ -277,6 +278,8 @@ void extreme_binning_destroy() {
 	}
 
 	int item_num = g_hash_table_size(primary_index);
+	/* sizeof(PrimaryItem) */
+	index_memory_overhead = item_num * 28;
 	write(fd, &item_num, 4);
 
 	GHashTableIter iter;
@@ -371,7 +374,7 @@ void extreme_binning_update(Fingerprint *finger, ContainerId container_id,
 				if (new_addr != current_bin->address) {
 					PrimaryItem* item = g_hash_table_lookup(primary_index,
 							&current_bin->representative_fingerprint);
-					if (item == NULL ) {
+					if (item == NULL) {
 						item = (PrimaryItem*) malloc(sizeof(PrimaryItem));
 						memcpy(&item->representative_fingerprint,
 								&current_bin->representative_fingerprint,
@@ -415,5 +418,5 @@ EigenValue* extract_eigenvalue_exbin(Chunk *chunk) {
 		free(chunk->data);
 		chunk->data = NULL;
 	}
-	return NULL ;
+	return NULL;
 }
