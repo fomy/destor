@@ -9,6 +9,11 @@ extern int32_t sample_bits;
 extern int32_t champions_number;
 extern int64_t index_memory_overhead;
 
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 static GHashTable *sparse_index; //Fingerprint (hook) -> manifest id sequence
 
 static int64_t manifest_volume_length;
@@ -185,6 +190,7 @@ static void load_manifest(Manifest *manifest) {
 
 	lseek(mvol_fd, offset, SEEK_SET);
 	read(mvol_fd, buffer, length);
+	index_read_times++;
 
 	char *p = buffer;
 	if (manifest->id != *(int64_t*) p)
@@ -201,6 +207,7 @@ static void load_manifest(Manifest *manifest) {
 		memcpy(cid, p, sizeof(ContainerId));
 		p += sizeof(ContainerId);
 		g_hash_table_insert(manifest->fingers, fingerprint, cid);
+		index_read_entry_counter++;
 	}
 
 	if ((p - buffer) != length)
@@ -227,8 +234,10 @@ int64_t write_manifest(Manifest *manifest) {
 		p += sizeof(Fingerprint);
 		memcpy(p, value, sizeof(ContainerId));
 		p += sizeof(ContainerId);
+		index_write_entry_counter++;
 	}
 
+	index_write_times++;
 	if (p - buffer != length)
 		dprint("it can't happen!");
 
@@ -353,9 +362,9 @@ ContainerId sparse_index_search(Fingerprint *fingerprint,
 	ContainerId *cid = NULL;
 	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
 	while (!g_sequence_iter_is_end(champion_iter)) {
-		if (!g_sequence_iter_is_begin(champion_iter))
+		//if (!g_sequence_iter_is_begin(champion_iter))
 			/* not in top 1 */
-			completely_duplicate_with_top_1 = FALSE;
+			//completely_duplicate_with_top_1 = FALSE;
 		Manifest *manifest = g_sequence_get(champion_iter);
 		cid = g_hash_table_lookup(manifest->fingers, fingerprint);
 		if (cid)

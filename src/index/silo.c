@@ -22,6 +22,12 @@ extern int64_t index_memory_overhead;
 
 extern uint32_t chunk_size;
 extern char working_path[];
+
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 /* silo_x_size/average chunk size */
 int32_t silo_segment_hash_size;
 int32_t silo_block_hash_size;
@@ -85,9 +91,13 @@ static void append_block_to_volume(SiloBlock *block) {
 
 	lseek(block_vol_fd,
 			sizeof(block_num)
-					+ ((off_t)block_num) * (silo_block_hash_size + BLOCK_HEAD_SIZE),
+					+ ((off_t) block_num)
+							* (silo_block_hash_size + BLOCK_HEAD_SIZE),
 			SEEK_SET);
 	write(block_vol_fd, buffer, BLOCK_HEAD_SIZE + silo_block_hash_size);
+
+	index_write_times++;
+	index_write_entry_counter += num;
 
 	block_num++;
 }
@@ -99,7 +109,8 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	}
 	lseek(block_vol_fd,
 			sizeof(block_num)
-					+ ((off_t)block_id) * (silo_block_hash_size + BLOCK_HEAD_SIZE),
+					+ ((off_t) block_id)
+							* (silo_block_hash_size + BLOCK_HEAD_SIZE),
 			SEEK_SET);
 	char buffer[silo_block_hash_size + BLOCK_HEAD_SIZE];
 	read(block_vol_fd, buffer, silo_block_hash_size + BLOCK_HEAD_SIZE);
@@ -126,6 +137,8 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 		htable_insert(block->LHTable, &finger, cid);
 	}
 
+	index_read_times++;
+	index_read_entry_counter += num;
 	return block;
 }
 
@@ -217,7 +230,7 @@ void silo_destroy() {
 		return;
 	}
 	uint32_t hash_num = g_hash_table_size(SHTable);
-	index_memory_overhead = hash_num *(sizeof(Fingerprint) + sizeof(int32_t));
+	index_memory_overhead = hash_num * (sizeof(Fingerprint) + sizeof(int32_t));
 	write(fd, &hash_num, 4);
 	GHashTableIter iter;
 	gpointer key, value;
@@ -315,7 +328,8 @@ void silo_update(Fingerprint* fingerprint, ContainerId container_id,
 	}
 	htable_insert(write_buffer->LHTable, new_finger, *new_cid);
 
-	write_buffer->dirty = TRUE;
+	if (update)
+		write_buffer->dirty = TRUE;
 
 	write_buffer->size += silo_item_size;
 	chunk_num--;

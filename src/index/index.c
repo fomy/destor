@@ -12,6 +12,11 @@ double update_time;
 
 int64_t index_memory_overhead = 0;
 
+int64_t index_read_entry_counter = 0;
+int64_t index_read_times = 0;
+int64_t index_write_entry_counter = 0;
+int64_t index_write_times = 0;
+
 BOOL index_init() {
 	search_time = 0;
 	update_time = 0;

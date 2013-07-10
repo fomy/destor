@@ -40,6 +40,8 @@ int init_destor_stat() {
 
 		read(fd, &destor_stat->simulation_level, 4);
 
+		read(fd, &destor_stat->index_memory_overhead, 8);
+
 	} else {
 		destor_stat->number_of_chunks = 0;
 
@@ -62,6 +64,8 @@ int init_destor_stat() {
 		destor_stat->deleted_container_num = 0;
 
 		destor_stat->simulation_level = SIMULATION_NO;
+
+		destor_stat->index_memory_overhead = 0;
 
 	}
 
@@ -100,6 +104,8 @@ int free_destor_stat() {
 	write(fd, &destor_stat->deleted_container_num, 4);
 
 	write(fd, &destor_stat->simulation_level, 4);
+
+	write(fd, &destor_stat->index_memory_overhead, 8);
 
 	close(fd);
 	free(destor_stat);
@@ -147,6 +153,8 @@ void print_destor_stat() {
 	else
 		dprint("A wrong simulation level!");
 
+	printf("index memory overhead: %ld\n", destor_stat->index_memory_overhead);
+
 	puts("=== the statistics of server ===");
 }
 
@@ -181,6 +189,8 @@ int update_destor_stat() {
 	write(fd, &destor_stat->deleted_container_num, 4);
 
 	write(fd, &destor_stat->simulation_level, 4);
+
+	write(fd, &destor_stat->index_memory_overhead, 8);
 
 	close(fd);
 	return SUCCESS;

@@ -16,6 +16,11 @@ extern char working_path[];
 extern int ddfs_cache_size;
 extern int64_t index_memory_overhead;
 
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 static char indexpath[256];
 static MYSQL *mdb = 0;
 static ContainerCache *fingers_cache;
@@ -178,9 +183,15 @@ ContainerId ddfs_index_search(Fingerprint *finger) {
 
 	/* search in database */
 	resultId = db_lookup_fingerprint(finger);
+	index_read_times++;
 
 	if (resultId != TMP_CONTAINER_ID) {
-		container_cache_insert_container(fingers_cache, resultId);
+		Container* container = container_cache_insert_container(fingers_cache,
+				resultId);
+		if (container) {
+			index_read_times++;
+			index_read_entry_counter += container_get_chunk_num(container);
+		}
 	}
 
 	return resultId;
@@ -210,4 +221,6 @@ void ddfs_index_update(Fingerprint* finger, ContainerId id) {
 
 	insert_word(filter, (char*) finger, sizeof(Fingerprint));
 	dirty = TRUE;
+	index_write_times++;
+	index_write_entry_counter++;
 }

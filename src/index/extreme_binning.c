@@ -30,6 +30,11 @@ static GHashTable* bin_table;
 extern char working_path[];
 extern int64_t index_memory_overhead;
 
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 static BinVolume* bin_volume_init(int64_t level) {
 	BinVolume* bvol = (BinVolume*) malloc(sizeof(BinVolume));
 	bvol->level = level;
@@ -203,6 +208,9 @@ static Bin* read_bin_from_volume(int64_t address) {
 	unser_bytes(&representative_fingerprint, sizeof(Fingerprint));
 	unser_int32(chunk_num);
 
+	index_read_entry_counter += chunk_num;
+	index_read_times++;
+
 	Bin *bin = bin_new(address, &representative_fingerprint);
 	int i;
 	for (i = 0; i < chunk_num; ++i) {
@@ -360,6 +368,7 @@ void extreme_binning_update(Fingerprint *finger, ContainerId container_id,
 		*new_id = container_id;
 		g_hash_table_insert(current_bin->fingers, new_finger, new_id);
 		current_bin->dirty = TRUE;
+		index_write_entry_counter++;
 	}
 
 	chunk_num--;
@@ -371,6 +380,7 @@ void extreme_binning_update(Fingerprint *finger, ContainerId container_id,
 		} else {
 			if (current_bin->dirty == TRUE) {
 				int64_t new_addr = write_bin_to_volume(current_bin);
+				index_write_times++;
 				if (new_addr != current_bin->address) {
 					PrimaryItem* item = g_hash_table_lookup(primary_index,
 							&current_bin->representative_fingerprint);

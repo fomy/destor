@@ -28,6 +28,11 @@ extern int simulation_level;
 extern ContainerVolume container_volume;
 extern int64_t index_memory_overhead;
 
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 extern int start_read_phase(Jcr*);
 extern void stop_read_phase();
 
@@ -141,6 +146,7 @@ int backup_server(char *path) {
 	destor_stat->sparse_chunk_count += sparse_chunk_count;
 	destor_stat->sparse_chunk_amount += sparse_chunk_amount;
 	destor_stat->container_num = container_volume.container_num;
+	destor_stat->index_memory_overhead = index_memory_overhead;
 
 	printf("read_time : %.3fs, %.2fMB/s\n", jcr->read_time / 1000000,
 			jcr->job_size * 1000000 / jcr->read_time / 1024 / 1024);
@@ -182,10 +188,14 @@ int backup_server(char *path) {
 	 * sparse container number,
 	 * inherited container number,
 	 * throughput,
-	 * index memory overhead
+	 * index memory overhead,
+	 * index read times,
+	 * index read entry num * 24B,
+	 * index write times,
+	 * index write entry num*24B
 	 */
-	sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f %ld\n", jcr->job_id,
-			destor_stat->consumed_capacity,
+	sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld\n",
+			jcr->job_id, destor_stat->consumed_capacity,
 			jcr->job_size != 0 ?
 					(double) (jcr->dedup_size) / (double) (jcr->job_size) : 0,
 			jcr->job_size != 0 ?
@@ -194,7 +204,9 @@ int backup_server(char *path) {
 					0, jcr->total_container_num, jcr->sparse_container_num,
 			jcr->inherited_sparse_num,
 			(double) jcr->job_size / (1024 * 1024 * jcr->time),
-			index_memory_overhead);
+			index_memory_overhead, index_read_times,
+			index_read_entry_counter * 24, index_write_times,
+			index_write_entry_counter * 24);
 	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 	}
 	close(fd);

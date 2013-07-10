@@ -17,6 +17,11 @@ extern char working_path[];
 extern int ddfs_cache_size;
 extern int64_t index_memory_overhead;
 
+extern int64_t index_read_entry_counter;
+extern int64_t index_read_times;
+extern int64_t index_write_entry_counter;
+extern int64_t index_write_times;
+
 static HTable *table;
 static char indexpath[256];
 static ContainerCache *fingers_cache;
@@ -118,7 +123,12 @@ ContainerId sample_index_search(Fingerprint *fingerprint) {
 	ContainerId* addr = htable_lookup(table, fingerprint);
 
 	if (addr != NULL) {
-		container_cache_insert_container(fingers_cache, *addr);
+		Container* container = container_cache_insert_container(fingers_cache,
+				*addr);
+		if (container) {
+			index_read_entry_counter += container_get_chunk_num(container);
+			index_read_times++;
+		}
 	}
 
 	return addr == NULL ? TMP_CONTAINER_ID : *addr;

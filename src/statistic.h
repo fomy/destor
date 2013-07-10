@@ -26,6 +26,8 @@ typedef struct destor_stat {
 	int32_t container_num;
 	int32_t deleted_container_num;
 
+	int64_t index_memory_overhead;
+
 	int simulation_level;
 } DestorStat;
 
