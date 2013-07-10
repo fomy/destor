@@ -192,9 +192,12 @@ int backup_server(char *path) {
 	 * index read times,
 	 * index read entry num * 24B,
 	 * index write times,
-	 * index write entry num*24B
+	 * index write entry num*24B,
+	 * estimated throughput (MB/s)
 	 */
-	sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld\n",
+	double seek_time = 0.005; //5ms
+	double bandwidth = 100 * 1024 * 1024; //100MB/s
+	sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld %.2f\n",
 			jcr->job_id, destor_stat->consumed_capacity,
 			jcr->job_size != 0 ?
 					(double) (jcr->dedup_size) / (double) (jcr->job_size) : 0,
@@ -206,7 +209,11 @@ int backup_server(char *path) {
 			(double) jcr->job_size / (1024 * 1024 * jcr->time),
 			index_memory_overhead, index_read_times,
 			index_read_entry_counter * 24, index_write_times,
-			index_write_entry_counter * 24);
+			index_write_entry_counter * 24,
+			jcr->job_size
+					/ (index_read_times * seek_time
+							+ index_read_entry_counter * 24 / bandwidth) / 1024
+					/ 1024);
 	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 	}
 	close(fd);
