@@ -196,8 +196,29 @@ int backup_server(char *path) {
 	 * estimated throughput (MB/s)
 	 */
 	double seek_time = 0.005; //5ms
-	double bandwidth = 100 * 1024 * 1024; //100MB/s
-	sprintf(buf, "%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld %.2f\n",
+	double bandwidth = 120 * 1024 * 1024; //120MB/s
+
+	double index_lookup_throughput = jcr->job_size
+			/ (index_read_times * seek_time
+					+ index_read_entry_counter * 24 / bandwidth) / 1024 / 1024;
+
+	double write_data_throughput = 1.0 * jcr->job_size * bandwidth
+			/ (jcr->job_size - jcr->dedup_size) / 1024 / 1024;
+	double index_read_throughput = 1.0 * jcr->job_size / 1024 / 1024
+			/ (index_read_times * seek_time
+					+ index_read_entry_counter * 24 / bandwidth);
+	double index_write_throughput = 1.0 * jcr->job_size / 1024 / 1024
+			/ (index_write_times * seek_time
+					+ index_write_entry_counter * 24 / bandwidth);
+
+	double estimated_throughput = write_data_throughput;
+	if (estimated_throughput > index_read_throughput)
+		estimated_throughput = index_read_throughput;
+	if (estimated_throughput > index_write_throughput)
+		estimated_throughput = index_write_throughput;
+
+	sprintf(buf,
+			"%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld %.2f %.2f %.2f %.2f\n",
 			jcr->job_id, destor_stat->consumed_capacity,
 			jcr->job_size != 0 ?
 					(double) (jcr->dedup_size) / (double) (jcr->job_size) : 0,
@@ -209,11 +230,9 @@ int backup_server(char *path) {
 			(double) jcr->job_size / (1024 * 1024 * jcr->time),
 			index_memory_overhead, index_read_times,
 			index_read_entry_counter * 24, index_write_times,
-			index_write_entry_counter * 24,
-			jcr->job_size
-					/ (index_read_times * seek_time
-							+ index_read_entry_counter * 24 / bandwidth) / 1024
-					/ 1024);
+			index_write_entry_counter * 24, write_data_throughput,
+			index_write_throughput, index_read_throughput,
+			estimated_throughput);
 	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 	}
 	close(fd);
