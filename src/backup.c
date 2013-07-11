@@ -194,8 +194,8 @@ int backup_server(char *path) {
 	double estimated_throughput = write_data_throughput;
 	if (estimated_throughput > index_read_throughput)
 		estimated_throughput = index_read_throughput;
-	if (estimated_throughput > index_write_throughput)
-		estimated_throughput = index_write_throughput;
+	/*if (estimated_throughput > index_write_throughput)
+		estimated_throughput = index_write_throughput;*/
 
 	char logfile[] = "backup.log";
 	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
