@@ -126,20 +126,20 @@ Container *container_cache_insert_container(ContainerCache *cc, ContainerId cid)
 	Container *container = 0;
 	TIMER_DECLARE(b, e);
 	TIMER_BEGIN(b);
-	if (cc->enable_data) {
-		if (simulation_level >= SIMULATION_RECOVERY) {
-			container = read_container_meta_only(cid);
+	while (container == NULL) {
+		/* If this container is newly appended,
+			 * maybe we can read nothing. */
+		if (cc->enable_data) {
+			if (simulation_level >= SIMULATION_RECOVERY) {
+				container = read_container_meta_only(cid);
+			} else {
+				container = read_container(cid);
+			}
 		} else {
-			container = read_container(cid);
+			container = read_container_meta_only(cid);
 		}
-	} else {
-		container = read_container_meta_only(cid);
 	}
 	TIMER_END(read_container_time, b, e);
-	/* If this container is newly appended,
-	 * maybe we can read nothing. */
-	if (container == NULL)
-		return NULL;
 
 	/* insert */
 	Container *evictor = lru_cache_insert(cc->lru_cache, container);
