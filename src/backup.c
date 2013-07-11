@@ -175,26 +175,6 @@ int backup_server(char *path) {
 	close_job_volume(jcr->job_volume);
 	jcr->job_volume = 0;
 
-	char logfile[] = "backup.log";
-	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
-	lseek(fd, 0, SEEK_END);
-	char buf[100];
-	/*
-	 * job id,
-	 * consumed capacity,
-	 * dedup ratio,
-	 * rewritten ratio,
-	 * total container number,
-	 * sparse container number,
-	 * inherited container number,
-	 * throughput,
-	 * index memory overhead,
-	 * index read times,
-	 * index read entry num * 24B,
-	 * index write times,
-	 * index write entry num*24B,
-	 * estimated throughput (MB/s)
-	 */
 	double seek_time = 0.005; //5ms
 	double bandwidth = 120 * 1024 * 1024; //120MB/s
 
@@ -217,6 +197,29 @@ int backup_server(char *path) {
 	if (estimated_throughput > index_write_throughput)
 		estimated_throughput = index_write_throughput;
 
+	char logfile[] = "backup.log";
+	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
+	lseek(fd, 0, SEEK_END);
+	char buf[512];
+	/*
+	 * job id,
+	 * consumed capacity,
+	 * dedup ratio,
+	 * rewritten ratio,
+	 * total container number,
+	 * sparse container number,
+	 * inherited container number,
+	 * throughput,
+	 * index memory overhead,
+	 * index read times,
+	 * index read entry num * 24B,
+	 * index write times,
+	 * index write entry num*24B,
+	 * write data throughput,
+	 * index write throughput,
+	 * index read throughput,
+	 * estimated throughput (MB/s)
+	 */
 	sprintf(buf,
 			"%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld %.2f %.2f %.2f %.2f\n",
 			jcr->job_id, destor_stat->consumed_capacity,
