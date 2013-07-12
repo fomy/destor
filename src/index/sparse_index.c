@@ -329,7 +329,8 @@ void sparse_index_destroy() {
 		while (!g_sequence_iter_is_end(s_iter)) {
 			int64_t *id = g_sequence_get(s_iter);
 			write(fd, id, 8);
-			index_memory_overhead += sizeof(int64_t);
+			/* Assume only 4 bytes */
+			index_memory_overhead += sizeof(int32_t);
 			s_iter = g_sequence_iter_next(s_iter);
 		}
 	}
@@ -363,8 +364,8 @@ ContainerId sparse_index_search(Fingerprint *fingerprint,
 	GSequenceIter *champion_iter = g_sequence_get_begin_iter(champions);
 	while (!g_sequence_iter_is_end(champion_iter)) {
 		//if (!g_sequence_iter_is_begin(champion_iter))
-			/* not in top 1 */
-			//completely_duplicate_with_top_1 = FALSE;
+		/* not in top 1 */
+		//completely_duplicate_with_top_1 = FALSE;
 		Manifest *manifest = g_sequence_get(champion_iter);
 		cid = g_hash_table_lookup(manifest->fingers, fingerprint);
 		if (cid)
@@ -445,6 +446,10 @@ void sparse_index_update(Fingerprint *fingerprint, ContainerId container_id,
 				}
 				int64_t *id = (int64_t*) malloc(sizeof(int64_t));
 				*id = manifest_id;
+				if (g_sequence_get_length(id_seq) >= 5) {
+					/* 5 manifests per hook */
+					g_sequence_remove(g_sequence_get_begin_iter(id_seq));
+				}
 				g_sequence_append(id_seq, id);
 			}
 		}
