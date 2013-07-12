@@ -23,11 +23,15 @@ int optimal_cache_window_size = 10000;
 
 /* index type*/
 int fingerprint_index_type = RAM_INDEX;
+
 /* ddfs_index parameters */
 int ddfs_cache_size = 100;
+
 /* sparse index parameter */
+int32_t segment_bits = 11;
 int32_t champions_number = 8;
-int32_t sample_bits = 2;
+int32_t sample_bits = 7;
+
 /*sample index parameter*/
 int32_t sample_rate = 50;
 
@@ -116,6 +120,8 @@ void set_value(char *pname, char *pvalue) {
 		champions_number = atoi(pvalue);
 	} else if (strcmp(pname, "SAMPLE_BITS") == 0) {
 		sample_bits = atoi(pvalue);
+	} else if (strcmp(pname, "SEGMENT_BITS") == 0) {
+		segment_bits = atoi(pvalue);
 	} else if (strcmp(pname, "CFL_REQUIRE") == 0) {
 		cfl_require = atof(pvalue);
 	} else if (strcmp(pname, "CFL_P") == 0) {

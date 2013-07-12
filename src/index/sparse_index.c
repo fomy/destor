@@ -4,7 +4,7 @@
 extern char working_path[];
 extern void send_feature(Chunk *chunk);
 
-int32_t segment_bits = 11;
+extern int32_t segment_bits;
 extern int32_t sample_bits;
 extern int32_t champions_number;
 extern int64_t index_memory_overhead;
