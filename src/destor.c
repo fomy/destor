@@ -77,14 +77,14 @@ void print_help() {
 	puts("\t\tprint the state of destor.");
 	puts("\t--help or -h");
 	puts("\t\tprint this.");
-	puts("\t--index=[RAM|DDFS|EXBIN|SILO]");
+	puts("\t--index=[RAM|DDFS|EXBIN|SILO|SAMPLE|SPARSE|SEGBIN]");
 	puts(
 			"\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO.");
 	puts("\t--cache=[LRU|ASM|OPT]");
 	puts("\t\tAssign read cache type. IT now support LRU, OPT.");
 	puts("\t--cache_size=[number of containers]");
 	puts("\t\tAssign read cache size, e.g. --cache_size=100.");
-	puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR|HBR_CBR|HBR_CAP|HBR_CFL]");
+	puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR]");
 	puts(
 			"\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP, HBR.");
 	puts("\t--cfl_p=[p in CFL]");
@@ -147,6 +147,8 @@ int main(int argc, char **argv) {
 				fingerprint_index_type = DDFS_INDEX;
 			} else if (strcmp(optarg, "EXBIN") == 0) {
 				fingerprint_index_type = EXBIN_INDEX;
+			} else if (strcmp(optarg, "SEGBIN") == 0) {
+				fingerprint_index_type = SEGBIN_INDEX;
 			} else if (strcmp(optarg, "SILO") == 0) {
 				fingerprint_index_type = SILO_INDEX;
 			} else if (strcmp(optarg, "SPARSE") == 0) {

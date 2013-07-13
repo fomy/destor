@@ -30,6 +30,9 @@ BOOL index_init() {
 	case EXBIN_INDEX:
 		puts("index=EXBIN");
 		return extreme_binning_init();
+	case SEGBIN_INDEX:
+		puts("index=SEGBIN");
+		return extreme_binning_init();
 	case SILO_INDEX:
 		puts("index=SILO");
 		return silo_init();
@@ -54,6 +57,7 @@ void index_destroy() {
 		ddfs_index_destroy();
 		break;
 	case EXBIN_INDEX:
+	case SEGBIN_INDEX:
 		extreme_binning_destroy();
 		break;
 	case SILO_INDEX:
@@ -86,6 +90,7 @@ ContainerId index_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		container_id = ddfs_index_search(fingerprint);
 		break;
 	case EXBIN_INDEX:
+	case SEGBIN_INDEX:
 		container_id = extreme_binning_search(fingerprint, eigenvalue);
 		break;
 	case SILO_INDEX:
@@ -127,6 +132,7 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
 		}
 		break;
 	case EXBIN_INDEX:
+	case SEGBIN_INDEX:
 		extreme_binning_update(fingerprint, container_id, eigenvalue, update);
 		break;
 	case SILO_INDEX:
@@ -155,6 +161,7 @@ void index_delete(Fingerprint *fingerprint) {
 		break;
 	case DDFS_INDEX:
 	case EXBIN_INDEX:
+	case SEGBIN_INDEX:
 	case SILO_INDEX:
 	case SPARSE_INDEX:
 		dprint("Do not support this index!")

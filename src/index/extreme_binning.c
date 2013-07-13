@@ -59,6 +59,7 @@ static GHashTable* bin_table;
 
 extern char working_path[];
 extern int64_t index_memory_overhead;
+extern int32_t sample_bits;
 
 extern int64_t index_read_entry_counter;
 extern int64_t index_read_times;
@@ -459,4 +460,52 @@ EigenValue* extract_eigenvalue_exbin(Chunk *chunk) {
 		chunk->data = NULL;
 	}
 	return NULL;
+}
+
+static BOOL and_bits(unsigned char hash[], int32_t bits) {
+	int32_t remainder = bits % 8;
+	int32_t quotient = bits / 8;
+	int i = 0;
+	for (; i < quotient; ++i) {
+		if (hash[i] != 0)
+			return FALSE;
+	}
+	if (remainder) {
+		if ((hash[i] >> (8 - remainder)) != 0)
+			return FALSE;
+	}
+	return TRUE;
+}
+
+EigenValue* extract_eigenvalue_segbin(Chunk* chunk) {
+	static int chunk_cnt = 0;
+
+	if (chunk->length == FILE_END)
+		return NULL;
+
+	EigenValue *eigenvalue = NULL;
+	if (chunk->length == STREAM_END || and_bits(chunk->hash, sample_bits)) {
+		/* segment boundary is found */
+		eigenvalue = (EigenValue*) malloc(
+				sizeof(EigenValue) + sizeof(Fingerprint));
+		/*print_finger(&representative_fingerprint);*/
+		memcpy(&eigenvalue->values[0], &representative_fingerprint,
+				sizeof(Fingerprint));
+		eigenvalue->value_num = 1;
+		eigenvalue->chunk_num = chunk_cnt;
+
+		memset(&representative_fingerprint, 0xff, sizeof(Fingerprint));
+		chunk_cnt = 0;
+	}
+
+	if (chunk->length != STREAM_END) {
+		chunk_cnt++;
+		if (memcmp(&chunk->hash, &representative_fingerprint,
+				sizeof(Fingerprint)) < 0) {
+			memcpy(&representative_fingerprint, &chunk->hash,
+					sizeof(Fingerprint));
+		}
+	}
+
+	return eigenvalue;
 }

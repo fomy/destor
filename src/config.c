@@ -101,6 +101,8 @@ void set_value(char *pname, char *pvalue) {
 			fingerprint_index_type = DDFS_INDEX;
 		} else if (strcmp(pvalue, "EXBIN") == 0) {
 			fingerprint_index_type = EXBIN_INDEX;
+		} else if (strcmp(pvalue, "SEGBIN") == 0) {
+			fingerprint_index_type = SEGBIN_INDEX;
 		} else if (strcmp(pvalue, "SILO") == 0) {
 			fingerprint_index_type = SILO_INDEX;
 		} else if (strcmp(pvalue, "SPARSE") == 0) {

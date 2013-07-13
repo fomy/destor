@@ -34,6 +34,7 @@ void index_update(Fingerprint*, ContainerId, EigenValue* eigenvalue,
 void index_delete(Fingerprint *fingerprint);
 
 EigenValue* extract_eigenvalue_exbin(Chunk *chunk);
+EigenValue* extract_eigenvalue_segbin(Chunk *chunk);
 EigenValue* extract_eigenvalue_sparse(Chunk* chunk);
 EigenValue* extract_eigenvalue_silo(Chunk *chunk);
 #endif

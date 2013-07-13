@@ -19,6 +19,7 @@ Features
 12. Add a cache filter to improve rewriting algorithms.
 13. Sparse Index.
 14. Sample Index.
+15. Segment Binning.
 
 Related papers
 ==============

@@ -256,6 +256,10 @@ int start_segment_phase(Jcr *jcr) {
 		extract_eigenvalue = extract_eigenvalue_exbin;
 		pthread_create(&prepare_t, NULL, segment_thread, jcr);
 		break;
+	case SEGBIN_INDEX:
+		extract_eigenvalue = extract_eigenvalue_segbin;
+		pthread_create(&prepare_t, NULL, segment_thread, jcr);
+		break;
 	case SILO_INDEX:
 		extract_eigenvalue = extract_eigenvalue_silo;
 		pthread_create(&prepare_t, NULL, segment_thread, jcr);
