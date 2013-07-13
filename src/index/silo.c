@@ -15,7 +15,7 @@
 #include "../jcr.h"
 #include "../tools/lru_cache.h"
 
-extern int32_t silo_segment_size; //KB
+extern int32_t sample_bits;
 extern int32_t silo_block_size; //MB
 extern int32_t silo_read_cache_size;
 extern int64_t index_memory_overhead;
@@ -28,11 +28,12 @@ extern int64_t index_read_times;
 extern int64_t index_write_entry_counter;
 extern int64_t index_write_times;
 
+//static int32_t silo_segment_size; //KB
 /* silo_x_size/average chunk size */
-int32_t silo_segment_hash_size;
-int32_t silo_block_hash_size;
+static int32_t silo_segment_hash_size;
+static int32_t silo_block_hash_size;
 
-int32_t silo_item_size = sizeof(Fingerprint) + sizeof(ContainerId);
+static int32_t silo_item_size = sizeof(Fingerprint) + sizeof(ContainerId);
 
 #define BLOCK_HEAD_SIZE 8
 /* segment representative fingerprint-block id mapping */
@@ -147,8 +148,7 @@ static gint block_cmp(gconstpointer a, gconstpointer b) {
 }
 
 BOOL silo_init() {
-	silo_segment_hash_size = silo_segment_size * 1024 / chunk_size
-			* silo_item_size;
+	silo_segment_hash_size = (1 << sample_bits) * silo_item_size;
 	silo_block_hash_size = silo_block_size * 1024 * 1024 / chunk_size
 			* silo_item_size;
 

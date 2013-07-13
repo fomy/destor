@@ -11,7 +11,7 @@
 
 #define INDEX_ITEM_SIZE 24
 
-extern int32_t sample_rate;
+extern int32_t sample_bits;
 
 extern char working_path[];
 extern int ddfs_cache_size;
@@ -25,10 +25,12 @@ extern int64_t index_write_times;
 static HTable *table;
 static char indexpath[256];
 static ContainerCache *fingers_cache;
+static int32_t sample_rate;
 
 /* interfaces */
 BOOL sample_index_init() {
 
+	sample_rate = 1 << sample_bits;
 	fingers_cache = container_cache_new(ddfs_cache_size, FALSE, -1);
 
 	/* read bloom filter */

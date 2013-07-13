@@ -1,6 +1,17 @@
 #include "sparse_index.h"
 #include "../jcr.h"
 
+typedef struct manifest {
+	int64_t id; //first 5 bytes are address, last 3 bytes are length
+	GSequence *matched_hooks; //Fingerprint sequence
+	GHashTable *fingers;
+} Manifest;
+
+typedef struct hooks {
+	int32_t size;
+	Fingerprint hooks[0];
+} Hooks;
+
 extern char working_path[];
 extern void send_feature(Chunk *chunk);
 

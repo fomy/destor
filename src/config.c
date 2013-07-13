@@ -30,15 +30,13 @@ int ddfs_cache_size = 100;
 /* sparse index parameter */
 int32_t segment_bits = 11;
 int32_t champions_number = 8;
-int32_t sample_bits = 7;
-
-/*sample index parameter*/
-int32_t sample_rate = 50;
 
 /* SiLo parameters */
-int32_t silo_segment_size = 2048; //KB
 int32_t silo_block_size = 128; //MB
 int32_t silo_read_cache_size = 2;
+
+/* sample rate of SiLo, Sparse Index, Sample Index */
+int32_t sample_bits = 7;
 
 /* filter type */
 int rewriting_algorithm = NO_REWRITING;
@@ -114,8 +112,6 @@ void set_value(char *pname, char *pvalue) {
 		}
 	} else if (strcmp(pname, "DDFS_CACHE_SIZE") == 0) {
 		ddfs_cache_size = atoi(pvalue);
-	} else if (strcmp(pname, "SAMPLE_RATE") == 0) {
-		sample_rate = atoi(pvalue);
 	} else if (strcmp(pname, "CHAMPIONS_NUMBER") == 0) {
 		champions_number = atoi(pvalue);
 	} else if (strcmp(pname, "SAMPLE_BITS") == 0) {
@@ -158,8 +154,6 @@ void set_value(char *pname, char *pvalue) {
 		stream_context_size = atoi(pvalue) * 1024 * 1024;
 	} else if (strcmp(pname, "DISK_CONTEXT_SIZE") == 0) {
 		disk_context_size = atoi(pvalue);
-	} else if (strcmp(pname, "SILO_SEGMENT_SIZE") == 0) {
-		silo_segment_size = atoi(pvalue);
 	} else if (strcmp(pname, "SILO_BLOCK_SIZE") == 0) {
 		silo_block_size = atoi(pvalue);
 	} else if (strcmp(pname, "SILO_READ_CACHE_SIZE") == 0) {
@@ -191,9 +185,9 @@ int load_config() {
 		puts("destor.config does not exist!");
 		return TRUE;
 	}
-	char line[50];
+	char line[100];
 	char *pname, *pvalue;
-	while (fgets(line, 50, psFile)) {
+	while (fgets(line, 100, psFile)) {
 		switch (line[0]) {
 		case '#':
 		case '\n':

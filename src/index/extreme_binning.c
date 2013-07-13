@@ -10,6 +10,36 @@
 #include "extreme_binning.h" 
 #include "../jcr.h"
 
+typedef struct bin_volume_tag BinVolume;
+typedef struct bin_tag Bin;
+typedef struct primary_item_tag PrimaryItem;
+
+struct bin_volume_tag {
+	int32_t current_bin_num;
+	int64_t current_volume_length;
+	char filename[256];
+	int64_t level;
+};
+
+struct bin_tag {
+	Fingerprint representative_fingerprint;
+	/* fingerprint-container_id map */
+	GHashTable *fingers;
+	int64_t address;
+	BOOL dirty;
+	/*
+	 * For rewriting algorithms.
+	 * Because search and update unit in extreme binning is the same bin,
+	 * the bin should not be updated to disk until the rewriting algorithm is finished.
+	 * */
+	int32_t reference;
+};
+
+struct primary_item_tag {
+	Fingerprint representative_fingerprint;
+	int64_t bin_addr;
+};
+
 #define BIN_LEVEL_COUNT 20
 const static int64_t bvolume_head_size = 20;
 const static int64_t level_factor = 512;
