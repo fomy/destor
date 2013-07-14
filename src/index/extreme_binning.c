@@ -114,6 +114,7 @@ static BOOL bin_volume_destroy(BinVolume *bvol) {
 	write(fd, &bvol->level, 8);
 	write(fd, &bvol->current_bin_num, 4);
 	write(fd, &bvol->current_volume_length, 8);
+	close(fd);
 
 	free(bvol);
 	return TRUE;
