@@ -9,6 +9,9 @@ echo "index ${index} rewrite $rewrite" >>  backup.log
 jobid=0
 for file in $(ls $dataset); do
 destor $dataset/$file --index=$index --rewrite=$rewrite >>log
+if [ $jobid -ge 20 ]; then
+destor -d$(($jobid-20)) --rewrite=$rewrite --kept_versions=20
+fi
 jobid=$(($jobid+1))
 done
 
