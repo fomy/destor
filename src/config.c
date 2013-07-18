@@ -61,6 +61,9 @@ double hbr_usage_threshold = 0.7;
 /* chunking algorithms */
 int chunking_algorithm = RABIN_CHUNK;
 
+/* for cumulus deletion */
+int kept_versions = 10;
+
 /* 
  * enable cache monitor to filter unnecessary
  * out of order chunks
@@ -145,6 +148,9 @@ void set_value(char *pname, char *pvalue) {
 			rewriting_algorithm = CAP_REWRITING;
 		} else if (strcmp(pvalue, "ECAP") == 0) {
 			rewriting_algorithm = ECAP_REWRITING;
+		} else if (strcmp(pvalue, "CUMULUS") == 0) {
+			rewriting_algorithm = CUMULUS;
+			enable_hbr = TRUE;
 		} else {
 			printf("%s, %d: unknown rewriting algorithm\n", __FILE__, __LINE__);
 		}

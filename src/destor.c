@@ -32,6 +32,7 @@ extern double rewrite_limit;
 extern int32_t stream_context_size;
 extern int32_t capping_T;
 extern int32_t capping_segment_size;
+extern int kept_versions;
 
 #define BACKUP_JOB 1
 #define RESTORE_JOB 2
@@ -53,7 +54,8 @@ struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
 		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
 		'T' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
 		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, { "simulation", 1,
-		NULL, 'I' }, { "help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
+		NULL, 'I' }, { "help", 0, NULL, 'h' },
+		{ "kept_versions", 1, NULL, 'k' }, { NULL, 0, NULL, 0 } };
 
 void print_help() {
 	puts("GENERAL USAGE");
@@ -188,6 +190,9 @@ int main(int argc, char **argv) {
 				rewriting_algorithm = CAP_REWRITING;
 			} else if (strcmp(optarg, "ECAP") == 0) {
 				rewriting_algorithm = ECAP_REWRITING;
+			} else if (strcmp(optarg, "CUMULUS") == 0) {
+				rewriting_algorithm = CUMULUS;
+				enable_hbr = TRUE;
 			} else if (strcmp(optarg, "HBR") == 0) {
 				enable_hbr = TRUE;
 			} else {
@@ -228,6 +233,9 @@ int main(int argc, char **argv) {
 			break;
 		case 'E':
 			enable_cache_filter = TRUE;
+			break;
+		case 'k':
+			kept_versions = atoi(optarg);
 			break;
 		case 'I':
 			if (strcmp(optarg, "NO") == 0) {

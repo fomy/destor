@@ -63,6 +63,7 @@ typedef int BOOL;
 #define CAP_REWRITING 7
 //#define HBR_CAP_REWRITING 8
 #define ECAP_REWRITING 9
+#define CUMULUS 10
 
 #define READ_BUFFER_SIZE (1024*1024)
 typedef int32_t ContainerId; //container id

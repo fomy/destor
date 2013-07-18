@@ -20,6 +20,7 @@ Features
 13. Sparse Index.
 14. Sample Index.
 15. Segment Binning.
+16. Garbage collection scheme of Cumulus.
 
 Related papers
 ==============
@@ -32,6 +33,7 @@ Related papers
 7. Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, in FAST'13.
 8. Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, in FAST'09.
 9. Building a High-Performance Deduplication System, in USENIX ATC'11.
+10. Cumulus: Filesystem Backup to the Cloud, in FAST'09
 
 Environment
 ===========

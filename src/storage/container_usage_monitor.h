@@ -40,4 +40,5 @@ int container_usage_monitor_update_manifest(
 		ContainerUsageMonitor *cntnr_usg_mntr, int32_t job_id);
 void update_container_manifest(GHashTable* container_manifest, int32_t jobid);
 GHashTable* read_container_manifest();
+GHashTable* load_deleted_containers(int deleted_job, int versions);
 #endif

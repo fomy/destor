@@ -10,6 +10,8 @@
 
 extern DestorStat *destor_stat;
 extern int fingerprint_index_type;
+extern int rewriting_algorithm;
+extern int kept_versions;
 /*
  * delete all jobs before jobid, including itself.
  * Find all containers in manifest whose time is earlier than jobid.
@@ -27,25 +29,33 @@ int delete_server(int jobid) {
 		return -1;
 	}
 
-	GHashTable *container_manifest = read_container_manifest();
-	int32_t manifest_size = g_hash_table_size(container_manifest);
 	GHashTable *delete_containers = g_hash_table_new_full(g_int_hash,
 			g_int_equal, NULL, free);
-
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, container_manifest);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		ContainerUsage* elem = (ContainerUsage*) value;
-		if (elem->read_size <= jobid) {
-			/*delete it*/
-			ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
-			*cid = elem->cntnr_id;
-			g_hash_table_insert(delete_containers, cid, cid);
+	int manifest_size = 0;
+	if (rewriting_algorithm != CUMULUS) {
+		GHashTable *container_manifest = read_container_manifest();
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, container_manifest);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			ContainerUsage* elem = (ContainerUsage*) value;
+			if (elem->read_size <= jobid) {
+				/*delete it*/
+				ContainerId *cid = (ContainerId*) malloc(sizeof(ContainerId));
+				*cid = elem->cntnr_id;
+				g_hash_table_insert(delete_containers, cid, cid);
+			}
 		}
+		manifest_size = g_hash_table_size(container_manifest);
+		update_container_manifest(container_manifest, jobid);
+		g_hash_table_destroy(container_manifest);
+	} else {
+		delete_containers = load_deleted_containers(jobid, kept_versions);
 	}
 
 	int32_t delete_container_num = 0;
+	GHashTableIter iter;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, delete_containers);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		Container* delete_container = read_container_meta_only(
@@ -65,25 +75,24 @@ int delete_server(int jobid) {
 	}
 
 	destor_stat->deleted_container_num += delete_container_num;
-	update_container_manifest(container_manifest, jobid);
-	g_hash_table_destroy(container_manifest);
 	g_hash_table_destroy(delete_containers);
 
 	index_destroy();
 
-	char logfile[] = "delete.log";
-	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
-	lseek(fd, 0, SEEK_END);
-	char buf[100];
+	if (rewriting_algorithm != CUMULUS) {
+		char logfile[] = "delete.log";
+		int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
+		lseek(fd, 0, SEEK_END);
+		char buf[100];
 
-	/*
-	 * number of containers deleted
-	 * number of live containers
-	 */
-	sprintf(buf, "%d %d\n", delete_container_num,
-			manifest_size - delete_container_num);
-	write(fd, buf, strlen(buf));
-	close(fd);
+		/*
+		 * number of containers deleted
+		 * number of live containers
+		 */
+		sprintf(buf, "%d %d\n", delete_container_num,
+				manifest_size - delete_container_num);
+		write(fd, buf, strlen(buf));
+		close(fd);
+	}
 	return SUCCESS;
 }
-

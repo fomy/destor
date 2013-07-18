@@ -10,6 +10,7 @@
 extern char working_path[];
 
 extern double hbr_usage_threshold;
+extern int rewriting_algorithm;
 
 static ContainerUsage* container_usage_new(ContainerId cntnr_id) {
 	ContainerUsage* cntnr_usg = (ContainerUsage*) malloc(
@@ -200,9 +201,14 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 	char file_name[20];
 	sprintf(file_name, "job%d.sparse", job_id);
 	strcat(path, file_name);
-	FILE* usage_file = fopen(path, "w+");
 	GHashTableIter iter;
 	gpointer key, value;
+	FILE* usage_file;
+
+	if (rewriting_algorithm != CUMULUS) {
+		/* CUMULUS write sparse file in deletions */
+		usage_file = fopen(path, "w+");
+	}
 	/* sparse containers */
 	int old_sparse_num = 0;
 	g_hash_table_iter_init(&iter, cntnr_usg_mntr->sparse_map);
@@ -213,9 +219,42 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 						&cntnr_usg->cntnr_id)) {
 			old_sparse_num++;
 		}
+		if (rewriting_algorithm != CUMULUS) {
+			fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
+					cntnr_usg->read_size, container_usage_calc(cntnr_usg));
+		}
+	}
+	if (rewriting_algorithm != CUMULUS) {
+		if (fclose(usage_file) < 0) {
+			/* Error may happen here. */
+			perror(strerror(errno));
+			return -1;
+		}
+	}
+
+	/* for cumulus */
+	sprintf(file_name, "job%d.usage", job_id);
+	strcpy(path, working_path);
+	strcat(path, "jobs/");
+	strcat(path, file_name);
+	usage_file = fopen(path, "w+");
+	/* sparse containers */
+	g_hash_table_iter_init(&iter, cntnr_usg_mntr->sparse_map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerUsage* cntnr_usg = (ContainerUsage*) value;
+
 		fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
 				cntnr_usg->read_size, container_usage_calc(cntnr_usg));
 	}
+	/* dense container */
+	g_hash_table_iter_init(&iter, cntnr_usg_mntr->dense_map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ContainerUsage* cntnr_usg = (ContainerUsage*) value;
+
+		fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
+				cntnr_usg->read_size, container_usage_calc(cntnr_usg));
+	}
+
 	if (fclose(usage_file) < 0) {
 		/* Error may happen here. */
 		perror(strerror(errno));
@@ -224,6 +263,112 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 
 	container_usage_monitor_update_manifest(cntnr_usg_mntr, job_id);
 	return old_sparse_num;
+}
+
+/* for cumulus */
+GHashTable* load_deleted_containers(int deleted_job, int versions) {
+	GHashTable *deleted_containers = g_hash_table_new_full(g_int_hash,
+			g_int_equal, NULL, container_usage_free);
+	GHashTable *sparse_containers = g_hash_table_new_full(g_int_hash,
+			g_int_equal, NULL, container_usage_free);
+
+	char path[500];
+	strcpy(path, working_path);
+	strcat(path, "jobs/");
+	char file_name[20];
+	sprintf(file_name, "job%d.usage", deleted_job);
+	strcat(path, file_name);
+	/* read the usage file of the delete jod */
+	FILE* usage_file = fopen(path, "r+");
+	if (usage_file) {
+		ContainerId id;
+		int32_t size;
+		float tmp;
+		while (fscanf(usage_file, "%d:%d:%f", &id, &size, &tmp) != EOF) {
+			ContainerUsage* usage = (ContainerUsage*) malloc(
+					sizeof(ContainerUsage));
+			usage->cntnr_id = id;
+			usage->read_size = size;
+			g_hash_table_insert(deleted_containers, &usage->cntnr_id, usage);
+		}
+		fclose(usage_file);
+	}
+
+	int live_container_num = 0;
+	int i = 1;
+	for (; i <= versions; ++i) {
+		strcpy(path, working_path);
+		strcat(path, "jobs/");
+		char file_name[20];
+		sprintf(file_name, "job%d.usage", deleted_job + i);
+		strcat(path, file_name);
+		usage_file = fopen(path, "r+");
+
+		/* read the old file */
+		if (usage_file) {
+			ContainerId id;
+			int32_t size;
+			float tmp;
+			while (fscanf(usage_file, "%d:%d:%f", &id, &size, &tmp) != EOF) {
+
+				ContainerUsage* usage = g_hash_table_lookup(sparse_containers,
+						&id);
+				if (!usage) {
+					usage = (ContainerUsage*) malloc(sizeof(ContainerUsage));
+					usage->cntnr_id = id;
+					usage->read_size = size;
+					g_hash_table_replace(sparse_containers, &usage->cntnr_id,
+							usage);
+					live_container_num++;
+				}
+				if (usage->read_size < size) {
+					usage->read_size = size;
+				}
+
+				/* it can not be reclaimed */
+				if (g_hash_table_contains(deleted_containers, &id))
+					g_hash_table_remove(deleted_containers, &id);
+			}
+			fclose(usage_file);
+		}
+	}
+
+	strcpy(path, working_path);
+	strcat(path, "jobs/");
+	sprintf(file_name, "job%d.sparse", deleted_job + versions);
+	strcat(path, file_name);
+	usage_file = fopen(path, "w+");
+
+	if (usage_file) {
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, sparse_containers);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			ContainerUsage* cntnr_usg = (ContainerUsage*) value;
+			if (container_usage_calc(cntnr_usg) < hbr_usage_threshold)
+				fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
+						cntnr_usg->read_size, container_usage_calc(cntnr_usg));
+
+		}
+		fclose(usage_file);
+	}
+	g_hash_table_destroy(sparse_containers);
+
+	int delete_container_num = g_hash_table_size(deleted_containers);
+	char logfile[] = "delete.log";
+	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
+	lseek(fd, 0, SEEK_END);
+	char buf[100];
+
+	/*
+	 * number of containers deleted
+	 * number of live containers
+	 */
+	sprintf(buf, "%d %d\n", delete_container_num, live_container_num);
+	write(fd, buf, strlen(buf));
+	close(fd);
+
+	return deleted_containers;
 }
 
 GHashTable* load_historical_sparse_containers(int32_t job_id) {

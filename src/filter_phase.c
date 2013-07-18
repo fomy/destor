@@ -62,11 +62,11 @@ static void* simply_filter(void* arg) {
 		free_chunk(chunk);
 	} //while(TRUE) end
 
-	save_chunk(NULL );
+	save_chunk(NULL);
 
 	send_fc_signal();
 
-	return NULL ;
+	return NULL;
 }
 
 int start_filter_phase(Jcr *jcr) {
@@ -85,6 +85,9 @@ int start_filter_phase(Jcr *jcr) {
 	} else if (rewriting_algorithm == ECAP_REWRITING) {
 		puts("rewriting_algorithm=ECAP");
 		pthread_create(&filter_t, NULL, cap_filter, jcr);
+	} else if (rewriting_algorithm == CUMULUS) {
+		puts("rewriting_algorithm=CUMULUS");
+		pthread_create(&filter_t, NULL, simply_filter, jcr);
 	} else {
 		dprint("invalid rewriting algorithm\n");
 		return FAILURE;
@@ -92,5 +95,5 @@ int start_filter_phase(Jcr *jcr) {
 }
 
 void stop_filter_phase() {
-	pthread_join(filter_t, NULL );
+	pthread_join(filter_t, NULL);
 }
