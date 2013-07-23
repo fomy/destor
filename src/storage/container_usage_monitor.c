@@ -243,7 +243,7 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		ContainerUsage* cntnr_usg = (ContainerUsage*) value;
 
-		fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
+		fprintf(usage_file, "%d:%d:%.4f\n", cntnr_usg->cntnr_id,
 				cntnr_usg->read_size, container_usage_calc(cntnr_usg));
 	}
 	/* dense container */
@@ -251,7 +251,7 @@ int container_usage_monitor_print(ContainerUsageMonitor *cntnr_usg_mntr,
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		ContainerUsage* cntnr_usg = (ContainerUsage*) value;
 
-		fprintf(usage_file, "%d:%d:%.2f\n", cntnr_usg->cntnr_id,
+		fprintf(usage_file, "%d:%d:%.4f\n", cntnr_usg->cntnr_id,
 				cntnr_usg->read_size, container_usage_calc(cntnr_usg));
 	}
 
