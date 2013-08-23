@@ -104,6 +104,7 @@ void* queue_get_n(Queue *queue, int n) {
 	queue_ele_t *item = queue->first;
 	while (i < n) {
 		item = item->next;
+        ++i;
 	}
 	return item->data;
 
