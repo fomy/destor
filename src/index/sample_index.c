@@ -138,9 +138,8 @@ ContainerId sample_index_search(Fingerprint *fingerprint) {
 
 void sample_index_update(Fingerprint* finger, ContainerId id) {
 	static int count = 0;
-	if (count % sample_rate == 0) {
+	int tmp = *(int*)finger;
+	if (tmp % sample_rate == 0) {
 		htable_insert(table, finger, id);
-		count = 0;
 	}
-	++count;
 }
