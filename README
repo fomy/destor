@@ -98,7 +98,7 @@ Actually it offers several parameters of deduplication system, such as index typ
 
 Bugs
 ====
-1. The path of the backup/restore directory doesn't exceed 200 bytes. 
+1. The path of the backup/restore directory cannot exceed 200 bytes. 
 2. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
 3. Does NOT backup extremely large dataset with a huger number of chunk than 2^31.
 4. Does NOT support concurrent backup/restore.
