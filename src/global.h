@@ -82,6 +82,7 @@ typedef unsigned char Fingerprint[20];
 #define SPARSE_INDEX 5
 #define SAMPLE_INDEX 6
 #define SEGBIN_INDEX 7
+#define BLC_INDEX 8
 
 #define FIXED_CHUNK 1
 #define RABIN_CHUNK 2

@@ -48,7 +48,8 @@ libindex_a_AR = $(AR) $(ARFLAGS)
 libindex_a_LIBADD =
 am_libindex_a_OBJECTS = index.$(OBJEXT) ramindex.$(OBJEXT) \
 	ddfsindex.$(OBJEXT) extreme_binning.$(OBJEXT) silo.$(OBJEXT) \
-	sparse_index.$(OBJEXT) htable.$(OBJEXT) sample_index.$(OBJEXT)
+	sparse_index.$(OBJEXT) htable.$(OBJEXT) sample_index.$(OBJEXT) \
+	db_mysql.$(OBJEXT)
 libindex_a_OBJECTS = $(am_libindex_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -151,7 +152,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libindex.a
-libindex_a_SOURCES = index.c ramindex.c ddfsindex.c extreme_binning.c silo.c sparse_index.c htable.c sample_index.c
+libindex_a_SOURCES = index.c ramindex.c ddfsindex.c extreme_binning.c silo.c sparse_index.c htable.c sample_index.c db_mysql.c
 all: all-am
 
 .SUFFIXES:
@@ -200,6 +201,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db_mysql.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ddfsindex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extreme_binning.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/htable.Po@am__quote@
