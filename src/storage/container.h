@@ -24,7 +24,7 @@ struct container_tag {
 	ContainerId id;
 	int32_t data_size;
 	int32_t chunk_num;
-    int32_t used_size;
+	int32_t used_size;
 
 	GHashTable *meta;
 	char *data;
@@ -43,5 +43,6 @@ Chunk* container_get_chunk(Container* container, Fingerprint *hash);
 BOOL container_contains(Container* container, Fingerprint* hash); //write buffer
 int32_t container_get_chunk_num(Container*);
 BOOL check_container(Container*);
+BOOL container_equal(Container* c1, Container* c2);
 
 #endif

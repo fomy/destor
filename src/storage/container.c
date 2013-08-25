@@ -195,6 +195,10 @@ gint container_cmp_des(gconstpointer a, gconstpointer b, gpointer user_data) {
 	return ((Container*) b)->id - ((Container*) a)->id;
 }
 
+BOOL container_equal(Container* c1, Container* c2) {
+	return c1->id == c2->id ? TRUE : FALSE;
+}
+
 int32_t container_get_chunk_num(Container* container) {
 	return container->chunk_num;
 }

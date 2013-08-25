@@ -21,7 +21,7 @@ static char fragment_template[256];
 ContainerCache *container_cache_new(int cache_size, BOOL enable_data_cache,
 		int job_id) {
 	ContainerCache *cc = (ContainerCache *) malloc(sizeof(ContainerCache));
-	cc->lru_cache = lru_cache_new(cache_size, container_cmp_asc);
+	cc->lru_cache = lru_cache_new(cache_size);
 	cc->enable_data = enable_data_cache;
 	cc->job_id = job_id;
 	if (cc->enable_data) {
@@ -71,7 +71,7 @@ Container* container_cache_lookup(ContainerCache *cc, Fingerprint *finger) {
 		container = g_sequence_get(g_sequence_get_begin_iter(container_list));
 		/*container = g_sequence_get(g_sequence_search(container_list, &tmp, container_cmp_des, NULL));*/
 		if (container) {
-			if (!lru_cache_lookup(cc->lru_cache, container)) {
+			if (!lru_cache_lookup(cc->lru_cache, container_equal, container)) {
 				printf("%s, %d: inconsistency between map and cache.\n",
 						__FILE__, __LINE__);
 			}
@@ -93,7 +93,8 @@ Container* container_cache_lookup_special(ContainerCache *cc,
 		if (iter) {
 			container = g_sequence_get(iter);
 			if (container) {
-				if (!lru_cache_lookup(cc->lru_cache, container)) {
+				if (!lru_cache_lookup(cc->lru_cache, container_equal,
+						container)) {
 					printf("%s, %d: inconsistency between map and cache.\n",
 							__FILE__, __LINE__);
 				}

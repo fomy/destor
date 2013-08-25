@@ -143,8 +143,8 @@ static SiloBlock* read_block_from_volume(int32_t block_id) {
 	return block;
 }
 
-static gint block_cmp(gconstpointer a, gconstpointer b) {
-	return ((SiloBlock*) a)->id - ((SiloBlock*) b)->id;
+static BOOL silo_block_check_id(SiloBlock *a, int32_t *b) {
+	return a->id == *b ? TRUE : FALSE;
 }
 
 BOOL silo_init() {
@@ -195,7 +195,7 @@ BOOL silo_init() {
 	}
 
 	/*read_cache = g_sequence_new(silo_block_free);*/
-	read_cache = lru_cache_new(silo_read_cache_size, block_cmp);
+	read_cache = lru_cache_new(silo_read_cache_size);
 }
 
 void silo_destroy() {
@@ -244,6 +244,10 @@ void silo_destroy() {
 	close(fd);
 }
 
+static BOOL silo_block_search(SiloBlock *block, Fingerprint* fingerprint) {
+	return htable_lookup(block->LHTable, fingerprint) == NULL ? FALSE : TRUE;
+}
+
 ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	ContainerId *cid = NULL;
 	static int chunk_num = 0;
@@ -260,9 +264,8 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		int32_t *bid = g_hash_table_lookup(SHTable, &eigenvalue->values[0]);
 		if (bid != NULL) {
 			/* its block is not in read cache */
-			SiloBlock sample;
-			sample.id = *bid;
-			SiloBlock *read_block = lru_cache_lookup(read_cache, &sample);
+			SiloBlock *read_block = lru_cache_lookup(read_cache,
+					silo_block_check_id, bid);
 			if (read_block == NULL) {
 				read_block = read_block_from_volume(*bid);
 				SiloBlock *block = lru_cache_insert(read_cache, read_block);
@@ -273,12 +276,10 @@ ContainerId silo_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 	}
 
 	/* filter the fingerprint in read cache */
-	SiloBlock* block = lru_cache_first(read_cache);
-	while (block) {
+	SiloBlock* block = lru_cache_lookup(read_cache, silo_block_search,
+			fingerprint);
+	if (block) {
 		cid = htable_lookup(block->LHTable, fingerprint);
-		if (cid)
-			break;
-		block = lru_cache_next(read_cache);
 	}
 
 	chunk_num--;
