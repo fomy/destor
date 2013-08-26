@@ -136,10 +136,19 @@ ContainerId sample_index_search(Fingerprint *fingerprint) {
 	return addr == NULL ? TMP_CONTAINER_ID : *addr;
 }
 
-void sample_index_update(Fingerprint* finger, ContainerId id) {
+/*void sample_index_update(Fingerprint* finger, ContainerId id) {
 	static int count = 0;
-	int tmp = *(int*)finger;
+	int tmp = *(int*) finger;
 	if (tmp % sample_rate == 0) {
 		htable_insert(table, finger, id);
 	}
+}*/
+
+void sample_index_update(Fingerprint* finger, ContainerId id) {
+	static int count = 0;
+	if (count == sample_rate) {
+		htable_insert(table, finger, id);
+		count = 0;
+	}
+	count++;
 }
