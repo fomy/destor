@@ -112,6 +112,8 @@ void set_value(char *pname, char *pvalue) {
 			fingerprint_index_type = SPARSE_INDEX;
 		} else if (strcmp(pvalue, "SAMPLE") == 0) {
 			fingerprint_index_type = SAMPLE_INDEX;
+		} else if (strcmp(pvalue, "BLC") == 0) {
+			fingerprint_index_type = BLC_INDEX;
 		} else {
 			printf("%s, %d: unknown index type\n", __FILE__, __LINE__);
 		}

@@ -249,6 +249,7 @@ int start_segment_phase(Jcr *jcr) {
 	case RAM_INDEX:
 	case DDFS_INDEX:
 	case SAMPLE_INDEX:
+	case BLC_INDEX:
 		extract_eigenvalue = NULL;
 		pthread_create(&prepare_t, NULL, no_segment, jcr);
 		break;

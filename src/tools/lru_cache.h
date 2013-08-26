@@ -34,4 +34,10 @@ void* lru_cache_lookup_without_update(LRUCache *cache,
 		BOOL (*condition_func)(void* item, void* user_data), void* user_data);
 void* lru_cache_insert(LRUCache *cache, void* data);
 void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data);
+void lru_cache_foreach_conditionally(LRUCache *cache,
+		BOOL (*cond_func)(void* elem, void* user_data), void* user_data);
+void* lru_cache_get_top(LRUCache *cache);
+BOOL lru_cache_contains(LRUCache *cache,
+		BOOL (*equal)(void* elem, void* user_data), void* user_data);
+
 #endif /* Cache_H_ */

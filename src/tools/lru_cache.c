@@ -89,7 +89,41 @@ void* lru_cache_insert(LRUCache *cache, void* data) {
 	return evictor;
 }
 
+BOOL lru_cache_contains(LRUCache *cache,
+		BOOL (*equal)(void* elem, void* user_data), void* user_data) {
+	GList* item = g_list_first(cache->lru_queue);
+	while (item) {
+		if (equal(item->data, user_data) == TRUE) {
+			return TRUE;
+		}
+		item = g_list_next(item);
+	}
+	return FALSE;
+}
+
 void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data) {
 	g_list_foreach(cache->lru_queue, func, user_data);
 }
 
+/*
+ * iterate the cache until matching condition.
+ */
+void lru_cache_foreach_conditionally(LRUCache *cache,
+		BOOL (*cond_func)(void* elem, void* user_data), void* user_data) {
+	GList* item = g_list_first(cache->lru_queue);
+	while (item) {
+		if (cond_func(item->data, user_data) == TRUE) {
+			cache->lru_queue = g_list_remove_link(cache->lru_queue, item);
+			cache->lru_queue = g_list_concat(item, cache->lru_queue);
+			break;
+		}
+		item = g_list_next(item);
+	}
+}
+
+void* lru_cache_get_top(LRUCache *cache) {
+	GList* item = g_list_first(cache->lru_queue);
+	if (item)
+		return item->data;
+	return NULL;
+}

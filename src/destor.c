@@ -81,7 +81,7 @@ void print_help() {
 	puts("\t\tprint this.");
 	puts("\t--index=[RAM|DDFS|EXBIN|SILO|SAMPLE|SPARSE|SEGBIN]");
 	puts(
-			"\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO.");
+			"\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO, SAMPLE, and BLC.");
 	puts("\t--cache=[LRU|ASM|OPT]");
 	puts("\t\tAssign read cache type. IT now support LRU, OPT.");
 	puts("\t--cache_size=[number of containers]");
@@ -157,6 +157,8 @@ int main(int argc, char **argv) {
 				fingerprint_index_type = SPARSE_INDEX;
 			} else if (strcmp(optarg, "SAMPLE") == 0) {
 				fingerprint_index_type = SAMPLE_INDEX;
+			} else if (strcmp(optarg, "BLC") == 0) {
+				fingerprint_index_type = BLC_INDEX;
 			} else {
 				puts("unknown index type");
 				puts("type -h or --help for help.");

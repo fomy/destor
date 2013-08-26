@@ -4,6 +4,7 @@
 #include "extreme_binning.h"
 #include "silo.h"
 #include "sparse_index.h"
+#include "blc_index.h"
 
 extern int fingerprint_index_type;
 
@@ -42,6 +43,9 @@ BOOL index_init() {
 	case SAMPLE_INDEX:
 		puts("index=SAMPLE_INDEX");
 		return sample_index_init();
+	case BLC_INDEX:
+		puts("index=BLC_INDEX");
+		return blc_index_init();
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
 		return FALSE;
@@ -68,6 +72,9 @@ void index_destroy() {
 		break;
 	case SAMPLE_INDEX:
 		sample_index_destroy();
+		break;
+	case BLC_INDEX:
+		blc_index_destroy();
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
@@ -101,6 +108,9 @@ ContainerId index_search(Fingerprint* fingerprint, EigenValue* eigenvalue) {
 		break;
 	case SAMPLE_INDEX:
 		container_id = sample_index_search(fingerprint);
+		break;
+	case BLC_INDEX:
+		container_id = blc_index_search(fingerprint);
 		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
@@ -145,6 +155,9 @@ void index_update(Fingerprint* fingerprint, ContainerId container_id,
 		if (update)
 			sample_index_update(fingerprint, container_id);
 		break;
+	case BLC_INDEX:
+		blc_index_update(fingerprint, container_id);
+		break;
 	default:
 		printf("%s, %d: Wrong index type!\n", __FILE__, __LINE__);
 	}
@@ -164,6 +177,7 @@ void index_delete(Fingerprint *fingerprint) {
 	case SEGBIN_INDEX:
 	case SILO_INDEX:
 	case SPARSE_INDEX:
+	case BLC_INDEX:
 		dprint("Do not support this index!")
 		;
 		break;

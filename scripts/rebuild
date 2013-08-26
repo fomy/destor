@@ -19,6 +19,7 @@ USE destor_db;
 DROP TABLE IF EXISTS HashStore;
 CREATE TABLE HashStore(
     Fingerprint BINARY(20) PRIMARY KEY,
-    ContainerId INTEGER NOT NULL
+    ContainerId INTEGER NOT NULL,
+    BlockHint INTEGER
 ) ENGINE=MyISAM;
 END-OF-DATA
