@@ -108,7 +108,7 @@ int backup_server(char *path) {
 	index_destroy();
 
 	jcr->time = end.tv_sec - begin.tv_sec
-			+ (double) (end.tv_usec - begin.tv_usec) / (1024 * 1024);
+			+ (double) (end.tv_usec - begin.tv_usec) / (1000 * 1000);
 	puts("==== transferring end ====");
 
 	printf("job id: %d\n", jcr->job_id);

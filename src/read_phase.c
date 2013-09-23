@@ -111,7 +111,7 @@ static int find_one_file(Jcr *jcr, char *path) {
 }
 
 static void* read_thread(void *argv) {
-	/* Each file will be processed seperately */
+	/* Each file will be processed separately */
 	Jcr *jcr = (Jcr*) argv;
 
 	struct stat state;
