@@ -93,13 +93,13 @@ ContainerId ddfs_index_search(Fingerprint *finger) {
 
 	/* search in database */
 	resultId = db_lookup_fingerprint(finger);
-	index_read_times++;
 
 	if (resultId != TMP_CONTAINER_ID) {
+		index_read_times++;
 		Container* container = container_cache_insert_container(fingers_cache,
 				resultId);
 		if (container) {
-			index_read_times++;
+			//index_read_times++;
 			index_read_entry_counter += container_get_chunk_num(container);
 		}
 	}

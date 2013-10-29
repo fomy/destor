@@ -203,26 +203,21 @@ int backup_server(char *path) {
 	char buf[512];
 	/*
 	 * job id,
-	 * consumed capacity,
-	 * dedup ratio,
+	 * chunk number,
+	 * accumulative consumed capacity,
+	 * deduplication ratio,
 	 * rewritten ratio,
 	 * total container number,
 	 * sparse container number,
 	 * inherited container number,
 	 * throughput,
 	 * index memory overhead,
-	 * index read times,
-	 * index read entry num * 24B,
-	 * index write times,
-	 * index write entry num*24B,
-	 * write data throughput,
-	 * index write throughput,
-	 * index read throughput,
-	 * estimated throughput (MB/s)
+	 * index lookups,
+	 * index updates,
 	 */
 	sprintf(buf,
-			"%d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld %ld %ld %.2f %.2f %.2f %.2f\n",
-			jcr->job_id, destor_stat->consumed_capacity,
+			"%d %d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld\n",
+			jcr->job_id, jcr->chunk_num, destor_stat->consumed_capacity,
 			jcr->job_size != 0 ?
 					(double) (jcr->dedup_size) / (double) (jcr->job_size) : 0,
 			jcr->job_size != 0 ?
@@ -232,10 +227,7 @@ int backup_server(char *path) {
 			jcr->inherited_sparse_num,
 			(double) jcr->job_size / (1024 * 1024 * jcr->time),
 			index_memory_overhead, index_read_times,
-			index_read_entry_counter * 24, index_write_times,
-			index_write_entry_counter * 24, write_data_throughput,
-			index_write_throughput, index_read_throughput,
-			estimated_throughput);
+			index_write_times);
 	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 	}
 	close(fd);
