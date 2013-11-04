@@ -64,11 +64,12 @@ int64_t db_close() {
 	} else {
 		dprint("Error");
 	}
-	mysql_close(mdb);
+
 	mysql_stmt_close(search_stmt);
 	mysql_stmt_close(insert_stmt);
 	mysql_stmt_close(search_stmt_for_hint);
 	mysql_stmt_close(insert_stmt_with_hint);
+	mysql_close(mdb);
 	return item_num;
 }
 

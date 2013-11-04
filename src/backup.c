@@ -195,7 +195,7 @@ int backup_server(char *path) {
 	if (estimated_throughput > index_read_throughput)
 		estimated_throughput = index_read_throughput;
 	/*if (estimated_throughput > index_write_throughput)
-		estimated_throughput = index_write_throughput;*/
+	 estimated_throughput = index_write_throughput;*/
 
 	char logfile[] = "backup.log";
 	int fd = open(logfile, O_WRONLY | O_CREAT, S_IRWXU);
@@ -215,9 +215,8 @@ int backup_server(char *path) {
 	 * index lookups,
 	 * index updates,
 	 */
-	sprintf(buf,
-			"%d %d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld\n",
-			jcr->job_id, jcr->chunk_num, destor_stat->consumed_capacity,
+	sprintf(buf, "%d %d %ld %.4f %.4f %d %d %d %.2f %ld %ld %ld\n", jcr->job_id,
+			jcr->chunk_num, destor_stat->consumed_capacity,
 			jcr->job_size != 0 ?
 					(double) (jcr->dedup_size) / (double) (jcr->job_size) : 0,
 			jcr->job_size != 0 ?
@@ -226,8 +225,7 @@ int backup_server(char *path) {
 					0, jcr->total_container_num, jcr->sparse_container_num,
 			jcr->inherited_sparse_num,
 			(double) jcr->job_size / (1024 * 1024 * jcr->time),
-			index_memory_overhead, index_read_times,
-			index_write_times);
+			index_memory_overhead, index_read_times, index_write_times);
 	if (write(fd, buf, strlen(buf)) != strlen(buf)) {
 	}
 	close(fd);
@@ -318,7 +316,7 @@ int backup(Jcr* jcr) {
 		recipe->fileindex = i;
 		if (jvol_append_meta(jcr->job_volume, recipe) != SUCCESS) {
 			printf("%s, %d: some errors happened in appending recipe!\n",
-					__FILE__, __LINE__);
+			__FILE__, __LINE__);
 			return FAILURE;
 		}
 		jcr->chunk_num += recipe->chunknum;
