@@ -13,117 +13,86 @@
 /*
  * The container read cache.
  */
-LRUCache* lru_cache_new(int size) {
-	LRUCache* cache = (LRUCache*) malloc(sizeof(LRUCache));
+struct lruCache* new_lru_cache(int size, void (*free_elem)(void *),
+		int (*hit_elem)(void* elem, void* user_data)) {
+	struct lruCache* c = (struct lruCache*) malloc(sizeof(struct lruCache));
 
-	cache->lru_queue = NULL;
+	c->elem_queue = NULL;
 
-	cache->cache_max_size = size;
-	cache->cache_size = 0;
-	cache->hit_count = 0;
-	cache->miss_count = 0;
+	c->cache_max_size = size;
+	c->cache_size = 0;
+	c->hit_count = 0;
+	c->miss_count = 0;
 
-	return cache;
+	c->free_elem = free_elem;
+	c->hit_elem = hit_elem;
+
+	return c;
 }
 
-void lru_cache_free(LRUCache *cache, void (*data_free)(void *)) {
-	g_list_free_full(cache->lru_queue, data_free);
-	free(cache);
+void free_lru_cache(struct lruCache* c) {
+	g_list_free_full(c->elem_queue, c->free_elem);
+	free(c);
 }
 
 /* find a item in cache matching the condition */
-void* lru_cache_lookup(LRUCache *cache,
-		BOOL (*condition_func)(void* item, void* user_data), void* user_data) {
-	GList* item = g_list_first(cache->lru_queue);
-	while (item) {
-		if (condition_func(item->data, user_data) != FALSE)
+void* lru_cache_lookup(struct lruCache* c, void* user_data) {
+	GList* elem = g_list_first(c->elem_queue);
+	while (elem) {
+		if (elem_hit(elem->data, user_data))
 			break;
-		item = g_list_next(item);
+		elem = g_list_next(elem);
 	}
-	if (item) {
-		cache->lru_queue = g_list_remove_link(cache->lru_queue, item);
-		cache->lru_queue = g_list_concat(item, cache->lru_queue);
-		cache->hit_count++;
-		return item->data;
+	if (elem) {
+		c->elem_queue = g_list_remove_link(c->elem_queue, elem);
+		c->elem_queue = g_list_concat(elem, c->elem_queue);
+		c->hit_count++;
+		return elem->data;
 	} else {
-		cache->miss_count++;
+		c->miss_count++;
 		return NULL;
 	}
 }
 
 /*
- * Lookup data in lru cache,
- * but the lookup will not update the lru queue. 
+ * Hit an existing elem for simulating an insertion of it.
  */
-void* lru_cache_lookup_without_update(LRUCache *cache,
-		BOOL (*condition_func)(void* item, void* user_data), void* user_data) {
-	GList* item = g_list_first(cache->lru_queue);
-	while (item) {
-		if (condition_func(item->data, user_data) != FALSE)
+int lru_cache_hits(struct lruCache* c, void* user_data,
+		int (*hit)(void* elem, void* user_data)) {
+	GList* elem = g_list_first(c->elem_queue);
+	while (elem) {
+		if (hit(elem->data, user_data))
 			break;
-		item = g_list_next(item);
+		elem = g_list_next(elem);
 	}
-	if (item) {
-		return item->data;
+	if (elem) {
+		c->elem_queue = g_list_remove_link(c->elem_queue, elem);
+		c->elem_queue = g_list_concat(elem, c->elem_queue);
+		return 1;
 	} else {
-		return NULL;
+		return 0;
 	}
 }
 
 /*
- * We know that the elem does not exist!
+ * We know that the data does not exist!
  */
-void* lru_cache_insert(LRUCache *cache, void* data) {
-	void *evictor = 0;
-	if (cache->cache_max_size > 0
-			&& cache->cache_size == cache->cache_max_size) {
-		GList *last = g_list_last(cache->lru_queue);
-		cache->lru_queue = g_list_remove_link(cache->lru_queue, last);
-		evictor = last->data;
+void lru_cache_insert(struct lruCache *c, void* data,
+		void (*func)(void*, void*), void* user_data) {
+	void *victim = 0;
+	if (c->cache_max_size > 0 && c->cache_size == c->cache_max_size) {
+		GList *last = g_list_last(c->elem_queue);
+		c->elem_queue = g_list_remove_link(c->elem_queue, last);
+		victim = last->data;
 		g_list_free_1(last);
-		cache->cache_size--;
+		c->cache_size--;
 	}
-	/* Valgrind reports it's possible to lost some memory here */
-	cache->lru_queue = g_list_prepend(cache->lru_queue, data);
-	cache->cache_size++;
-	return evictor;
-}
 
-BOOL lru_cache_contains(LRUCache *cache,
-		BOOL (*equal)(void* elem, void* user_data), void* user_data) {
-	GList* item = g_list_first(cache->lru_queue);
-	while (item) {
-		if (equal(item->data, user_data) == TRUE) {
-			return TRUE;
-		}
-		item = g_list_next(item);
+	c->elem_queue = g_list_prepend(c->elem_queue, data);
+	c->cache_size++;
+	if (victim) {
+		if (func)
+			func(victim, user_data);
+		c->free_elem(victim);
 	}
-	return FALSE;
-}
-
-void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data) {
-	g_list_foreach(cache->lru_queue, func, user_data);
-}
-
-/*
- * iterate the cache until matching condition.
- */
-void lru_cache_foreach_conditionally(LRUCache *cache,
-		BOOL (*cond_func)(void* elem, void* user_data), void* user_data) {
-	GList* item = g_list_first(cache->lru_queue);
-	while (item) {
-		if (cond_func(item->data, user_data) == TRUE) {
-			cache->lru_queue = g_list_remove_link(cache->lru_queue, item);
-			cache->lru_queue = g_list_concat(item, cache->lru_queue);
-			break;
-		}
-		item = g_list_next(item);
-	}
-}
-
-void* lru_cache_get_top(LRUCache *cache) {
-	GList* item = g_list_first(cache->lru_queue);
-	if (item)
-		return item->data;
-	return NULL;
 }

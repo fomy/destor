@@ -1,0 +1,2 @@
+noinst_LIBRARIES=librecipe.a
+librecipe_a_SOURCES=recipemanage.c

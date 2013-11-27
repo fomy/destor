@@ -9,13 +9,10 @@
 #define Cache_H_
 #define INFI_Cache -1
 
-#include "../global.h"
 #include <glib.h>
 
-typedef struct lru_cache_tag LRUCache;
-
-struct lru_cache_tag {
-	GList *lru_queue;
+struct lruCache {
+	GList *elem_queue;
 
 	int cache_max_size; // less then zero means infinite cache
 	int cache_size;
@@ -23,21 +20,17 @@ struct lru_cache_tag {
 	double hit_count;
 	double miss_count;
 
-	void (*data_free)(void *);
+	void (*free_elem)(void *);
+	int (*hit_elem)(void* elem, void* user_data);
 };
 
-LRUCache* lru_cache_new(int size);
-void lru_cache_free(LRUCache *cache, void (*data_free)(void*));
-void* lru_cache_lookup(LRUCache *cache,
-		BOOL (*condition_func)(void* item, void* user_data), void* user_data);
-void* lru_cache_lookup_without_update(LRUCache *cache,
-		BOOL (*condition_func)(void* item, void* user_data), void* user_data);
-void* lru_cache_insert(LRUCache *cache, void* data);
-void lru_cache_foreach(LRUCache *cache, GFunc func, gpointer user_data);
-void lru_cache_foreach_conditionally(LRUCache *cache,
-		BOOL (*cond_func)(void* elem, void* user_data), void* user_data);
-void* lru_cache_get_top(LRUCache *cache);
-BOOL lru_cache_contains(LRUCache *cache,
-		BOOL (*equal)(void* elem, void* user_data), void* user_data);
+struct lruCache* new_lru_cache(int size, void (*free_elem)(void *),
+		int (*hit_elem)(void* elem, void* user_data));
+void free_lru_cache(struct lruCache*);
+void* lru_cache_lookup(struct lruCache*, void* user_data);
+void* lru_cache_hits(struct lruCache*, void* user_data,
+		int (*hit)(void* elem, void* user_data));
+void lru_cache_insert(struct lruCache *c, void* data,
+		void (*victim)(void*, void*), void* user_data);
 
 #endif /* Cache_H_ */

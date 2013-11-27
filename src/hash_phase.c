@@ -1,62 +1,61 @@
-#include "global.h"
-#include "dedup.h" 
+#include "destor.h"
 #include "jcr.h"
 #include "tools/sync_queue.h"
 
-extern int recv_chunk(Chunk** chunk);
+extern int recv_chunk(struct chunk** ck);
 
 /* hash queue */
 static SyncQueue* hash_queue;
 static pthread_t hash_t;
 
-static void send_hash(Chunk* chunk){
-    sync_queue_push(hash_queue, chunk);
+static void send_hashed_chunk(struct chunk* ck) {
+	sync_queue_push(hash_queue, ck);
 }
 
-int recv_hash(Chunk **new_chunk){
-    Chunk *chunk = sync_queue_pop(hash_queue);
-    if(chunk->length == FILE_END){
-        *new_chunk = chunk;
-        return FILE_END;
-    }else if(chunk->length == STREAM_END){
-        *new_chunk = chunk;
-        return STREAM_END;
-    }
-    *new_chunk = chunk;
-    return SUCCESS;
+static void term_hash_queue() {
+	sync_queue_term(hash_queue);
+}
+
+int recv_hashed_chunk(struct chunk **nck) {
+	*nck = sync_queue_pop(hash_queue);
+	if (*nck == NULL) {
+		return STREAM_END;
+	}
+	if ((*nck)->size < 0)
+		return FILE_END;
+	return (*nck)->size;
 }
 
 static void* sha1_thread(void* arg) {
-    Jcr *jcr = (Jcr*) arg;
-    while (TRUE) {
-        Chunk *chunk = NULL;
-        int signal = recv_chunk(&chunk);
-        if (signal == STREAM_END) {
-            send_hash(chunk);
-            break;
-        }else if(signal == FILE_END){
-            send_hash(chunk);
-            continue;
-        }
+	while (1) {
+		struct chunk* ck = NULL;
+		int signal = recv_chunk(&ck);
+		if (signal == STREAM_END) {
+			term_hash_queue();
+			break;
+		} else if (signal == FILE_END) {
+			send_hashed_chunk(ck);
+			continue;
+		}
 
-        TIMER_DECLARE(b, e);
-        TIMER_BEGIN(b);
-        SHA_CTX ctx;
-        SHA_Init(&ctx);
-        SHA_Update(&ctx, chunk->data, chunk->length);
-        SHA_Final(chunk->hash, &ctx);
-        TIMER_END(jcr->name_time, b, e);
+		TIMER_DECLARE(b, e);
+		TIMER_BEGIN(b);
+		SHA_CTX ctx;
+		SHA_Init(&ctx);
+		SHA_Update(&ctx, ck->data, ck->size);
+		SHA_Final(&ck->fp, &ctx);
+		TIMER_END(jcr.hash_time, b, e);
 
-        send_hash(chunk);
-    }
-    return NULL;
+		send_hash(ck);
+	}
+	return NULL;
 }
 
-int start_hash_phase(Jcr *jcr){
-    hash_queue = sync_queue_new(100);
-    pthread_create(&hash_t, NULL, sha1_thread, jcr);
+void start_hash_phase() {
+	hash_queue = sync_queue_new(100);
+	pthread_create(&hash_t, NULL, sha1_thread, NULL);
 }
 
-void stop_hash_phase(){
-    pthread_join(hash_t, NULL);
+void stop_hash_phase() {
+	pthread_join(hash_t, NULL);
 }

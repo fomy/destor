@@ -1,97 +1,112 @@
-#include "global.h"
-#include "dedup.h" 
+#include "destor.h"
 #include "jcr.h"
-#include "index/index.h"
-#include "storage/protos.h"
+#include "storage/container_manage.h"
+#include "recipe/recipemanage.h"
+#include "tools/sync_queue.h"
+#include "rewrite_phase.h"
 
-extern int rewriting_algorithm;
+extern int recv_rewrite_chunk(struct chunk** c);
 
-extern int recv_chunk_with_eigenvalue(Chunk **chunk);
-extern ContainerId save_chunk(Chunk* chunk);
+static struct container *cbuf = NULL;
 
 static pthread_t filter_t;
 
-extern void send_fc_signal();
-extern void send_fingerchunk(FingerChunk *fchunk, EigenValue* eigenvalue,
-		BOOL update);
+static SyncQueue* container_queue;
 
-extern void* cfl_filter(void* arg);
-extern void* cbr_filter(void* arg);
-extern void* cap_filter(void* arg);
+static void send_container(struct container* c) {
+	sync_queue_push(container_queue, c);
+}
 
-static void* simply_filter(void* arg) {
-	Jcr* jcr = (Jcr*) arg;
-	while (TRUE) {
-		Chunk* chunk = NULL;
-		int signal = recv_chunk_with_eigenvalue(&chunk);
+static void term_container_queue() {
+	sync_queue_term(container_queue);
+}
 
-		TIMER_DECLARE(b1, e1);
-		TIMER_BEGIN(b1);
-		if (signal == STREAM_END) {
-			free_chunk(chunk);
-			break;
-		}
+int recv_container(struct container** c) {
+	struct container *rc = sync_queue_pop(container_queue);
+	if (rc == NULL)
+		return STREAM_END;
 
-		/* init FingerChunk */
-		FingerChunk *new_fchunk = (FingerChunk*) malloc(sizeof(FingerChunk));
-		new_fchunk->length = chunk->length;
-		memcpy(&new_fchunk->fingerprint, &chunk->hash, sizeof(Fingerprint));
-		new_fchunk->container_id = chunk->container_id;
+	*c = rc;
+	return 0;
+}
 
-		BOOL update = FALSE;
-		if (chunk->status & DUPLICATE) {
-			if (chunk->status & SPARSE) {
-				/* this chunk is in a sparse container */
-				/* rewrite it */
-				new_fchunk->container_id = save_chunk(chunk);
+/*
+ * Handle containers in container_queue.
+ * When a container buffer is full, we push it into container_queue.
+ */
+static void* filter_thread(void *arg) {
+	struct recipe* r = NULL;
+	while (1) {
+		struct chunk* c;
+		int size = recv_rewrite_chunk(&c);
 
-				update = TRUE;
-				jcr->rewritten_chunk_count++;
-				jcr->rewritten_chunk_amount += new_fchunk->length;
-			} else {
-				jcr->dedup_size += chunk->length;
-				++jcr->number_of_dup_chunks;
+		if (size == STREAM_END) {
+			/* backup job finish */
+			if (r != NULL) {
+				append_recipe_meta(jcr.bv, r);
 			}
-		} else {
-			new_fchunk->container_id = save_chunk(chunk);
-			update = TRUE;
+			break;
+		} else if (size == FILE_END) {
+			if (r != NULL) {
+				append_recipe_meta(jcr.bv, r);
+			}
+			r = (struct recipe*) malloc(sizeof(struct recipe));
+			r->filename = sdsnew(c->data);
+			free_chunk(c);
+			continue;
 		}
 
-		TIMER_END(jcr->filter_time, b1, e1);
-		send_fingerchunk(new_fchunk, chunk->eigenvalue, update);
-		free_chunk(chunk);
-	} //while(TRUE) end
+		r->filesize += c->size;
+		r->chunknum++;
 
-	save_chunk(NULL);
+		if (CHECK_CHUNK_UNIQUE(c) || CHECK_CHUNK_SPARSE(c)
+				|| (CHECK_CHUNK_OUT_OF_ORDER(c) && CHECK_CHUNK_NOT_IN_CACHE(c))) {
+			/*
+			 * If the chunk is unique,
+			 * sparse, or out of order and not in cache,
+			 * we write it to a container.
+			 */
+			if (cbuf == NULL)
+				cbuf = create_container();
 
-	send_fc_signal();
+			if (container_overflow(cbuf, c->size)) {
 
+				send_container(cbuf);
+
+				cbuf = create_container();
+			}
+			containerid ret = index_update(c->fp, c->id,
+					get_container_id(cbuf));
+			if (ret == TEMPORARY_ID)
+				add_chunk_to_container(cbuf, c);
+			else
+				c->id = ret;
+		} else {
+			index_update(c->fp, c->id, c->id);
+		}
+		struct chunkPointer* cp = (struct chunkPointer*) malloc(
+				sizeof(struct chunkPointer));
+		cp->id = c->id;
+		memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
+		append_n_chunk_pointers(jcr.bv, cp, 1);
+
+		/* Collect historical information. */
+		har_monitor_update(c->id, c->size);
+
+		free_chunk(c);
+	}
+
+	if (cbuf) {
+		send_container(cbuf);
+	}
+	term_container_queue();
 	return NULL;
 }
 
-int start_filter_phase(Jcr *jcr) {
-	if (rewriting_algorithm == NO_REWRITING) {
-		puts("rewriting_algorithm=NO");
-		pthread_create(&filter_t, NULL, simply_filter, jcr);
-	} else if (rewriting_algorithm == CFL_REWRITING) {
-		puts("rewriting_algorithm=CFL");
-		pthread_create(&filter_t, NULL, cfl_filter, jcr);
-	} else if (rewriting_algorithm == CBR_REWRITING) {
-		puts("rewriting_algorithm=CBR");
-		pthread_create(&filter_t, NULL, cbr_filter, jcr);
-	} else if (rewriting_algorithm == CAP_REWRITING) {
-		puts("rewriting_algorithm=CAP");
-		pthread_create(&filter_t, NULL, cap_filter, jcr);
-	} else if (rewriting_algorithm == ECAP_REWRITING) {
-		puts("rewriting_algorithm=ECAP");
-		pthread_create(&filter_t, NULL, cap_filter, jcr);
-	} else if (rewriting_algorithm == CUMULUS) {
-		puts("rewriting_algorithm=CUMULUS");
-		pthread_create(&filter_t, NULL, simply_filter, jcr);
-	} else {
-		dprint("invalid rewriting algorithm\n");
-		return FAILURE;
-	}
+void start_filter_phase() {
+	container_queue = sync_queue_new(25);
+
+	pthread_create(&filter_t, NULL, filter_thread, NULL);
 }
 
 void stop_filter_phase() {

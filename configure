@@ -3719,7 +3719,7 @@ else
 fi
 
 
-CFLAGS="-g -O2"
+CFLAGS="-g -O0"
 
 # Checks for libraries.
 

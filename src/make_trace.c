@@ -1,16 +1,8 @@
-#include "global.h"
+#include "destor.h"
 #include "jcr.h"
+#include "pipeline.h"
 
-extern int start_read_phase(Jcr*);
-extern void stop_read_phase();
-
-extern int start_chunk_phase(Jcr*);
-extern void stop_chunk_phase();
-
-extern int start_hash_phase(Jcr*);
-extern void stop_hash_phase();
-
-extern int recv_hash(Chunk **new_chunk);
+extern int recv_hash(struct chunk **new_chunk);
 
 extern int simulation_level;
 
@@ -45,8 +37,7 @@ void hash2code(unsigned char hash[20], char code[40]) {
 				c = b + 48;
 				if (c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E'
 						|| c == 'F')
-					dprint("not good")
-				;
+					dprint("not good");
 				break;
 
 			}
@@ -109,22 +100,16 @@ void code2hash(unsigned char code[40], unsigned char hash[20]) {
 	}
 }
 
-void make_trace(char* raw_files) {
-	Jcr *jcr = new_write_jcr();
-	strcpy(jcr->backup_path, raw_files);
+void make_trace(char* path) {
+	jcr.path = sdsnew(path);
 
-	char trace_file[512];
-	if (access(raw_files, 4) != 0) {
-		puts("This raw file path does not exist or can not be read!");
-		return;
+	if (access(path, 4) != 0) {
+		fprint(stderr, "This path does not exist or can not be read!\n");
+		exit(1);
 	}
 
-	strcpy(trace_file, raw_files);
 	struct stat state;
-	if (stat(raw_files, &state) != 0) {
-		puts("backup path does not exist!");
-		return;
-	}
+	stat(jcr.path, &state);
 	if (S_ISDIR(state.st_mode)) {
 		char *p = trace_file + strlen(trace_file) - 1;
 		while (*p == '/')
@@ -138,9 +123,9 @@ void make_trace(char* raw_files) {
 
 	simulation_level = SIMULATION_NO;
 
-	start_read_phase(jcr);
-	start_chunk_phase(jcr);
-	start_hash_phase(jcr);
+	start_read_phase();
+	start_chunk_phase();
+	start_hash_phase();
 
 	unsigned char code[41];
 	int32_t file_index = 0;
@@ -227,12 +212,12 @@ static void* read_trace_thread(void *argv) {
 	struct stat state;
 	if (stat(jcr->backup_path, &state) != 0) {
 		puts("The trace does not exist!");
-		return NULL ;
+		return NULL;
 	}
 
 	if (!S_ISREG(state.st_mode)) {
 		dprint("It is not a file!");
-		return NULL ;
+		return NULL;
 	}
 
 	FILE *trace_file = fopen(jcr->backup_path, "r");
@@ -289,5 +274,5 @@ int start_read_trace_phase(Jcr *jcr) {
 }
 
 void stop_read_trace_phase() {
-	pthread_join(trace_t, NULL );
+	pthread_join(trace_t, NULL);
 }

@@ -2,7 +2,7 @@
 #include <stdlib.h> /*size_t*/
 #include <string.h>/*memset*/
 #include "rabin_chunking.h"
-#include "../global.h"
+#include "../destor.h"
 
 extern int chunking_algorithm;
 
@@ -27,7 +27,7 @@ typedef unsigned long long int UINT64;
 enum {
 	size = 48
 };
-UINT64 fingerprint;
+UINT64 fp;
 int bufpos;
 UINT64 U[256];
 unsigned char buf[size];
@@ -42,10 +42,6 @@ size_t _last_pos;
 size_t _cur_pos;
 
 unsigned int _num_chunks;
-
-extern uint32_t chunk_size;
-extern uint32_t max_chunk_size;
-extern uint32_t min_chunk_size;
 
 const char bytemsb[0x100] = { 0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5,
 		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6,
@@ -170,7 +166,7 @@ UINT64 slide8(unsigned char m) {
 		bufpos = 0;
 	om = buf[bufpos];
 	buf[bufpos] = m;
-	return fingerprint = append8(fingerprint ^ U[om], m);
+	return fp = append8(fingerprint ^ U[om], m);
 }
 
 UINT64 polymmult(UINT64 x, UINT64 y, UINT64 d) {
@@ -222,7 +218,7 @@ void window_init(UINT64 poly) {
 	UINT64 sizeshift;
 
 	rabinpoly_init(poly);
-	fingerprint = 0;
+	fp = 0;
 	bufpos = -1;
 	sizeshift = 1;
 	for (i = 1; i < size; i++)
@@ -233,7 +229,7 @@ void window_init(UINT64 poly) {
 }
 
 void windows_reset() {
-	fingerprint = 0;
+	fp = 0;
 	//memset((char*) buf,0,sizeof (buf));
 	//memset((char*) chunk,0,sizeof (chunk));
 }
@@ -259,30 +255,31 @@ int rabin_chunk_data(unsigned char *p, int n) {
 	unsigned char buf[128];
 	memset((char*) buf, 0, 128);
 
-	if (n <= min_chunk_size)
+	if (n <= destor.chunk_min_size)
 		return n;
 	else
-		i = min_chunk_size;
+		i = destor.chunk_min_size;
 	while (i <= n) {
 
 		SLIDE(p[i - 1], fingerprint, bufPos, buf);
-		if (chunking_algorithm == RABIN_CHUNK) {
-			if (((fingerprint & (chunk_size - 1)) == BREAKMARK_VALUE
-					&& i >= min_chunk_size) || i >= max_chunk_size || i == n) {
+		if (destor.chunk_algorithm == CHUNK_RABIN) {
+			if (((fingerprint & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE
+					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
+					|| i == n) {
 				break;
 			} else
 				i++;
-		} else if (chunking_algorithm == NRABIN_CHUNK) {
-			if (i < chunk_size) {
-				if (((fingerprint & (chunk_size * 2 - 1)) == BREAKMARK_VALUE
-						&& i >= min_chunk_size) || i >= max_chunk_size
+		} else if (destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN) {
+			if (i < destor.chunk_avg_size) {
+				if (((fingerprint & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE
+						&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
 						|| i == n) {
 					break;
 				} else
 					i++;
 			} else {
-				if (((fingerprint & (chunk_size / 2 - 1)) == BREAKMARK_VALUE
-						&& i >= min_chunk_size) || i >= max_chunk_size
+				if (((fingerprint & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE
+						&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
 						|| i == n) {
 					break;
 				} else

@@ -5,207 +5,329 @@
  *      Author: fumin
  */
 
-#include "global.h"
-#include "index/index.h"
+#include "destor.h"
 
-/* server parameters */
-char working_path[200] = "/home/data/working/";
-
-/* simulator mode */
-int simulation_level = SIMULATION_NO;
-
-/* read cahce parameters */
-int read_cache_size = 100;
-BOOL enable_data_cache = TRUE;
-int read_cache_type = LRU_CACHE;
-/* optimal read cache parameter */
-int optimal_cache_window_size = 10000;
-
-/* index type*/
-int fingerprint_index_type = RAM_INDEX;
-
-/* ddfs_index parameters */
-int ddfs_cache_size = 100;
-
-/* sparse index parameter */
-int32_t segment_bits = 11;
-int32_t champions_number = 8;
-
-/* SiLo parameters */
-int32_t silo_block_size = 128; //MB
-int32_t silo_read_cache_size = 2;
-
-/* sample rate of SiLo, Sparse Index, Sample Index */
-int32_t sample_bits = 7;
-
-/* filter type */
-int rewriting_algorithm = NO_REWRITING;
-/* cfl_filter parameters */
-double cfl_usage_threshold = 0.03; //should larger than cfl_require
-double cfl_require = 0.7;
-
-/* cbr_filter parameters */
-double minimal_rewrite_utility = 0.7;
-double rewrite_limit = 0.05;
-int32_t stream_context_size = 32 * 1024 * 1024;
-int32_t disk_context_size = 1; //container
-
-/* capping parameters */
-int32_t capping_T = 20;
-int32_t capping_segment_size = 20 * 1024 * 1024;
-
-/* HBR parameters */
-BOOL enable_hbr = FALSE;
-double hbr_usage_threshold = 0.7;
-
-/* chunking algorithms */
-int chunking_algorithm = RABIN_CHUNK;
-
-/* for cumulus deletion */
-int kept_versions = 10;
-
-/* 
- * enable cache monitor to filter unnecessary
- * out of order chunks
- */
-BOOL enable_cache_filter = FALSE;
-
-void set_value(char *pname, char *pvalue) {
-	if (strcmp(pname, "WORKING_PATH") == 0) {
-		strcpy(working_path, pvalue);
-	} else if (strcmp(pname, "CHUNKING_ALGORITHM") == 0) {
-		if (strcmp(pvalue, "FIXED") == 0) {
-			chunking_algorithm = FIXED_CHUNK;
-		} else if (strcmp(pvalue, "RABIN") == 0) {
-			chunking_algorithm = RABIN_CHUNK;
-		} else if (strcmp(pvalue, "NRABIN") == 0) {
-			chunking_algorithm = NRABIN_CHUNK;
-		} else {
-			printf("%s, %d: unknown chunking algorithm\n", __FILE__, __LINE__);
-		}
-	} else if (strcmp(pname, "READ_CACHE_SIZE") == 0) {
-		read_cache_size = atoi(pvalue);
-	} else if (strcmp(pname, "READ_CACHE_TYPE") == 0) {
-		if (strcmp(pvalue, "LRU") == 0) {
-			read_cache_type = LRU_CACHE;
-		} else if (strcmp(pvalue, "OPT") == 0) {
-			read_cache_type = OPT_CACHE;
-		} else if (strcmp(pvalue, "ASM") == 0) {
-			read_cache_type = ASM_CACHE;
-		} else {
-			printf("%s, %d: unknown cache type\n", __FILE__, __LINE__);
-		}
-	} else if (strcmp(pname, "OPTIMAL_CACHE_WINDOW_SIZE") == 0) {
-		optimal_cache_window_size = atoi(pvalue);
-	} else if (strcmp(pname, "INDEX_TYPE") == 0) {
-		if (strcmp(pvalue, "RAM") == 0) {
-			fingerprint_index_type = RAM_INDEX;
-		} else if (strcmp(pvalue, "DDFS") == 0) {
-			fingerprint_index_type = DDFS_INDEX;
-		} else if (strcmp(pvalue, "EXBIN") == 0) {
-			fingerprint_index_type = EXBIN_INDEX;
-		} else if (strcmp(pvalue, "SEGBIN") == 0) {
-			fingerprint_index_type = SEGBIN_INDEX;
-		} else if (strcmp(pvalue, "SILO") == 0) {
-			fingerprint_index_type = SILO_INDEX;
-		} else if (strcmp(pvalue, "SPARSE") == 0) {
-			fingerprint_index_type = SPARSE_INDEX;
-		} else if (strcmp(pvalue, "SAMPLE") == 0) {
-			fingerprint_index_type = SAMPLE_INDEX;
-		} else if (strcmp(pvalue, "BLC") == 0) {
-			fingerprint_index_type = BLC_INDEX;
-		} else {
-			printf("%s, %d: unknown index type\n", __FILE__, __LINE__);
-		}
-	} else if (strcmp(pname, "DDFS_CACHE_SIZE") == 0) {
-		ddfs_cache_size = atoi(pvalue);
-	} else if (strcmp(pname, "CHAMPIONS_NUMBER") == 0) {
-		champions_number = atoi(pvalue);
-	} else if (strcmp(pname, "SAMPLE_BITS") == 0) {
-		sample_bits = atoi(pvalue);
-	} else if (strcmp(pname, "SEGMENT_BITS") == 0) {
-		segment_bits = atoi(pvalue);
-	} else if (strcmp(pname, "CFL_REQUIRE") == 0) {
-		cfl_require = atof(pvalue);
-	} else if (strcmp(pname, "CFL_P") == 0) {
-		cfl_usage_threshold = atoi(pvalue) / 100.0;
-	} else if (strcmp(pname, "HBR_USAGE_THRESHOLD") == 0) {
-		hbr_usage_threshold = atof(pvalue);
-	} else if (strcmp(pname, "HBR") == 0) {
-		if (strcmp(pvalue, "TRUE") == 0) {
-			enable_hbr = TRUE;
-		} else if (strcmp(pvalue, "FALSE") == 0) {
-			enable_hbr = FALSE;
-		} else {
-			printf("%s, %d: bad parameter hbr\n", __FILE__, __LINE__);
-		}
-	} else if (strcmp(pname, "REWRITE") == 0) {
-		if (strcmp(pvalue, "NO") == 0) {
-			rewriting_algorithm = NO_REWRITING;
-		} else if (strcmp(pvalue, "CFL") == 0) {
-			rewriting_algorithm = CFL_REWRITING;
-		} else if (strcmp(pvalue, "CBR") == 0) {
-			rewriting_algorithm = CBR_REWRITING;
-		} else if (strcmp(pvalue, "CAP") == 0) {
-			rewriting_algorithm = CAP_REWRITING;
-		} else if (strcmp(pvalue, "ECAP") == 0) {
-			rewriting_algorithm = ECAP_REWRITING;
-		} else if (strcmp(pvalue, "CUMULUS") == 0) {
-			rewriting_algorithm = CUMULUS;
-			enable_hbr = TRUE;
-		} else {
-			printf("%s, %d: unknown rewriting algorithm\n", __FILE__, __LINE__);
-		}
-	} else if (strcmp(pname, "MINIMAL_REWRITE_UTILITY") == 0) {
-		minimal_rewrite_utility = atof(pvalue);
-	} else if (strcmp(pname, "REWRITE_LIMIT") == 0) {
-		rewrite_limit = atof(pvalue);
-	} else if (strcmp(pname, "STREAM_CONTEXT_SIZE") == 0) {
-		stream_context_size = atoi(pvalue) * 1024 * 1024;
-	} else if (strcmp(pname, "DISK_CONTEXT_SIZE") == 0) {
-		disk_context_size = atoi(pvalue);
-	} else if (strcmp(pname, "SILO_BLOCK_SIZE") == 0) {
-		silo_block_size = atoi(pvalue);
-	} else if (strcmp(pname, "SILO_READ_CACHE_SIZE") == 0) {
-		silo_read_cache_size = atoi(pvalue);
-	} else if (strcmp(pname, "CAP_T") == 0) {
-		capping_T = atoi(pvalue);
-	} else if (strcmp(pname, "CAP_SEGMENT_SIZE") == 0) {
-		capping_segment_size = atoi(pvalue) * 1024 * 1024;
-	} else if (strcmp(pname, "SIMULATION_LEVEL") == 0) {
-		if (strcmp(pvalue, "NO") == 0) {
-			simulation_level = SIMULATION_NO;
-		} else if (strcmp(pvalue, "RECOVERY") == 0) {
-			simulation_level = SIMULATION_RECOVERY;
-		} else if (strcmp(pvalue, "APPEND") == 0) {
-			simulation_level = SIMULATION_APPEND;
-		} else if (strcmp(pvalue, "ALL") == 0) {
-			simulation_level = SIMULATION_ALL;
-		} else {
-			dprint("An wrong simulation_level!");
-		}
-	} else {
-		printf("%s, %d: no such param name %s.\n", __FILE__, __LINE__, pname);
-	}
+int yesnotoi(char *s) {
+	if (strcasecmp(s, "yes") == 0)
+		return 1;
+	else if (strcasecmp(s, "no") == 0)
+		return 0;
+	else
+		return -1;
 }
 
-int load_config() {
-	FILE *psFile;
-	if ((psFile = fopen("destor.config", "r")) == 0) {
-		puts("destor.config does not exist!");
-		return TRUE;
-	}
-	char line[100];
-	char *pname, *pvalue;
-	while (fgets(line, 100, psFile)) {
-		switch (line[0]) {
-		case '#':
-		case '\n':
-			break;
-		default:
-			pname = strtok(line, "=\n");
-			pvalue = strtok(NULL, "=\n");
-			set_value(pname, pvalue);
+void load_config_from_string(sds config) {
+	char *err = NULL;
+	int linenum = 0, totlines, i;
+	sds *lines = sdssplitlen(config, strlen(config), "\n", 1, &totlines);
+
+	for (i = 0; i < totlines; i++) {
+		sds *argv;
+		int argc;
+
+		linenum = i + 1;
+		lines[i] = sdstrim(lines[i], " \t\r\n");
+
+		if (lines[i][0] == '#' || lines[i][0] == '\0')
+			continue;
+
+		argv = sdssplitargs(lines[i], &argc);
+		if (argv == NULL) {
+			err = "Unbalanced quotes in configuration line";
+			goto loaderr;
 		}
+
+		if (argc == 0) {
+			sdsfreesplitres(argv, argc);
+			continue;
+		}
+		sdstolower(argv[0]);
+
+		if (strcasecmp(argv[0], "working-directory") == 0 && argc == 2) {
+			destor.working_directory = sdscpy(destor.working_directory,
+					argv[1]);
+		} else if (strcasecmp(argv[0], "simulation-level") == 0 && argc == 2) {
+			if (strcasecmp(argv[1], "all") == 0) {
+				destor.simulation_level = SIMULATION_ALL;
+			} else if (strcasecmp(argv[1], "append") == 0) {
+				destor.simulation_level = SIMULATION_APPEND;
+			} else if (strcasecmp(argv[1], "restore") == 0) {
+				destor.simulation_level = SIMULATION_RESTORE;
+			} else if (strcasecmp(argv[1], "no") == 0) {
+				destor.simulation_level = SIMULATION_NO;
+			} else {
+				err = "Invalid simulation level";
+				goto loaderr;
+			}
+		} else if (strcasecmp(argv[0], "log-level") == 0 && argc == 2) {
+			if (strcasecmp(argv[1], "debug") == 0) {
+				destor.verbosity = DESTOR_DEBUG;
+			} else if (strcasecmp(argv[1], "verbose") == 0) {
+				destor.verbosity = DESTOR_VERBOSE;
+			} else if (strcasecmp(argv[1], "notice") == 0) {
+				destor.verbosity = DESTOR_NOTICE;
+			} else if (strcasecmp(argv[1], "warning") == 0) {
+				destor.verbosity = DESTOR_WARNING;
+			} else {
+				err = "Invalid log level";
+				goto loaderr;
+			}
+		} else if (strcasecmp(argv[0], "chunk-algorithm") == 0 && argc == 2) {
+			if (strcasecmp(argv[1], "fixed") == 0) {
+				destor.chunk_algorithm = CHUNK_FIXED;
+			} else if (strcasecmp(argv[0], "rabin") == 0) {
+				destor.chunk_algorithm = CHUNK_RABIN;
+			} else if (strcasecmp(argv[0], "normalized rabin") == 0) {
+				destor.chunk_algorithm = CHUNK_NORMALIZED_RABIN;
+			} else {
+				err = "Invalid chunk algorithm";
+				goto loaderr;
+			}
+		} else if (strcasecmp(argv[0], "chunk-avg-size") == 0 && argc == 2) {
+			destor.chunk_avg_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "chunk-max-size") == 0 && argc == 2) {
+			destor.chunk_max_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "chunk-min-size") == 0 && argc == 2) {
+			destor.chunk_min_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index") == 0 && argc >= 3) {
+			if (strcasecmp(argv[1], "exact") == 0) {
+				destor.index_category[0] = INDEX_CATEGORY_EXACT;
+			} else if (strcasecmp(argv[1], "near-exact") == 0) {
+				destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
+			} else {
+				err = "Invalid index category";
+				goto loaderr;
+			}
+
+			if (strcasecmp(argv[1], "locality") == 0) {
+				destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
+			} else if (strcasecmp(argv[1], "similarity") == 0) {
+				destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
+			} else {
+				err = "Invalid index category";
+				goto loaderr;
+			}
+
+			if (argc > 3) {
+				if (strcasecmp(argv[3], "ddfs") == 0) {
+					assert(
+							destor.index_category[0] == INDEX_CATEGORY_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_DDFS;
+				} else if (strcasecmp(argv[3], "ram") == 0) {
+					assert(
+							destor.index_category[0]
+									== INDEX_CATEGORY_NEAR_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_RAM;
+				} else if (strcasecmp(argv[3], "sampled index") == 0) {
+					assert(
+							destor.index_category[0]
+									== INDEX_CATEGORY_NEAR_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_SAMPLED;
+				} else if (strcasecmp(argv[3], "block locality caching") == 0) {
+					assert(
+							destor.index_category[0] == INDEX_CATEGORY_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+					destor.index_specific =
+					INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING;
+				} else if (strcasecmp(argv[3], "extreme binning") == 0) {
+					assert(
+							destor.index_category[0]
+									== INDEX_CATEGORY_NEAR_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_EXTREME_BINNING;
+				} else if (strcasecmp(argv[3], "sparse index") == 0) {
+					assert(
+							destor.index_category[0]
+									== INDEX_CATEGORY_NEAR_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_SPARSE;
+				} else if (strcasecmp(argv[3], "silo") == 0) {
+					assert(
+							destor.index_category[0]
+									== INDEX_CATEGORY_NEAR_EXACT
+									&& destor.index_category[1]
+											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_SPARSE;
+				} else {
+					err = "Invalid index specific";
+					goto loaderr;
+				}
+			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-container-cache-size")
+				== 0 && argc == 2) {
+			destor.index_container_cache_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-bloom-filter") == 0
+				&& argc == 2) {
+			destor.index_bloom_filter_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-feature-method") == 0
+				&& argc >= 2) {
+			if (strcasecmp(argv[1], "no") == 0)
+				destor.index_feature_method[0] = INDEX_FEATURE_NO;
+			else if (strcasecmp(argv[1], "sample") == 0)
+				destor.index_feature_method[0] =
+				INDEX_FEATURE_SAMPLE;
+			else if (strcasecmp(argv[1], "min") == 0)
+				destor.index_feature_method[0] = INDEX_FEATURE_MIN;
+			else if (strcasecmp(argv[1], "uniform") == 0)
+				destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
+			else {
+				err = "Invalid feature method!";
+				goto loaderr;
+			}
+
+			if (argc > 2) {
+				assert(destor.index_feature_method != INDEX_FEATURE_NO);
+				destor.index_feature_method[1] = atoi(argv[2]);
+			} else {
+				assert(destor.index_feature_method == INDEX_FEATURE_NO);
+				destor.index_feature_method[1] = 0;
+			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-algorithm")
+				== 0 && argc >= 2) {
+			if (strcasecmp(argv[1], "fixed") == 0)
+				destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
+			else if (strcasecmp(argv[1], "file-defined") == 0)
+				destor.index_segment_algorithm[0] = INDEX_SEGMENT_FILE_DEFINED;
+			else if (strcasecmp(argv[1], "content-defined") == 0)
+				destor.index_segment_algorithm[0] =
+				INDEX_SEGMENT_CONTENT_DEFINED;
+			else {
+				err = "Invalid segment algorithm";
+				goto loaderr;
+			}
+
+			if (argc > 2) {
+				assert(
+						destor.index_segment_algorithm
+								!= INDEX_SEGMENT_FILE_DEFINED);
+				destor.index_segment_algorithm[1] = atoi(argv[2]);
+			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-selection")
+				== 0 && argc >= 2) {
+			destor.index_segment_selection_method[1] = 1;
+			if (strcasecmp(argv[1], "latest") == 0)
+				destor.index_segment_selection_method[0] =
+				INDEX_SEGMENT_SELECT_LATEST;
+			else if (strcasecmp(argv[1], "top") == 0) {
+				destor.index_segment_selection_method[0] =
+				INDEX_SEGMENT_SELECT_TOP;
+				if (argc > 2)
+					destor.index_segment_selection_method[1] = atoi(argv[2]);
+			} else if (strcasecmp(argv[1], "all") == 0)
+				destor.index_segment_selection_method[0] =
+				INDEX_SEGMENT_SELECT_ALL;
+			else {
+				err = "Invalid selection method!";
+				goto loaderr;
+			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-prefetching")
+				== 0 && argc == 2) {
+			destor.index_segment_prefech = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-caching") == 0
+				&& argc == 2) {
+			destor.index_segment_cache_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-algorithm") == 0 && argc >= 2) {
+			if (strcasecmp(argv[1], "no") == 0)
+				destor.rewrite_algorithm[0] = REWRITE_NO;
+			else if (strcasecmp(argv[1], "cfl-based selective deduplication")
+					== 0 || strcasecmp(argv[1], "cfl") == 0)
+				destor.rewrite_algorithm[0] =
+				REWRITE_CFL_SELECTIVE_DEDUPLICATION;
+			else if (strcasecmp(argv[1], "context-based rewriting") == 0
+					|| strcasecmp(argv[1], "cbr") == 0)
+				destor.rewrite_algorithm[0] = REWRITE_CONTEXT_BASED;
+			else if (strcasecmp(argv[1], "capping") == 0
+					&& strcasecmp(argv[1], "cap") == 0)
+				destor.rewrite_algorithm[0] = REWRITE_CAPPING;
+			else {
+				err = "Invalid rewriting algorithm";
+				goto loaderr;
+			}
+
+			if (argc > 2) {
+				assert(destor.rewrite_algorithm != REWRITE_NO);
+				destor.rewrite_algorithm[1] = atoi(argv[2]);
+			}
+		} else if (strcasecmp(argv[0], "rewrite-cfl-require") == 0
+				&& argc == 2) {
+			destor.rewrite_cfl_require = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-cfl-usage-threshold") == 0
+				&& argc == 2) {
+			destor.rewrite_cfl_usage_threshold = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-cbr-limit") == 0 && argc == 2) {
+			destor.rewrite_cbr_limit = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-cbr-minimal-utility") == 0
+				&& argc == 2) {
+			destor.rewrite_cbr_minimal_utility = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-capping-level") == 0
+				&& argc == 2) {
+			destor.rewrite_capping_level = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-enable-har") == 0
+				&& argc == 2) {
+			destor.rewrite_enable_har = yesnotoi(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-har-utilization-threshold") == 0
+				&& argc == 2) {
+			destor.rewrite_har_utilization_threshold = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-enable-cache-aware") == 0
+				&& argc == 2) {
+			destor.rewrite_enable_cache_aware = yesnotoi(argv[1]);
+		} else if (strcasecmp(argv[0], "restore-cache") == 0 && argc == 3) {
+			if (strcasecmp(argv[1], "lru") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_LRU;
+			else if (strcasecmp(argv[1], "optimal cache") == 0
+					|| strcasecmp(argv[1], "opt") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_OPT;
+			else if (strcasecmp(argv[1], "forward assembly") == 0
+					|| strcasecmp(argv[1], "asm") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_ASM;
+			else {
+				err = "Invalid restore cache";
+				goto loaderr;
+			}
+
+			destor.restore_cache[1] = atoi(argv[2]);
+		} else if (strcasecmp(argv[0], "restore-opt-window-size") == 0
+				&& argc == 2) {
+			destor.restore_opt_window_size = atoi(argv[1]);
+		} else {
+			err = "Bad directive or wrong number of arguments";
+			goto loaderr;
+		}
+		sdsfreesplitres(argv, argc);
 	}
+	sdsfreesplitres(lines, totlines);
+	return;
+
+	loaderr: fprintf(stderr, "\n*** FATAL CONFIG FILE ERROR ***\n");
+	fprintf(stderr, "Reading the configuration file, at line %d\n", linenum);
+	fprintf(stderr, ">>> '%s'\n", lines[i]);
+	fprintf(stderr, "%s\n", err);
+	exit(1);
+}
+
+void load_config() {
+	sds config = sdsempty();
+	char buf[DESTOR_CONFIGLINE_MAX + 1];
+
+	FILE *fp;
+	if ((fp = fopen("destor.config", "r")) == 0) {
+		destor_log(DESTOR_WARNING, "Fatal error, can not open destor.config!");
+		exit(1);
+	}
+
+	while (fgets(buf, DESTOR_CONFIGLINE_MAX + 1, fp) != NULL)
+		config = sdscat(config, buf);
+
+	fclose(fp);
+	load_config_from_string(config);
+	sdsfree(config);
 }

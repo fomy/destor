@@ -7,58 +7,49 @@
 
 #include "jcr.h"
 
-extern int read_cache_size;
+void init_jcr(char *path) {
 
-Jcr* new_write_jcr() {
-	Jcr *jcr = (Jcr*) malloc(sizeof(Jcr));
-	jcr->job_id = 0;
-	jcr->file_num = 0;
-	jcr->job_size = 0;
-	jcr->dedup_size = 0;
-	jcr->chunk_num = 0;
-	jcr->number_of_dup_chunks = 0;
-	jcr->zero_chunk_amount = 0;
-	jcr->zero_chunk_count = 0;
-	jcr->rewritten_chunk_amount = 0;
-	jcr->rewritten_chunk_count = 0;
-	jcr->time = 0;
+	jcr.path = sdsnew(path);
+	struct stat s;
+	if (stat(path, &s) != 0) {
+		fprintf(stderr, "backup path does not exist!");
+		exit(1);
+	}
+	if (S_ISDIR(s.st_mode) && jcr.path[sdslen(jcr.path) - 1] != '/')
+		jcr.path = sdscat(jcr.path, "/");
 
-	jcr->total_container_num = 0;
-	jcr->sparse_container_num = 0;
-	jcr->inherited_sparse_num = 0;
+	jcr.bv = create_backup_verion(jcr.path);
 
-	jcr->read_time = 0;
-	jcr->chunk_time = 0;
-	jcr->name_time = 0;
-	jcr->filter_time = 0;
-	jcr->write_time = 0;
-	jcr->test_time = 0;
+	jcr.id = jcr.bv->number;
 
-	jcr->read_chunk_time = 0;
-	jcr->write_file_time = 0;
+	jcr.file_num = 0;
+	jcr.data_size = 0;
+	jcr.unique_data_size = 0;
+	jcr.chunk_num = 0;
+	jcr.unique_chunk_num = 0;
+	jcr.zero_chunk_num = 0;
+	jcr.zero_chunk_size = 0;
+	jcr.rewritten_chunk_num = 0;
+	jcr.rewritten_chunk_size = 0;
 
-	jcr->completed_files_queue = sync_queue_new(-1);
-	/* can not open too many files */
-	jcr->waiting_files_queue = sync_queue_new(100);
+	jcr.sparse_container_num = 0;
+	jcr.inherited_sparse_num = 0;
+	jcr.total_container_num = 0;
 
-	jcr->read_cache = 0;
+	jcr.bv = 0;
 
-	jcr->historical_sparse_containers = 0;
-	return jcr;
-}
+	jcr.total_time = 0;
+	/*
+	 * the time consuming of six dedup phase
+	 */
+	jcr.read_time = 0;
+	jcr.chunk_time = 0;
+	jcr.hash_time = 0;
+	jcr.filter_time = 0;
+	jcr.write_time = 0;
+	/*	double test_time;*/
 
-Jcr* new_read_jcr(int32_t rcs, BOOL edc) {
-	Jcr* jcr = new_write_jcr();
-	jcr->enable_data_cache = edc;
-	jcr->read_cache_size = rcs;
-	jcr->read_cache = 0;
-	jcr->read_opt_cache = 0;
-	return jcr;
-}
-
-void free_jcr(Jcr* jcr) {
-	sync_queue_free(jcr->completed_files_queue, 0);
-	sync_queue_free(jcr->waiting_files_queue, 0);
-	free(jcr);
+	jcr.read_chunk_time = 0;
+	jcr.write_file_time = 0;
 }
 

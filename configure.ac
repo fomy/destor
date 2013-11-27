@@ -9,7 +9,7 @@ AM_INIT_AUTOMAKE([destor], [1.0])
 
 # Checks for programs.
 AC_PROG_CC
-CFLAGS="-g -O2"
+CFLAGS="-g -O0"
 
 # Checks for libraries.
 AC_CHECK_LIB([pthread], [pthread_create])

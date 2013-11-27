@@ -9,32 +9,53 @@
 #ifndef INDEX_H_
 #define INDEX_H_
 
-#include "../global.h"
-#include "../dedup.h"
+#include "../destor.h"
+
+struct indexElem {
+	containerid id;
+	fingerprint fp;
+};
+
+/* The buffer size > 2 * destor.rewrite_buffer_size */
+struct {
+	/* Queue of queue (segment). */
+	GQueue *segment_queue;
+	/* map a fingerprint to a queue */
+	GHashTable *table;
+} index_buffer;
+
 /*
  * The function is used to initialize memory structures of a fingerprint index.
  */
-BOOL index_init();
+void init_index();
 /*
  * Free memory structures and flush them into disks.
  */
-void index_destroy();
+void close_index();
 /*
- * Search in Fingerprint Index.
- * Return TMP_CONTAINER_ID if not exist.
- * Return old ContainerId if exist.
+ * lookup fingerprints in a segment in index.
  */
-ContainerId index_search(Fingerprint* finger, EigenValue *eigenvalue);
+void index_lookup(struct segment*);
 /*
  * Insert fingerprint into Index for new fingerprint or new ContainerId.
  */
-void index_update(Fingerprint*, ContainerId, EigenValue* eigenvalue,
-		BOOL update);
+int index_update(fingerprint fp, containerid from, containerid to);
 
-void index_delete(Fingerprint *fingerprint);
+void index_delete(fingerprint *);
 
-EigenValue* extract_eigenvalue_exbin(Chunk *chunk);
-EigenValue* extract_eigenvalue_segbin(Chunk *chunk);
-EigenValue* extract_eigenvalue_sparse(Chunk* chunk);
-EigenValue* extract_eigenvalue_silo(Chunk *chunk);
+GHashTable* (*featuring)(fingerprint *fp, int success);
+
+/* Each prefetched segment is organized as a hash table for optimizing lookup. */
+struct segmentRecipe {
+	segmentid id;
+	GHashTable* features;
+	GHashTable *table;
+};
+
+struct segmentRecipe* new_segment_recipe();
+void free_segment_recipe(struct segmentRecipe*);
+int lookup_fingerprint_in_segment_recipe(struct segmentRecipe*, fingerprint *);
+int segment_recipe_check_id(struct segmentRecipe*, segmentid *id);
+struct segmentRecipe* segment_recipe_dup(struct segmentRecipe*);
+
 #endif

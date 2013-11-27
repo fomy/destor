@@ -83,14 +83,11 @@ extern void unserial_string(uint8_t * * const ptr, char * const str);
 /*  64 bit IEEE floating point number  */
 #define ser_float64(x)  serial_float64(&ser_ptr, x)
 
-/*  128 bit signed integer  */
-#define ser_int128(x)   memcpy(ser_ptr, x, sizeof(int128_t)), ser_ptr += sizeof(int128_t)
-
 /*  Binary byte stream len bytes not requiring serialisation  */
 #define ser_bytes(x, len) memcpy(ser_ptr, (x), (len)), ser_ptr += (len)
 
 /*  Binary byte stream not requiring serialisation (length obtained by sizeof)  */
-#define ser_buffer(x)   ser_bytes((x), (sizeof (x)))
+#define ser_struct(x)   ser_bytes(&(x), (sizeof (x)))
 
 /* Binary string not requiring serialization */
 #define ser_string(x)   serial_string(&ser_ptr, (x))
@@ -123,14 +120,11 @@ extern void unserial_string(uint8_t * * const ptr, char * const str);
 /*  64 bit IEEE floating point number  */
 #define unser_float64(x)(x) = unserial_float64(&ser_ptr)
 
-/*  128 bit signed integer  */
-#define unser_int128(x) memcpy(ser_ptr, x, sizeof(int128_t)), ser_ptr += sizeof(int128_t)
-
 /*  Binary byte stream len bytes not requiring serialisation  */
 #define unser_bytes(x, len) memcpy((x), ser_ptr, (len)), ser_ptr += (len)
 
 /*  Binary byte stream not requiring serialisation (length obtained by sizeof)  */
-#define unser_buffer(x)  unser_bytes((x), (sizeof (x)))
+#define unser_struct(x)  unser_bytes(&(x), (sizeof (x)))
 
 /* Binary string not requiring serialization */
 #define unser_string(x) unserial_string(&ser_ptr, (x))

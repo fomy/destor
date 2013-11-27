@@ -5,41 +5,15 @@
  *      Author: fumin
  */
 
-#include "global.h"
-#include "job/jobmanage.h"
+#include "destor.h"
 #include "jcr.h"
-#include "statistic.h"
 
-extern int backup_server(char *path);
-extern int delete_server(int revision);
-extern int restore_server(int revision, char *path);
+extern int run_backup(char *path);
+/*extern int run_delete(int revision);*/
+extern int run_restore(int revision, char *path);
 extern void make_trace(char *raw_files);
 
 extern int load_config();
-
-extern int simulation_level;
-extern BOOL enable_hbr;
-extern BOOL enable_cache_filter;
-extern int read_cache_type;
-extern int read_cache_size;
-extern int fingerprint_index_type;
-extern int rewriting_algorithm;
-extern int optimal_cache_window_size;
-extern double cfl_usage_threshold;
-extern double hbr_usage_threshold;
-extern double minimal_rewrite_utility;
-extern double rewrite_limit;
-extern int32_t stream_context_size;
-extern int32_t capping_T;
-extern int32_t capping_segment_size;
-extern int kept_versions;
-
-#define BACKUP_JOB 1
-#define RESTORE_JOB 2
-#define STAT_JOB 3
-#define HELP_JOB 4 
-#define MAKE_TRACE 5
-#define DELETE_JOB 6
 
 /* : means argument is required.
  * :: means argument is required and no space.
@@ -47,288 +21,409 @@ extern int kept_versions;
 const char * const short_options = "sr::d::t::h";
 
 struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
-		NULL, 's' }, { "index", 1, NULL, 'i' }, { "cache", 1, NULL, 'c' }, {
-		"cache_size", 1, NULL, 'C' }, { "rewrite", 1, NULL, 'R' }, { "cfl_p", 1,
-		NULL, 'p' }, { "hbr_usage", 1, NULL, 'u' }, { "min_utility", 1, NULL,
-		'm' }, { "rewrite_limit", 1, NULL, 'l' }, { "stream_context_size", 1,
-		NULL, 'S' }, { "window_size", 1, NULL, 'w' }, { "capping_t", 1, NULL,
-		'T' }, { "capping_segment_size", 1, NULL, 'a' }, { "enable_hbr", 0,
-		NULL, 'e' }, { "enable_cache_filter", 0, NULL, 'E' }, { "simulation", 1,
-		NULL, 'I' }, { "help", 0, NULL, 'h' },
-		{ "kept_versions", 1, NULL, 'k' }, { NULL, 0, NULL, 0 } };
+NULL, 's' }, { "cache", 1, NULL, 'c' }, { "cache-size", 1, NULL, 'C' }, {
+		"help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
-void print_help() {
+void usage() {
 	puts("GENERAL USAGE");
 	puts("\tstart a backup job");
-	puts("\t\t./destor <protected_path>");
+	puts("\t\tdestor /path/to/data");
+
 	puts("\tstart a restore job");
-	puts("\t\t./destor -r<JOB_ID> <target_path>");
-	puts("\tprint state of destor");
-	puts("\t\t./destor -d<JOB_ID>");
+	puts("\t\tdestor -r<JOB_ID> /path/to/restore");
+
 	puts("\tsimulate deleting backups before JOB_ID.");
+	puts("\t\tdestor -d<JOB_ID>");
+
+	puts("\tprint state of destor");
 	puts("\t\t./destor -s");
+
 	puts("\tprint this");
 	puts("\t\t./destor -h");
-	puts("\tMake a trance");
-	puts("\t\t./destor -t <input raw file>");
 
-	puts("OPTIONS");
-	puts("\t--restore or -r");
-	puts("\t\tA restore job, which required a job id following the option.");
-	puts("\t--state or -s");
-	puts("\t\tprint the state of destor.");
-	puts("\t--help or -h");
-	puts("\t\tprint this.");
-	puts("\t--index=[RAM|DDFS|EXBIN|SILO|SAMPLE|SPARSE|SEGBIN]");
-	puts(
-			"\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO, SAMPLE, and BLC.");
-	puts("\t--cache=[LRU|ASM|OPT]");
-	puts("\t\tAssign read cache type. IT now support LRU, OPT.");
-	puts("\t--cache_size=[number of containers]");
-	puts("\t\tAssign read cache size, e.g. --cache_size=100.");
-	puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR]");
-	puts(
-			"\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP, HBR.");
-	puts("\t--cfl_p=[p in CFL]");
-	puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
-	puts("\t--rewrite_limit=[rewrite limit for CBR]");
-	puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
-	puts("\t--min_utility=[minimal rewrite utility for CBR]");
-	puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
-	puts("\t--window_size=[size of the slide window for OPT]");
-	puts(
-			"\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
-	puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
-	puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
-	puts("\t--capping_t=[T for CAP]");
-	puts("\t\tSet T for capping, e.g. --T=16.");
-	puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
-	puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
-	puts("\t--enable_hbr");
-	puts("\t\tenable HBR.");
-	puts("\t--enable_cache_filter");
-	puts("\t\tenable cache filter.");
-	puts("\t--simulation=[NO|RECOVERY|APPEND|ALL]");
-	puts("\t\tSelect the simulation level.");
-	puts(
-			"\t\tThere are four simulation levels, and each level simulates more phases from NO to ALL.");
+	puts("\tMake a trance");
+	puts("\t\t./destor -t /path/to/data");
+
+	/*puts("OPTIONS");
+	 puts("\t--restore or -r");
+	 puts("\t\tA restore job, which required a job id following the option.");
+	 puts("\t--state or -s");
+	 puts("\t\tprint the state of destor.");
+	 puts("\t--help or -h");
+	 puts("\t\tprint this.");
+	 puts("\t--index=[RAM|DDFS|EXBIN|SILO|SAMPLE|SPARSE|SEGBIN]");
+	 puts(
+	 "\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO, SAMPLE, and BLC.");
+	 puts("\t--cache=[LRU|ASM|OPT]");
+	 puts("\t\tAssign read cache type. IT now support LRU, OPT.");
+	 puts("\t--cache_size=[number of containers]");
+	 puts("\t\tAssign read cache size, e.g. --cache_size=100.");
+	 puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR]");
+	 puts(
+	 "\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP, HBR.");
+	 puts("\t--cfl_p=[p in CFL]");
+	 puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
+	 puts("\t--rewrite_limit=[rewrite limit for CBR]");
+	 puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
+	 puts("\t--min_utility=[minimal rewrite utility for CBR]");
+	 puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
+	 puts("\t--window_size=[size of the slide window for OPT]");
+	 puts(
+	 "\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
+	 puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
+	 puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
+	 puts("\t--capping_t=[T for CAP]");
+	 puts("\t\tSet T for capping, e.g. --T=16.");
+	 puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
+	 puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
+	 puts("\t--enable_hbr");
+	 puts("\t\tenable HBR.");
+	 puts("\t--enable_cache_filter");
+	 puts("\t\tenable cache filter.");
+	 puts("\t--simulation=[NO|RECOVERY|APPEND|ALL]");
+	 puts("\t\tSelect the simulation level.");
+	 puts(
+	 "\t\tThere are four simulation levels, and each level simulates more phases from NO to ALL.");*/
+	exit(0);
+}
+
+void destor_log(int level, const char *fmt, ...) {
+	va_list ap;
+	char msg[DESTOR_MAX_LOGMSG_LEN];
+
+	if ((level & 0xff) < destor.verbosity)
+		return;
+
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
+	va_end(ap);
+
+	fprintf(stdout, "%s", msg);
+}
+
+void check_simulation_level(int last_level, int current_level) {
+	if ((last_level <= SIMULATION_RESTORE && current_level >= SIMULATION_APPEND)
+			|| (last_level >= SIMULATION_APPEND
+					&& current_level <= SIMULATION_RESTORE)) {
+		fprintf(stderr, "Conflicting simualtion level!\n");
+		exit(1);
+	}
+}
+
+void destor_start() {
+
+	/* Init */
+	destor.working_directory = newsds("/home/data/working/");
+	destor.simulation_level = SIMULATION_NO;
+	destor.verbosity = DESTOR_WARNING;
+
+	destor.chunk_algorithm = CHUNK_RABIN;
+	destor.chunk_max_size = 65536;
+	destor.chunk_min_size = 1024;
+	destor.chunk_avg_size = 8192;
+
+	destor.restore_cache[0] = RESTORE_CACHE_LRU;
+	destor.restore_cache[1] = 1024;
+	destor.restore_opt_window_size = 1000000;
+
+	destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
+	destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
+	destor.index_specific = INDEX_SPECIFIC_RAM;
+	/* in number of containers, for DDFS/ChunkStash/BLC/Sampled Index. */
+	destor.index_container_cache_size = 4096;
+
+	destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
+	destor.index_segment_algorithm[1] = 1;
+	destor.index_feature_method[0] = INDEX_FEATURE_NO;
+	destor.index_feature_method[1] = 0;
+	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
+	destor.index_segment_selection_method[1] = 1;
+	destor.index_segment_prefech = 0;
+	destor.index_segment_cache_size = 0;
+
+	int rewrite_algorithm;
+	int rewrite_buffer_size;
+	/* for CFL-based selective deduplication */
+	double rewrite_cfl_require;
+	double rewrite_cfl_usage_threshold;
+	/* for Context-Based Rewriting (CBR) */
+	int rewrite_cbr_limit;
+	int rewrite_cbr_minimal_utility;
+	/* for capping */
+	int rewrite_capping_level;
+
+	/* for History-Aware Rewriting (HAR) */
+	int rewrite_enable_har;
+	int rewrite_har_utilization_threshold;
+
+	/* for Cache-Aware Filter */
+	int rewrite_enable_cache_aware;
+
+	load_config();
+
+	sds stat_file = sdsdup(destor.working_directory);
+	stat_file = sdscat(stat_file, "/destor.stat");
+
+	FILE *fp;
+	if ((fp = fopen(stat_file, "rw+")) == 0) {
+		destor_log(DESTOR_WARNING, "Fatal error, can not open destor.stat!");
+		exit(1);
+	}
+
+	if (fp) {
+
+		fread(&destor.chunk_num, 8, 1, fp);
+		fread(&destor.stored_chunk_num, 8, 1, fp);
+
+		fread(&destor.data_size, 8, 1, fp);
+		fread(&destor.stored_data_size, 8, 1, fp);
+
+		fread(&destor.zero_chunk_num, 8, 1, fp);
+		fread(&destor.zero_chunk_size, 8, 1, fp);
+
+		fread(&destor.rewritten_chunk_num, 8, 1, fp);
+		fread(&destor.rewritten_chunk_size, 8, 1, fp);
+
+		int last_level;
+		fread(&last_level, 4, 1, fp);
+		check_simulation_level(last_level, destor.simulation_level);
+
+	} else {
+		destor.chunk_num = 0;
+		destor.stored_chunk_num = 0;
+		destor.data_size = 0;
+		destor.stored_data_size = 0;
+		destor.zero_chunk_num = 0;
+		destor.zero_chunk_size = 0;
+		destor.rewritten_chunk_num = 0;
+		destor.rewritten_chunk_size = 0;
+	}
+
+	fclose(fp);
+	sdsfree(stat_file);
+}
+
+void destor_shutdown() {
+	sds stat_file = sdsdup(destor.working_directory);
+	stat_file = sdscat(stat_file, "/destor.stat");
+
+	FILE *fp;
+	if ((fp = fopen(stat_file, "w")) == 0) {
+		destor_log(DESTOR_WARNING, "Fatal error, can not open destor.stat!");
+		exit(1);
+	}
+
+	fwrite(&destor.chunk_num, 8, 1, fp);
+	fwrite(&destor.stored_chunk_num, 8, 1, fp);
+
+	fwrite(&destor.data_size, 8, 1, fp);
+	fwrite(&destor.stored_data_size, 8, 1, fp);
+
+	fwrite(&destor.zero_chunk_num, 8, 1, fp);
+	fwrite(&destor.zero_chunk_size, 8, 1, fp);
+
+	fwrite(&destor.rewritten_chunk_num, 8, 1, fp);
+	fwrite(&destor.rewritten_chunk_size, 8, 1, fp);
+
+	fwrite(&destor.simulation_level, 4, 1, fp);
+
+	fclose(fp);
+	sdsfree(stat_file);
+}
+
+void destor_stat() {
+	printf("=== destor stat ===");
+
+	printf("the number of chunks: %ld\n", destor.chunk_num);
+	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);
+
+	printf("the size of data: %ld\n", destor.data_size);
+	printf("the size of stored data: %ld\n", destor.stored_data_size);
+	printf("the size of saved data: %ld\n",
+			destor.data_size - destor.stored_data_size);
+
+	printf("deduplication ratio: %.4f, %.4f\n",
+			(destor.data_size - destor.stored_data_size)
+					/ (double) destor.data_size,
+			((double) destor.data_size) / (destor.stored_data_size));
+
+	printf("the number of zero chunks: %ld\n", destor.zero_chunk_num);
+	printf("the size of zero chunks: %ld\n", destor.zero_chunk_size);
+
+	printf("the number of rewritten chunks: %ld\n", destor.rewritten_chunk_num);
+	printf("the size of rewritten chunks: %ld\n", destor.rewritten_chunk_size);
+	printf("rewrite ratio: %.4f\n",
+			destor.rewritten_chunk_size / (double) destor.data_size);
+
+	if (destor.simulation_level == SIMULATION_NO)
+		printf("simulation level is %s\n", "NO");
+	else if (destor.simulation_level == SIMULATION_RESTORE)
+		printf("simulation level is %s\n", "RESTORE");
+	else if (destor.simulation_level == SIMULATION_APPEND)
+		printf("simulation level is %s\n", "APPEND");
+	else if (destor.simulation_level == SIMULATION_ALL)
+		printf("simulation level is %s\n", "ALL");
+	else {
+		printf("Invalid simulation level.\n");
+	}
+
+	printf("=== destor stat ===");
+	exit(0);
 }
 
 int main(int argc, char **argv) {
 
-	if (load_config() == FAILURE) {
-		return 0;
-	}
+	destor_start();
 
-	int job_type = BACKUP_JOB;
+	int job = DESTOR_BACKUP;
 	int revision = -1;
-	char path[512];
-	bzero(path, 512);
+	sds path = sdsempty();
+
 	int opt = 0;
 	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL))
 			!= -1) {
 		switch (opt) {
 		case 'r':
-			job_type = RESTORE_JOB;
+			job = DESTOR_RESTORE;
 			revision = atoi(optarg);
 			break;
 		case 's':
-			job_type = STAT_JOB;
+			destor_stat();
 			break;
 		case 't':
-			job_type = MAKE_TRACE;
+			job = DESTOR_MAKE_TRACE;
 			break;
 		case 'd':
-			job_type = DELETE_JOB;
+			job = DESTOR_DELETE;
 			revision = atoi(optarg);
 			break;
-		case 'i':
-			if (strcmp(optarg, "RAM") == 0) {
-				fingerprint_index_type = RAM_INDEX;
-			} else if (strcmp(optarg, "DDFS") == 0) {
-				fingerprint_index_type = DDFS_INDEX;
-			} else if (strcmp(optarg, "EXBIN") == 0) {
-				fingerprint_index_type = EXBIN_INDEX;
-			} else if (strcmp(optarg, "SEGBIN") == 0) {
-				fingerprint_index_type = SEGBIN_INDEX;
-			} else if (strcmp(optarg, "SILO") == 0) {
-				fingerprint_index_type = SILO_INDEX;
-			} else if (strcmp(optarg, "SPARSE") == 0) {
-				fingerprint_index_type = SPARSE_INDEX;
-			} else if (strcmp(optarg, "SAMPLE") == 0) {
-				fingerprint_index_type = SAMPLE_INDEX;
-			} else if (strcmp(optarg, "BLC") == 0) {
-				fingerprint_index_type = BLC_INDEX;
-			} else {
-				puts("unknown index type");
-				puts("type -h or --help for help.");
-				return 0;
-			}
-			break;
 		case 'c':
-			if (strcmp(optarg, "LRU") == 0) {
-				read_cache_type = LRU_CACHE;
-			} else if (strcmp(optarg, "OPT") == 0) {
-				read_cache_type = OPT_CACHE;
-			} else if (strcmp(optarg, "ASM") == 0) {
-				read_cache_type = ASM_CACHE;
-			} else {
-				printf("unknown cache type");
-				puts("type -h or --help for help.");
-				return 0;
+			if (strcasecmp(optarg, "lru") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_LRU;
+			else if (strcasecmp(optarg, "opt") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_OPT;
+			else if (strcasecmp(optarg, "asm") == 0)
+				destor.restore_cache[0] = RESTORE_CACHE_ASM;
+			else {
+				fdprintf(stderr, "Invalid restore cache");
+				usage();
 			}
 			break;
 		case 'C':
-			read_cache_size = atoi(optarg);
-			break;
-		case 'R':
-			if (strcmp(optarg, "NO") == 0) {
-				rewriting_algorithm = NO_REWRITING;
-			} else if (strcmp(optarg, "CFL") == 0) {
-				rewriting_algorithm = CFL_REWRITING;
-			} else if (strcmp(optarg, "CBR") == 0) {
-				rewriting_algorithm = CBR_REWRITING;
-			} else if (strcmp(optarg, "CAP") == 0) {
-				rewriting_algorithm = CAP_REWRITING;
-			} else if (strcmp(optarg, "ECAP") == 0) {
-				rewriting_algorithm = ECAP_REWRITING;
-			} else if (strcmp(optarg, "CUMULUS") == 0) {
-				rewriting_algorithm = CUMULUS;
-				enable_hbr = TRUE;
-			} else if (strcmp(optarg, "HBR") == 0) {
-				enable_hbr = TRUE;
-			} else {
-				puts("unknown rewriting algorithm\n");
-				puts("type -h or --help for help.");
-				return 0;
-			}
-			break;
-		case 'T':
-			capping_T = atoi(optarg);
-			break;
-		case 'a':
-			capping_segment_size = atoi(optarg) * 1024 * 1024;
-			break;
-		case 'p':
-			cfl_usage_threshold = atoi(optarg) / 100.0;
-			break;
-		case 'u':
-			hbr_usage_threshold = atof(optarg);
-			break;
-		case 'm':
-			minimal_rewrite_utility = atof(optarg);
-			break;
-		case 'l':
-			rewrite_limit = atof(optarg);
-			break;
-		case 'e':
-			enable_hbr = TRUE;
-			break;
-		case 'w':
-			optimal_cache_window_size = atoi(optarg);
+			destor.restore_cache[1] = atoi(optarg);
 			break;
 		case 'h':
-			job_type = HELP_JOB;
-			break;
-		case 'S':
-			stream_context_size = atoi(optarg) * 1024 * 1024;
-			break;
-		case 'E':
-			enable_cache_filter = TRUE;
-			break;
-		case 'k':
-			kept_versions = atoi(optarg);
-			break;
-		case 'I':
-			if (strcmp(optarg, "NO") == 0) {
-				simulation_level = SIMULATION_NO;
-			} else if (strcmp(optarg, "RECOVERY") == 0) {
-				simulation_level = SIMULATION_RECOVERY;
-			} else if (strcmp(optarg, "APPEND") == 0) {
-				simulation_level = SIMULATION_APPEND;
-			} else if (strcmp(optarg, "ALL") == 0) {
-				simulation_level = SIMULATION_ALL;
-			} else {
-				dprint("An wrong simulation_level!");
-				return 0;
-			}
+			usage();
 			break;
 		default:
 			return 0;
 		}
 	}
 
-	if (init_destor_stat() == FAILURE) {
-		puts("Failed to init server stat!");
-		return 0;
-	}
-	switch (job_type) {
-	case BACKUP_JOB:
+	switch (job) {
+	case DESTOR_BACKUP:
 		if (argc > optind) {
-			strcpy(path, argv[optind]);
+			path = sdscpy(path, argv[optind]);
 		} else {
-			puts("backup job needs a protected path!");
-			puts("type -h or --help for help.");
-			return 0;
+			fprintf(stderr, "backup job needs a protected path!\n");
+			usage();
 		}
-		init_jobmanage();
-		init_container_volume();
-		backup_server(path);
-		destroy_container_volume();
+		init_recipe_management();
+		init_container_management();
+
+		run_backup(path);
+
+		close_container_management();
+		close_recipe_management();
 		break;
-	case RESTORE_JOB:
+	case DESTOR_RESTORE:
 		if (revision < 0) {
-			puts("required a job id for restore job!");
-			puts("type -h or --help for help.");
-			return 0;
+			fprintf(stderr, "A job id is required!\n");
+			usage();
 		}
 		if (argc > optind) {
-			strcpy(path, argv[optind]);
+			sdscpy(path, argv[optind]);
 		} else {
-			puts("restore job needs a target directory!");
-			puts("type -h or --help for help.");
-			return 0;
+			fprintf(stderr, "A target directory is required!\n");
+			usage();
 		}
-		init_jobmanage();
-		init_container_volume();
-		restore_server(revision, path[0] == 0 ? 0 : path);
-		destroy_container_volume();
+		init_recipe_management();
+		init_container_management();
+
+		run_restore(revision, path[0] == 0 ? 0 : path);
+
+		close_container_management();
+		close_recipe_management();
 		break;
-	case STAT_JOB:
-		print_destor_stat();
-		break;
-	case HELP_JOB:
-		print_help();
-		break;
-	case MAKE_TRACE: {
+	case DESTOR_MAKE_TRACE: {
 		if (argc > optind) {
-			strcpy(path, argv[optind]);
+			sdscpy(path, argv[optind]);
 		} else {
-			puts("Making a trance needs an input raw file!");
-			puts("type -h or --help for help.");
-			return 0;
+			fprintf(stderr, "A target directory is required!\n");
+			usage();
 		}
 
 		make_trace(path);
 		break;
 	}
-	case DELETE_JOB:
+	case DESTOR_DELETE:
 		if (revision < 0) {
-			puts("required a job id for delete job!");
-			puts("type -h or --help for help.");
-			return 0;
+			fprintf(stderr, "Invalid job id!");
+			usage();
 		}
-		init_container_volume();
+		init_container_management();
 		delete_server(revision);
-		destroy_container_volume();
+		close_container_management();
 		break;
 	default:
-		puts("invalid job type!");
-		puts("type -h or --help for help.");
-		return 0;
+		fprintf(stderr, "Invalid job type!\n");
+		usage();
 	}
-	free_destor_stat();
+	destor_shutdown();
 
 	return 0;
 }
 
+struct chunk* new_chunk(int32_t size) {
+	struct chunk* ck = (struct chunk*) malloc(sizeof(struct chunk));
+
+	ck->flag = CHUNK_UNIQUE;
+	ck->id = TEMPORARY_ID;
+	memset(&ck->fp, 0x0, sizeof(fingerprint));
+	ck->size = size;
+	ck->data = malloc(size);
+
+	return ck;
+}
+
+void free_chunk(struct chunk* ck) {
+	if (ck->data) {
+		free(ck->data);
+		ck->data = NULL;
+	}
+	free(ck);
+}
+
+struct segment* new_segment() {
+	struct segment * s = (struct segment*) malloc(sizeof(struct segment));
+	s->chunk_num = 0;
+	s->chunks = g_queue_new();
+	s->features = NULL;
+	return s;
+}
+
+void free_segment(struct segment* s, void (*free_data)(void *)) {
+	g_queue_free_full(s->chunks, free_data);
+
+	g_hash_table_destroy(s->features);
+
+	free(s);
+}
+
+gboolean g_fingerprint_equal(gconstpointer fp1, gconstpointer fp2) {
+	return !memcmp(fp1, fp2, sizeof(fingerprint));
+}
+
+gint g_fingerprint_cmp(gconstpointer fp1, gconstpointer fp2, gpointer user_data) {
+	return memcmp(fp1, fp2, sizeof(fingerprint));
+}

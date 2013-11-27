@@ -48,7 +48,7 @@ libtools_a_AR = $(AR) $(ARFLAGS)
 libtools_a_LIBADD =
 am_libtools_a_OBJECTS = lru_cache.$(OBJEXT) rabin_chunking.$(OBJEXT) \
 	sync_queue.$(OBJEXT) queue.$(OBJEXT) serial.$(OBJEXT) \
-	bloom_filter.$(OBJEXT)
+	bloom_filter.$(OBJEXT) sds.$(OBJEXT)
 libtools_a_OBJECTS = $(am_libtools_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -151,7 +151,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libtools.a
-libtools_a_SOURCES = lru_cache.c rabin_chunking.c sync_queue.c queue.c serial.c bloom_filter.c
+libtools_a_SOURCES = lru_cache.c rabin_chunking.c sync_queue.c queue.c serial.c bloom_filter.c sds.c
 all: all-am
 
 .SUFFIXES:
@@ -204,6 +204,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lru_cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rabin_chunking.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sds.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sync_queue.Po@am__quote@
 
