@@ -55,5 +55,7 @@ struct recipe* read_next_recipe_meta(struct backupVersion* b);
 struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		struct chunkpointer** cp, int *k);
 void append_seed(struct backupVersion* b, containerid id, int32_t size);
+struct recipe* new_recipe(char* name);
+void free_recipe(struct recipe* r);
 
 #endif /* BVMANAGE_H_ */

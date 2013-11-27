@@ -13,10 +13,10 @@ static pthread_t chunk_t;
  static double total_size = 0;*/
 
 static void send_chunk(unsigned char *data, int32_t size) {
-	int s = size > 0 ? : size - size;
+	int s = size > 0 ? size : -size;
 	struct chunk* ck = new_chunk(s);
 
-	memcpy(ck->data, data, size);
+	memcpy(ck->data, data, s);
 	ck->size = size;
 
 	sync_queue_push(chunk_queue, ck);

@@ -28,6 +28,7 @@ struct lruCache* new_lru_cache(int size, void (*free_elem)(void *),
 		int (*hit_elem)(void* elem, void* user_data));
 void free_lru_cache(struct lruCache*);
 void* lru_cache_lookup(struct lruCache*, void* user_data);
+void* lru_cache_lookup_without_update(struct lruCache* c, void* user_data);
 void* lru_cache_hits(struct lruCache*, void* user_data,
 		int (*hit)(void* elem, void* user_data));
 void lru_cache_insert(struct lruCache *c, void* data,

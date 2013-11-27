@@ -9,6 +9,8 @@
 
 static int32_t backup_version_count = 0;
 static sds recipepath;
+/* Used for seed */
+static containerid seed_id = TEMPORARY_ID;
 
 void init_recipe_management() {
 	recipepath = sdsdup(destor.working_directory);
@@ -164,7 +166,7 @@ struct backupVersion* open_backup_version(int number) {
 	char path[pathlen + 1];
 	fread(path, sizeof(pathlen), 1, b->metadata_fp);
 	path[pathlen] = 0;
-	b->path = sdsdup(path);
+	b->path = sdsnew(path);
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
@@ -203,10 +205,13 @@ void update_backup_version(struct backupVersion *b) {
 	int pathlen = sdslen(b->path);
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
+
+	if (seed_id != TEMPORARY_ID)
+		fprintf(b->seed_fp, "%ld\n", seed_id);
 }
 
 /*
- * Free bversion.
+ * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
 	if (b->metadata_fp)
@@ -231,27 +236,38 @@ void append_recipe_meta(struct backupVersion* b, struct recipe* r) {
 
 void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
 		int n) {
+
 	if (n <= 0)
 		return;
 	int i;
 	for (i = 0; i < n; i++) {
+		if (seed_id != TEMPORARY_ID && seed_id != cp[i].id)
+			fprintf(b->seed_fp, "%ld\n", seed_id);
+		seed_id = cp[i].id;
 		fwrite(&cp[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
 		fwrite(&cp[i].id, sizeof(containerid), 1, b->recipe_fp);
 	}
 }
 
 struct recipe* read_next_recipe_meta(struct backupVersion* b) {
-	struct recipe* r = (struct recipe*) malloc(sizeof(struct recipe));
+
+	static int read_file_num;
+
+	assert(read_file_num <= b->number_of_files);
+
 	int len;
 	fread(&len, sizeof(len), 1, b->metadata_fp);
 	char filename[len + 1];
 
 	fread(filename, len, 1, b->metadata_fp);
 	filename[len] = 0;
-	r->filename = sdsnew(filename);
+
+	struct recipe* r = new_recipe(filename);
 
 	fread(&r->chunknum, sizeof(r->chunknum), 1, b->metadata_fp);
 	fread(&r->filesize, sizeof(r->filesize), 1, b->metadata_fp);
+
+	read_file_num++;
 
 	return r;
 }
@@ -261,15 +277,19 @@ struct recipe* read_next_recipe_meta(struct backupVersion* b) {
  */
 struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		struct chunkPointer** cp, int *k) {
-	struct recipe *r = NULL;
-	static int number_of_remaining_chunks = 0;
+	struct recipe *r;
+	static int number_of_remaining_chunks;
+	static int read_chunk_num;
+
+	assert(read_chunk_num <= b->number_of_chunks);
+
 	if (number_of_remaining_chunks == 0) {
 		r = read_next_recipe_meta(b);
-		number_of_remaining_chunks = b->number_of_chunks;
+		number_of_remaining_chunks = r->chunknum;
 		return r;
 	}
 
-	*cp = (struct chunkpointer *) malloc(sizeof(struct chunkpointer) * n);
+	*cp = (struct chunkPointer *) malloc(sizeof(struct chunkPointer) * n);
 
 	*k = 0;
 	while (*k < n) {
@@ -281,9 +301,22 @@ struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		(*k)++;
 	}
 
+	read_chunk_num += (*k);
+
 	return NULL;
 }
 
 void append_seed(struct backupVersion* b, containerid id, int32_t size) {
 	fprintf(b->seed_fp, "%d %d\n", id, size);
+}
+
+struct recipe* new_recipe(char* name) {
+	struct recipe* r = (struct recipe*) malloc(sizeof(struct recipe));
+	r->filename = sdsnew(name);
+	return r;
+}
+
+void free_recipe(struct recipe* r) {
+	sdsfree(r->filename);
+	free(r);
 }

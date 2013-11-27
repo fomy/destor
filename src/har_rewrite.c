@@ -62,7 +62,7 @@ void har_monitor_update(containerid id, int32_t size) {
 	struct containerRecord* record = g_hash_table_lookup(
 			container_utilization_monitor.dense_map, &id);
 	if (record) {
-		record->size += size;
+		record->size += size + CONTAINER_META_ENTRY;
 	} else {
 		record = g_hash_table_lookup(container_utilization_monitor.sparse_map,
 				&id);
@@ -70,7 +70,7 @@ void har_monitor_update(containerid id, int32_t size) {
 			record = (struct containerRecord*) malloc(
 					sizeof(struct containerRecord));
 			record->cid = id;
-			record->size = 0;
+			record->size = CONTAINER_HEAD;
 			g_hash_table_insert(container_utilization_monitor.sparse_map,
 					&record->cid, record);
 		}

@@ -146,11 +146,11 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 }
 
 static struct metaEntry* get_metaentry_in_container_meta(
-		struct containerMeta* cm, fingerprint fp) {
-	return g_hash_table_lookup(cm->map, &fp);
+		struct containerMeta* cm, fingerprint *fp) {
+	return g_hash_table_lookup(cm->map, fp);
 }
 
-struct chunk* get_chunk_in_container(struct container* c, fingerprint fp) {
+struct chunk* get_chunk_in_container(struct container* c, fingerprint *fp) {
 	struct metaEntry* me = get_metaentry_in_container_meta(&c->meta, fp);
 
 	struct chunk* ck = new_chunk(me->len);

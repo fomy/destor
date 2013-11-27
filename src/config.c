@@ -257,6 +257,9 @@ void load_config_from_string(sds config) {
 				assert(destor.rewrite_algorithm != REWRITE_NO);
 				destor.rewrite_algorithm[1] = atoi(argv[2]);
 			}
+		} else if (strcasecmp(argv[0], "rewrite-enable-cfl-switch") == 0
+				&& argc == 2) {
+			destor.rewrite_enable_cfl_switch = yesnotoi(argv[1]);
 		} else if (strcasecmp(argv[0], "rewrite-cfl-require") == 0
 				&& argc == 2) {
 			destor.rewrite_cfl_require = atof(argv[1]);

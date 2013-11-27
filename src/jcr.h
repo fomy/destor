@@ -47,6 +47,7 @@ struct {
 	double write_file_time;
 } jcr;
 
-void init_jcr(char *path);
+void init_backup_jcr(char *path);
+void init_restore_jcr(int revision, char *path);
 
 #endif /* Jcr_H_ */

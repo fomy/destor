@@ -156,13 +156,13 @@
 #define CHUNK_DUPLICATE (0x01)
 #define CHUNK_SPARSE (0x02)
 #define CHUNK_OUT_OF_ORDER (0x04)
-#define CHUNK_NOT_IN_CACHE (0x08)
+#define CHUNK_IN_CACHE (0x08)
 
 #define CHECK_CHUNK_UNIQUE(c) (!(c->flag & CHUNK_DUPLICATE))
 #define CHECK_CHUNK_DUPLICATE(c) (c->flag & CHUNK_DUPLICATE)
 #define CHECK_CHUNK_SPARSE(c) (c->flag & CHUNK_SPARSE)
 #define CHECK_CHUNK_OUT_OF_ORDER(c) (c->flag & CHUNK_OUT_OF_ORDER)
-#define CHECK_CHUNK_NOT_IN_CACHE(c) (c->flag & CHUNK_NOT_IN_CACHE)
+#define CHECK_CHUNK_IN_CACHE(c) (c->flag & CHUNK_IN_CACHE)
 
 #define STREAM_END -1 /* Indicates the end of stream. */
 #define FILE_END -2 /* IIndicates the end of file. */
@@ -197,6 +197,7 @@ struct destor {
 	int index_segment_cache_size;
 
 	int rewrite_algorithm[2];
+	int rewrite_enable_cfl_switch;
 	/* for CFL-based selective deduplication */
 	double rewrite_cfl_require;
 	double rewrite_cfl_usage_threshold;

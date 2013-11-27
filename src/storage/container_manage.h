@@ -12,6 +12,8 @@
 
 #define CONTAINER_SIZE (4194304ll) //4MB
 #define CONTAINER_META_SIZE (32768) //32KB
+#define CONTAINER_HEAD 16
+#define CONTAINER_META_ENTRY 28
 
 struct containerMeta {
 	containerid id;
@@ -34,7 +36,7 @@ struct container* create_container();
 void write_container(struct container*);
 struct container* retrieve_container_by_id(containerid);
 struct containerMeta* retrieve_container_meta_by_id(containerid);
-struct chunk* get_chunk_in_container(struct container*, fingerprint);
+struct chunk* get_chunk_in_container(struct container*, fingerprint*);
 void add_chunk_to_container(struct container*, struct chunk*);
 int container_overflow(struct container*, int32_t size);
 void free_container(struct container*);

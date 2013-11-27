@@ -54,6 +54,19 @@ void* lru_cache_lookup(struct lruCache* c, void* user_data) {
 	}
 }
 
+void* lru_cache_lookup_without_update(struct lruCache* c, void* user_data) {
+	GList* elem = g_list_first(c->elem_queue);
+	while (elem) {
+		if (elem_hit(elem->data, user_data))
+			break;
+		elem = g_list_next(elem);
+	}
+	if (elem) {
+		return elem->data;
+	} else {
+		return NULL;
+	}
+}
 /*
  * Hit an existing elem for simulating an insertion of it.
  */

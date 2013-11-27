@@ -25,10 +25,17 @@ void* cfl_rewrite(void* arg);
 void* cbr_rewrite(void* arg);
 void* cap_rewrite(void* arg);
 
+/* har_rewrite.c */
 void init_har();
 void close_har();
 void har_monitor_update(containerid id, int32_t size);
 void har_check(struct chunk* c);
+
+/* restore_aware.c */
+void init_restore_aware();
+void restore_aware_update(containerid id, int32_t chunklen);
+int restore_aware_contains(containerid id);
+double restore_aware_get_cfl();
 
 void send_rewrite_chunk(struct chunk* c);
 

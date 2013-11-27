@@ -1,15 +1,3 @@
-/*
- * backup.c
- *
- * Our statistics only measure the efficiency of index and rewriting algorithms.
- * Even some duplicates may be found while adding to container,
- * we ignore it.
- * So the container volume may seems inconsistency with statistics.
- *
- *  Created on: Jun 4, 2012
- *      Author: fumin
- */
-
 #include "destor.h"
 #include "jcr.h"
 #include "recipe/recipemanage.h"
@@ -17,9 +5,9 @@
 #include "index/index.h"
 #include "pipeline.h"
 
-void run_backup(char *path) {
+void do_backup(char *path) {
 
-	init_jcr(path);
+	init_backup_jcr(path);
 	init_index();
 
 	puts("==== backup begin ====");
@@ -44,6 +32,10 @@ void run_backup(char *path) {
 	gettimeofday(&end, 0);
 
 	close_index();
+
+	update_backup_version(jcr.bv);
+
+	free_backup_version(jcr.bv);
 
 	jcr.total_time = end.tv_sec - begin.tv_sec
 			+ (double) (end.tv_usec - begin.tv_usec) / (1000 * 1000);
@@ -97,22 +89,22 @@ void run_backup(char *path) {
 	double seek_time = 0.005; //5ms
 	double bandwidth = 120 * 1024 * 1024; //120MB/s
 
-/*	double index_lookup_throughput = jcr.data_size
-			/ (index_read_times * seek_time
-					+ index_read_entry_counter * 24 / bandwidth) / 1024 / 1024;
+	/*	double index_lookup_throughput = jcr.data_size
+	 / (index_read_times * seek_time
+	 + index_read_entry_counter * 24 / bandwidth) / 1024 / 1024;
 
-	double write_data_throughput = 1.0 * jcr.data_size * bandwidth
-			/ (jcr->unique_chunk_num) / 1024 / 1024;
-	double index_read_throughput = 1.0 * jcr.data_size / 1024 / 1024
-			/ (index_read_times * seek_time
-					+ index_read_entry_counter * 24 / bandwidth);
-	double index_write_throughput = 1.0 * jcr.data_size / 1024 / 1024
-			/ (index_write_times * seek_time
-					+ index_write_entry_counter * 24 / bandwidth);*/
+	 double write_data_throughput = 1.0 * jcr.data_size * bandwidth
+	 / (jcr->unique_chunk_num) / 1024 / 1024;
+	 double index_read_throughput = 1.0 * jcr.data_size / 1024 / 1024
+	 / (index_read_times * seek_time
+	 + index_read_entry_counter * 24 / bandwidth);
+	 double index_write_throughput = 1.0 * jcr.data_size / 1024 / 1024
+	 / (index_write_times * seek_time
+	 + index_write_entry_counter * 24 / bandwidth);*/
 
-/*	double estimated_throughput = write_data_throughput;
-	if (estimated_throughput > index_read_throughput)
-		estimated_throughput = index_read_throughput;*/
+	/*	double estimated_throughput = write_data_throughput;
+	 if (estimated_throughput > index_read_throughput)
+	 estimated_throughput = index_read_throughput;*/
 	/*if (estimated_throughput > index_write_throughput)
 	 estimated_throughput = index_write_throughput;*/
 
@@ -133,8 +125,8 @@ void run_backup(char *path) {
 	 * index lookups,
 	 * index updates,
 	 */
-	fprintf(fp, "%d %d %ld %.4f %.4f %d %d %d %.2f\n", jcr.id,
-			jcr.chunk_num, destor.stored_data_size,
+	fprintf(fp, "%d %d %ld %.4f %.4f %d %d %d %.2f\n", jcr.id, jcr.chunk_num,
+			destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.unique_data_size)
 							/ (double) (jcr.data_size) :

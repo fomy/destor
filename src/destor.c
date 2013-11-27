@@ -8,9 +8,9 @@
 #include "destor.h"
 #include "jcr.h"
 
-extern int run_backup(char *path);
+extern void do_backup(char *path);
 /*extern int run_delete(int revision);*/
-extern int run_restore(int revision, char *path);
+extern void do_restore(int revision, char *path);
 extern void make_trace(char *raw_files);
 
 extern int load_config();
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
 		init_recipe_management();
 		init_container_management();
 
-		run_backup(path);
+		do_backup(path);
 
 		close_container_management();
 		close_recipe_management();
@@ -350,7 +350,7 @@ int main(int argc, char **argv) {
 		init_recipe_management();
 		init_container_management();
 
-		run_restore(revision, path[0] == 0 ? 0 : path);
+		do_restore(revision, path[0] == 0 ? 0 : path);
 
 		close_container_management();
 		close_recipe_management();

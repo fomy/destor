@@ -126,6 +126,8 @@ void start_rewrite_phase() {
 
 	init_har();
 
+	init_restore_aware();
+
 	if (destor.rewrite_algorithm == REWRITE_NO) {
 		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
 	} else if (destor.rewrite_algorithm == REWRITE_CFL_SELECTIVE_DEDUPLICATION) {

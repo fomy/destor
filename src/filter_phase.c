@@ -36,6 +36,8 @@ int recv_container(struct container** c) {
  */
 static void* filter_thread(void *arg) {
 	struct recipe* r = NULL;
+	int enable_rewrite = 1;
+
 	while (1) {
 		struct chunk* c;
 		int size = recv_rewrite_chunk(&c);
@@ -49,9 +51,9 @@ static void* filter_thread(void *arg) {
 		} else if (size == FILE_END) {
 			if (r != NULL) {
 				append_recipe_meta(jcr.bv, r);
+				free_recipe(r);
 			}
-			r = (struct recipe*) malloc(sizeof(struct recipe));
-			r->filename = sdsnew(c->data);
+			r = new_recipe(c->data);
 			free_chunk(c);
 			continue;
 		}
@@ -59,8 +61,22 @@ static void* filter_thread(void *arg) {
 		r->filesize += c->size;
 		r->chunknum++;
 
+		if (destor.rewrite_enable_cache_aware
+				&& restore_aware_contains(c->id)) {
+			c->flag |= CHUNK_IN_CACHE;
+		}
+
+		if (destor.rewrite_enable_cfl_switch) {
+			double cfl = restore_aware_get_cfl();
+			if (enable_rewrite && cfl > destor.rewrite_cfl_require)
+				enable_rewrite = 0;
+			else if (!enable_rewrite && cfl < destor.rewrite_cfl_require)
+				enable_rewrite = 1;
+		}
+
 		if (CHECK_CHUNK_UNIQUE(c) || CHECK_CHUNK_SPARSE(c)
-				|| (CHECK_CHUNK_OUT_OF_ORDER(c) && CHECK_CHUNK_NOT_IN_CACHE(c))) {
+				|| (enable_rewrite && CHECK_CHUNK_OUT_OF_ORDER(c)
+						&& !CHECK_CHUNK_IN_CACHE(c))) {
 			/*
 			 * If the chunk is unique,
 			 * sparse, or out of order and not in cache,
@@ -92,6 +108,9 @@ static void* filter_thread(void *arg) {
 
 		/* Collect historical information. */
 		har_monitor_update(c->id, c->size);
+
+		/* Restore-aware */
+		restore_aware_update(c->id, c->size);
 
 		free_chunk(c);
 	}
