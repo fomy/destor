@@ -31,6 +31,9 @@ void* lru_cache_lookup(struct lruCache*, void* user_data);
 void* lru_cache_lookup_without_update(struct lruCache* c, void* user_data);
 void* lru_cache_hits(struct lruCache*, void* user_data,
 		int (*hit)(void* elem, void* user_data));
+/* Kick the elem that makes func returning 1. */
+void* lru_cache_kicks(struct lruCache*, void* user_data,
+		int (*func)(void* elem, void* user_data));
 void lru_cache_insert(struct lruCache *c, void* data,
 		void (*victim)(void*, void*), void* user_data);
 

@@ -208,6 +208,8 @@ void update_backup_version(struct backupVersion *b) {
 
 	if (seed_id != TEMPORARY_ID)
 		fprintf(b->seed_fp, "%ld\n", seed_id);
+	/* An indication of end. */
+	fprintf(b->seed_fp, "%ld\n", TEMPORARY_ID);
 }
 
 /*
@@ -274,40 +276,69 @@ struct recipe* read_next_recipe_meta(struct backupVersion* b) {
 
 /*
  * If return value is not NULL, a new file starts.
+ * If no recipe and chunkpointer are read,
+ * we arrive at the end of the stream.
  */
 struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		struct chunkPointer** cp, int *k) {
-	struct recipe *r;
+
+	/* The number of remaining chunks in the file. */
 	static int number_of_remaining_chunks;
+	/* Total number of read chunks. */
 	static int read_chunk_num;
 
-	assert(read_chunk_num <= b->number_of_chunks);
+	if (read_chunk_num == b->number_of_chunks) {
+		/* It's the stream end. */
+		*cp = 0;
+		*k = 0;
+		return NULL;
+	}
 
 	if (number_of_remaining_chunks == 0) {
-		r = read_next_recipe_meta(b);
+		struct recipe *r = read_next_recipe_meta(b);
 		number_of_remaining_chunks = r->chunknum;
 		return r;
 	}
 
 	*cp = (struct chunkPointer *) malloc(sizeof(struct chunkPointer) * n);
 
-	*k = 0;
-	while (*k < n) {
+	int i;
+	for (i = 0; i < n; i++) {
 		if (number_of_remaining_chunks == 0)
 			break;
-		fread((*cp)[0].fp, sizeof(fingerprint), 1, b->recipe_fp);
-		fread((*cp)[0].id, sizeof(containerid), 1, b->recipe_fp);
+		fread(&(*cp)[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
+		fread(&(*cp)[i].id, sizeof(containerid), 1, b->recipe_fp);
 		number_of_remaining_chunks--;
-		(*k)++;
 	}
 
+	*k = i;
+
 	read_chunk_num += (*k);
+	assert(read_chunk_num <= b->number_of_chunks);
 
 	return NULL;
 }
 
-void append_seed(struct backupVersion* b, containerid id, int32_t size) {
-	fprintf(b->seed_fp, "%d %d\n", id, size);
+containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k) {
+	static int end;
+
+	if (end) {
+		*k = 0;
+		return NULL;
+	}
+
+	containerid *ids = (containerid *) malloc(sizeof(containerid) * n);
+	int i;
+	for (i = 0; i < n; i++) {
+		fscanf(b->seed_fp, "%ld", &ids[i]);
+		if (ids[i] == TEMPORARY_ID) {
+			end = 1;
+			break;
+		}
+	}
+
+	*k = i;
+	return ids;
 }
 
 struct recipe* new_recipe(char* name) {

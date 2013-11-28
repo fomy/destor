@@ -109,3 +109,19 @@ void lru_cache_insert(struct lruCache *c, void* data,
 		c->free_elem(victim);
 	}
 }
+
+void lru_cache_kicks(struct lruCache* c, void* user_data,
+		int (*func)(void* elem, void* user_data)) {
+	GList* elem = g_list_first(c->elem_queue);
+	while (elem) {
+		if (func(elem->data, user_data))
+			break;
+		elem = g_list_next(elem);
+	}
+	if (elem) {
+		c->elem_queue = g_list_remove_link(c->elem_queue, elem);
+		c->free_elem(elem->data);
+		g_list_free_1(elem);
+		c->cache_size--;
+	}
+}

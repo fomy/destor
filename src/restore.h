@@ -8,8 +8,10 @@
 #ifndef RESTORE_H_
 #define RESTORE_H_
 
-void send_restore_chunk(unsigned char *data, int32_t size);
+void send_restore_chunk(struct chunk* c);
 
-void term_restore_queue();
+void term_restore_chunk_queue() ;
+
+int recv_restore_recipe(void **cp);
 
 #endif /* RESTORE_H_ */
