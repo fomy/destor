@@ -222,3 +222,11 @@ gint g_container_meta_cmp_desc(struct containerMeta* cm1,
 		struct containerMeta* cm2, gpointer user_data) {
 	return cm2->id - cm1->id;
 }
+
+int container_check_id(struct container* c, containerid* id) {
+	return container_meta_check_id(&c->meta, id);
+}
+
+int container_meta_check_id(struct containerMeta* cm, containerid* id) {
+	return cm->id == *id ? 1 : 0;
+}

@@ -19,8 +19,8 @@ struct lruCache* new_lru_cache(int size, void (*free_elem)(void *),
 
 	c->elem_queue = NULL;
 
-	c->cache_max_size = size;
-	c->cache_size = 0;
+	c->max_size = size;
+	c->size = 0;
 	c->hit_count = 0;
 	c->miss_count = 0;
 
@@ -93,16 +93,16 @@ int lru_cache_hits(struct lruCache* c, void* user_data,
 void lru_cache_insert(struct lruCache *c, void* data,
 		void (*func)(void*, void*), void* user_data) {
 	void *victim = 0;
-	if (c->cache_max_size > 0 && c->cache_size == c->cache_max_size) {
+	if (c->max_size > 0 && c->size == c->max_size) {
 		GList *last = g_list_last(c->elem_queue);
 		c->elem_queue = g_list_remove_link(c->elem_queue, last);
 		victim = last->data;
 		g_list_free_1(last);
-		c->cache_size--;
+		c->size--;
 	}
 
 	c->elem_queue = g_list_prepend(c->elem_queue, data);
-	c->cache_size++;
+	c->size++;
 	if (victim) {
 		if (func)
 			func(victim, user_data);
@@ -112,16 +112,20 @@ void lru_cache_insert(struct lruCache *c, void* data,
 
 void lru_cache_kicks(struct lruCache* c, void* user_data,
 		int (*func)(void* elem, void* user_data)) {
-	GList* elem = g_list_first(c->elem_queue);
+	GList* elem = g_list_last(c->elem_queue);
 	while (elem) {
 		if (func(elem->data, user_data))
 			break;
-		elem = g_list_next(elem);
+		elem = g_list_prev(elem);
 	}
 	if (elem) {
 		c->elem_queue = g_list_remove_link(c->elem_queue, elem);
 		c->free_elem(elem->data);
 		g_list_free_1(elem);
-		c->cache_size--;
+		c->size--;
 	}
+}
+
+int lru_cache_is_full(struct lruCache* c) {
+	return c->size >= c->max_size ? 1 : 0;
 }

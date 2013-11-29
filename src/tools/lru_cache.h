@@ -14,8 +14,8 @@
 struct lruCache {
 	GList *elem_queue;
 
-	int cache_max_size; // less then zero means infinite cache
-	int cache_size;
+	int max_size; // less then zero means infinite cache
+	int size;
 
 	double hit_count;
 	double miss_count;
@@ -36,5 +36,6 @@ void* lru_cache_kicks(struct lruCache*, void* user_data,
 		int (*func)(void* elem, void* user_data));
 void lru_cache_insert(struct lruCache *c, void* data,
 		void (*victim)(void*, void*), void* user_data);
+int lru_cache_is_full(struct lruCache*);
 
 #endif /* Cache_H_ */

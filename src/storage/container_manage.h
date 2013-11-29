@@ -49,4 +49,6 @@ gint g_container_meta_cmp_desc(struct containerMeta*, struct containerMeta*,
 
 int lookup_fingerprint_in_container(struct container*, fingerprint *);
 int lookup_fingerprint_in_container_meta(struct containerMeta*, fingerprint *);
+int container_check_id(struct container*, containerid*);
+int container_meta_check_id(struct containerMeta*, containerid*);
 #endif /* CONTAINER_MANAGE_H_ */
