@@ -5,14 +5,14 @@
  *      Author: fumin
  */
 
-#include "recipemanage.h"
+#include "recipestore.h"
 
 static int32_t backup_version_count = 0;
 static sds recipepath;
 /* Used for seed */
 static containerid seed_id = TEMPORARY_ID;
 
-void init_recipe_management() {
+void init_recipe_store() {
 	recipepath = sdsdup(destor.working_directory);
 	recipepath = sdscat(recipepath, "/recipes/");
 
@@ -34,7 +34,7 @@ void init_recipe_management() {
 	fclose(fp);
 }
 
-void close_recipe_management() {
+void close_recipe_store() {
 	sds count_fname = sdsdup(recipepath);
 	count_fname = sdscat(count_fname, "backupversion.count");
 

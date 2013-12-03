@@ -1,4 +1,4 @@
-#include "container_manage.h"
+#include "containerstore.h"
 #include "../tools/serial.h"
 
 static int64_t container_count = 0;
@@ -10,7 +10,7 @@ struct metaEntry {
 	fingerprint fp;
 };
 
-void init_container_management() {
+void init_container_store() {
 
 	sds containerfile = sdsdup(destor.working_directory);
 	containerfile = sdscat(containerfile, "/containers/container.pool");
@@ -29,7 +29,7 @@ void init_container_management() {
 	sdsfree(containerfile);
 }
 
-void close_container_management() {
+void close_container_store() {
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&container_count, sizeof(container_count), 1, fp);
 	fclose(fp);

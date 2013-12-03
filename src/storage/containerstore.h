@@ -1,12 +1,12 @@
 /*
- * containermanage.h
+ * containerstore.h
  *
  *  Created on: Nov 11, 2013
  *      Author: fumin
  */
 
-#ifndef CONTAINER_MANAGE_H_
-#define CONTAINER_MANAGE_H_
+#ifndef CONTAINERSTORE_H_
+#define CONTAINERSTORE_H_
 
 #include "../destor.h"
 
@@ -29,8 +29,8 @@ struct container {
 	unsigned char data[CONTAINER_SIZE];
 };
 
-void init_container_management();
-void close_container_management();
+void init_container_store();
+void close_container_store();
 
 struct container* create_container();
 void write_container(struct container*);
@@ -51,4 +51,5 @@ int lookup_fingerprint_in_container(struct container*, fingerprint *);
 int lookup_fingerprint_in_container_meta(struct containerMeta*, fingerprint *);
 int container_check_id(struct container*, containerid*);
 int container_meta_check_id(struct containerMeta*, containerid*);
-#endif /* CONTAINER_MANAGE_H_ */
+
+#endif /* CONTAINERSTORE_H_ */

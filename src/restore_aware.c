@@ -6,7 +6,7 @@
  * @date 2012-12-12
  */
 #include "rewrite_phase.h"
-#include "storage/container_manage.h"
+#include "storage/containerstore.h"
 #include "tools/lru_cache.h"
 
 struct {

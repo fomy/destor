@@ -6,7 +6,6 @@
  */
 
 #include "jcr.h"
-#include "recipe/recipemanage.h"
 
 void init_backup_jcr(char *path) {
 

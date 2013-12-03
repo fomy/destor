@@ -1,6 +1,6 @@
 #include "destor.h"
 #include "jcr.h"
-#include "recipe/recipemanage.h"
+#include "recipe/recipestore.h"
 #include "tools/sync_queue.h"
 #include "index/index.h"
 #include "pipeline.h"

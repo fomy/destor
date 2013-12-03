@@ -1,7 +1,7 @@
 #include "destor.h"
 #include "jcr.h"
 #include "rewrite_phase.h"
-#include "storage/container_manage.h"
+#include "storage/containerstore.h"
 
 /* First chunk with an ID that is different from the chunks in buffer. */
 static struct chunk *wait;

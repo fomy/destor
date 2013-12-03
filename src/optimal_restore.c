@@ -6,8 +6,8 @@
  */
 #include "destor.h"
 #include "jcr.h"
-#include "recipe/recipemanage.h"
-#include "storage/container_manage.h"
+#include "recipe/recipestore.h"
+#include "storage/containerstore.h"
 #include "restore.h"
 
 struct accessRecord {
@@ -27,15 +27,6 @@ static void free_access_record(struct accessRecord* r) {
 	assert(g_queue_get_length(r->distance_queue) == 0);
 	g_queue_free_full(r->distance_queue, free);
 	free(r);
-}
-
-static gint g_access_record_cmp_by_id(struct accessRecord *a,
-		struct accessRecord *b, gpointer data) {
-	return a->cid - b->cid;
-}
-
-static gint g_containerid_cmp(containerid *a, containerid *b, gpointer data) {
-	return *a - *b;
 }
 
 /*
@@ -153,7 +144,18 @@ static containerid optimal_cache_window_slides() {
  * the target container is in the cache.
  */
 static int optimal_cache_hits(containerid id) {
-	return lru_cache_hits(optimal_cache.lru_queue, container_check_id, &id);
+	static containerid current_seed = TEMPORARY_ID;
+	if (current_seed != id) {
+		if (current_seed != TEMPORARY_ID)
+			optimal_cache_window_slides();
+		current_seed = id;
+	}
+
+	if (destor.simulation_level == SIMULATION_NO)
+		return lru_cache_hits(optimal_cache.lru_queue, container_check_id, &id);
+	else
+		return lru_cache_hits(optimal_cache.lru_queue, container_meta_check_id,
+				&id);
 }
 
 /* The function will not be called if the simulation level >= RESTORE. */
@@ -172,8 +174,11 @@ static int find_kicked_container(struct container* con, GQueue *q) {
 	int i, n = g_queue_get_length(q);
 	for (i = 0; i < n; i++) {
 		struct accessRecord* r = g_queue_peak_nth(i);
-		if (container_check_id(con, &r->cid))
+		if (container_check_id(con, &r->cid)) {
+			g_queue_clear(q);
+			g_queue_push_tail(q, r);
 			return 1;
+		}
 	}
 	return 0;
 }
@@ -191,7 +196,7 @@ static int find_kicked_container_meta(struct containerMeta* cm, GQueue *q) {
 	return 0;
 }
 
-static void optimal_cache_insert(struct container* con) {
+static void optimal_cache_insert(containerid id) {
 
 	if (lru_cache_is_full(optimal_cache.lru_queue)) {
 		GQueue *q = g_queue_new();
@@ -199,11 +204,16 @@ static void optimal_cache_insert(struct container* con) {
 		GSequenceIter *iter = g_sequence_iter_prev(
 				g_sequence_get_end_iter(optimal_cache.distance_seq));
 		struct accessRecord* r = g_sequence_get(iter);
-		do {
-			g_queue_push_tail(r);
+		g_queue_push_tail(q, r);
+
+		while (iter != g_sequence_get_begin_iter(optimal_cache.distance_seq)) {
 			iter = g_sequence_iter_prev(iter);
 			r = g_sequence_get(iter);
-		} while (g_queue_get_length(r->distance_queue) == 0);
+			if (g_queue_get_length(r->distance_queue) == 0)
+				g_queue_push_tail(q, r);
+			else
+				break;
+		}
 
 		if (destor.simulation_level == SIMULATION_NO)
 			lru_cache_kicks(optimal_cache.lru_queue, find_kicked_container, q);
@@ -212,6 +222,7 @@ static void optimal_cache_insert(struct container* con) {
 					q);
 
 		struct accessRecord* victim = g_queue_pop_head(q);
+		assert(g_queue_get_length(q) == 0);
 		q_queue_free(q);
 
 		iter = g_sequence_iter_prev(
@@ -219,14 +230,21 @@ static void optimal_cache_insert(struct container* con) {
 		r = g_sequence_get(iter);
 		while (r->cid != victim->cid) {
 			iter = g_sequence_iter_prev(iter);
+			r = g_sequence_get(iter);
 		}
 
 		g_sequence_remove(iter);
 	}
 
-	lru_cache_insert(optimal_cache.lru_queue, con, NULL, NULL);
-	struct accessRecord* r = g_hash_table_lookup(optimal_cache.seed_table,
-			&con->meta.id);
+	if (destor.simulation_level == SIMULATION_NO) {
+		struct container* con = retrieve_container_by_id(id);
+		lru_cache_insert(optimal_cache.lru_queue, con, NULL, NULL);
+	} else {
+		struct containerMeta *cm = retrieve_container_meta_by_id(id);
+		lru_cache_insert(optimal_cache.lru_queue, cm, NULL, NULL);
+	}
+
+	struct accessRecord* r = g_hash_table_lookup(optimal_cache.seed_table, &id);
 	assert(r);
 
 	g_sequence_insert_sorted(optimal_cache.distance_seq, r,
@@ -253,8 +271,13 @@ void* optimal_restore_thread(void *arg) {
 		for (i = 0; i < num; i++) {
 			sig = recv_restore_recipe(&cp);
 
-			if (destor.simulation_level >= SIMULATION_RESTORE) {
+			if (!optimal_cache_hits(cp->id)) {
+				optimal_cache_insert(cp->id);
+			}
 
+			if (destor.simulation_level == SIMULATION_NO) {
+				struct chunk* c = optimal_cache_lookup(&cp->fp);
+				send_restore_chunk(c);
 			} else {
 
 			}

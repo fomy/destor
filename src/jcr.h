@@ -9,7 +9,7 @@
 #define Jcr_H_
 
 #include "destor.h"
-#include "recipe/recipemanage.h"
+#include "recipe/recipestore.h"
 
 /* job control record */
 struct {

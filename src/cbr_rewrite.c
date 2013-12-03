@@ -1,7 +1,7 @@
 #include "destor.h"
 #include "jcr.h"
 #include "rewrite_phase.h"
-#include "storage/container_manage.h"
+#include "storage/containerstore.h"
 
 static int stream_context_push(struct chunk *c) {
 

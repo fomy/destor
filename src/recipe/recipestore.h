@@ -1,12 +1,12 @@
 /*
- * recipemanage.h
+ * recipestore.h
  *
  *  Created on: May 22, 2012
  *      Author: fumin
  */
 
-#ifndef RECIPEMANAGE_H_
-#define RECIPEMANAGE_H_
+#ifndef RECIPESTORE_H_
+#define RECIPESTORE_H_
 
 #include "../destor.h"
 
@@ -39,8 +39,8 @@ struct recipe {
 	sds filename;
 };
 
-void init_recipe_management();
-void close_recipe_management();
+void init_recipe_store();
+void close_recipe_store();
 
 struct backupVersion* create_backup_verion(const char *path);
 int backup_version_exists(int number);
@@ -55,9 +55,8 @@ struct recipe* read_next_recipe_meta(struct backupVersion* b);
 struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		struct chunkpointer** cp, int *k);
 void append_seed(struct backupVersion* b, containerid id, int32_t size);
-containerid* read_next_n_seeds(struct backupVersion* b, int n,
-		int *k);
+containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k);
 struct recipe* new_recipe(char* name);
 void free_recipe(struct recipe* r);
 
-#endif /* BVMANAGE_H_ */
+#endif /* RECIPESTORE_H_ */

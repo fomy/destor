@@ -1,7 +1,7 @@
 #include "destor.h"
 #include "jcr.h"
-#include "storage/container_manage.h"
-#include "recipe/recipemanage.h"
+#include "storage/containerstore.h"
+#include "recipe/recipestore.h"
 #include "tools/sync_queue.h"
 #include "rewrite_phase.h"
 

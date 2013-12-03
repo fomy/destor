@@ -1,7 +1,7 @@
 #include "destor.h"
 #include "jcr.h"
-#include "recipe/recipemanage.h"
-#include "storage/container_manage.h"
+#include "recipe/recipestore.h"
+#include "storage/containerstore.h"
 #include "tools/sync_queue.h"
 
 static SyncQueue *restore_chunk_queue;

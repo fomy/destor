@@ -7,7 +7,7 @@
 
 #include "destor.h"
 #include "rewrite_phase.h"
-#include "storage/container_manage.h"
+#include "storage/containerstore.h"
 #include "jcr.h"
 
 struct {

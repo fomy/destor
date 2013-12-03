@@ -7,7 +7,7 @@
 
 #include "destor.h"
 #include "jcr.h"
-#include "storage/container_manage.h"
+#include "storage/containerstore.h"
 #include "tools/sync_queue.h"
 
 extern int recv_container(struct container** c);

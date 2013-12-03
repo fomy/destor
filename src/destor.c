@@ -328,13 +328,13 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "backup job needs a protected path!\n");
 			usage();
 		}
-		init_recipe_management();
-		init_container_management();
+		init_recipe_store();
+		init_container_store();
 
 		do_backup(path);
 
-		close_container_management();
-		close_recipe_management();
+		close_container_store();
+		close_recipe_store();
 		break;
 	case DESTOR_RESTORE:
 		if (revision < 0) {
@@ -347,13 +347,13 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();
 		}
-		init_recipe_management();
-		init_container_management();
+		init_recipe_store();
+		init_container_store();
 
 		do_restore(revision, path[0] == 0 ? 0 : path);
 
-		close_container_management();
-		close_recipe_management();
+		close_container_store();
+		close_recipe_store();
 		break;
 	case DESTOR_MAKE_TRACE: {
 		if (argc > optind) {
@@ -371,9 +371,9 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "Invalid job id!");
 			usage();
 		}
-		init_container_management();
+		init_container_store();
 		delete_server(revision);
-		close_container_management();
+		close_container_store();
 		break;
 	default:
 		fprintf(stderr, "Invalid job type!\n");

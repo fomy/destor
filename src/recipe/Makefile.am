@@ -1,2 +1,2 @@
 noinst_LIBRARIES=librecipe.a
-librecipe_a_SOURCES=recipemanage.c
+librecipe_a_SOURCES=recipestore.c
