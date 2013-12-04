@@ -104,6 +104,7 @@ static void* filter_thread(void *arg) {
 				sizeof(struct chunkPointer));
 		cp->id = c->id;
 		memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
+		cp->size = c->size;
 		append_n_chunk_pointers(jcr.bv, cp, 1);
 
 		/* Collect historical information. */

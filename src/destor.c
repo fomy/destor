@@ -9,7 +9,7 @@
 #include "jcr.h"
 
 extern void do_backup(char *path);
-/*extern int run_delete(int revision);*/
+extern void do_delete(int revision);
 extern void do_restore(int revision, char *path);
 extern void make_trace(char *raw_files);
 
@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
 			usage();
 		}
 		init_container_store();
-		delete_server(revision);
+		/*do_delete(revision);*/
 		close_container_store();
 		break;
 	default:
@@ -391,7 +391,11 @@ struct chunk* new_chunk(int32_t size) {
 	ck->id = TEMPORARY_ID;
 	memset(&ck->fp, 0x0, sizeof(fingerprint));
 	ck->size = size;
-	ck->data = malloc(size);
+
+	if (size > 0)
+		ck->data = malloc(size);
+	else
+		ck->data = NULL;
 
 	return ck;
 }

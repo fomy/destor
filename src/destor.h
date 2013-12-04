@@ -164,6 +164,12 @@
 #define CHECK_CHUNK_OUT_OF_ORDER(c) (c->flag & CHUNK_OUT_OF_ORDER)
 #define CHECK_CHUNK_IN_CACHE(c) (c->flag & CHUNK_IN_CACHE)
 
+/* Flags for restore */
+#define CHUNK_WAIT 0
+#define CHUNK_READY 1
+
+#define CHECK_CHUNK_READY (c->flag & CHUNK_READY)
+
 #define STREAM_END -1 /* Indicates the end of stream. */
 #define FILE_END -2 /* IIndicates the end of file. */
 

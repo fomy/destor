@@ -248,6 +248,7 @@ void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
 		seed_id = cp[i].id;
 		fwrite(&cp[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
 		fwrite(&cp[i].id, sizeof(containerid), 1, b->recipe_fp);
+		fwrite(&cp[i].size, sizeof(int32_t), 1, b->recipe_fp);
 	}
 }
 
@@ -308,6 +309,7 @@ struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 			break;
 		fread(&(*cp)[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
 		fread(&(*cp)[i].id, sizeof(containerid), 1, b->recipe_fp);
+		fread(&(*cp)[i].size, sizeof(int32_t), 1, b->recipe_fp);
 		number_of_remaining_chunks--;
 	}
 

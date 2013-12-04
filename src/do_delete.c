@@ -4,14 +4,10 @@
  *  Created on: Jun 21, 2012
  *      Author: fumin
  */
-#include "global.h"
-#include "statistic.h"
-#include "storage/protos.h"
+#include "destor.h"
+#include "storage/containerstore.h"
+#include "index/index.h"
 
-extern DestorStat *destor_stat;
-extern int fingerprint_index_type;
-extern int rewriting_algorithm;
-extern int kept_versions;
 /*
  * delete all jobs before jobid, including itself.
  * Find all containers in manifest whose time is earlier than jobid.
@@ -19,15 +15,14 @@ extern int kept_versions;
  * Read the metadata part of these containers,
  * and delete entries in fingerprint index.
  */
-int delete_server(int jobid) {
+void do_delete(int jobid) {
 
-	if (fingerprint_index_type != RAM_INDEX) {
-		dprint("Deletion does not support the index.");
-		return -1;
+	if (destor.index_specific != INDEX_SPECIFIC_RAM) {
+		destor_log(DESTOR_WARNING, "Deletion does not support the index.");
+		exit(1);
 	}
-	if (index_init() == FALSE) {
-		return -1;
-	}
+
+	init_index();
 
 	GHashTable *delete_containers = g_hash_table_new_full(g_int_hash,
 			g_int_equal, NULL, free);

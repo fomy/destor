@@ -31,6 +31,7 @@ struct backupVersion {
 struct chunkPointer {
 	fingerprint fp;
 	containerid id;
+	int32_t size;
 };
 
 struct recipe {
