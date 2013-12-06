@@ -44,16 +44,19 @@ CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
 ARFLAGS = cru
-libserver_a_AR = $(AR) $(ARFLAGS)
-libserver_a_LIBADD =
-am_libserver_a_OBJECTS = dedup.$(OBJEXT) read_phase.$(OBJEXT) \
+libdestor_a_AR = $(AR) $(ARFLAGS)
+libdestor_a_LIBADD =
+am_libdestor_a_OBJECTS = destor.$(OBJEXT) jcr.$(OBJEXT) \
+	config.$(OBJEXT) do_backup.$(OBJEXT) read_phase.$(OBJEXT) \
 	chunk_phase.$(OBJEXT) hash_phase.$(OBJEXT) \
-	segment_phase.$(OBJEXT) filter_phase.$(OBJEXT) \
-	append_phase.$(OBJEXT) cfl_filter.$(OBJEXT) destor.$(OBJEXT) \
-	backup.$(OBJEXT) restore.$(OBJEXT) statistic.$(OBJEXT) \
-	jcr.$(OBJEXT) config.$(OBJEXT) cbr_filter.$(OBJEXT) \
-	cap_filter.$(OBJEXT) make_trace.$(OBJEXT) delete.$(OBJEXT)
-libserver_a_OBJECTS = $(am_libserver_a_OBJECTS)
+	trace_phase.$(OBJEXT) dedup_phase.$(OBJEXT) \
+	rewrite_phase.$(OBJEXT) filter_phase.$(OBJEXT) \
+	append_phase.$(OBJEXT) cfl_rewrite.$(OBJEXT) \
+	cap_rewrite.$(OBJEXT) cbr_rewrite.$(OBJEXT) \
+	har_rewrite.$(OBJEXT) restore_aware.$(OBJEXT) \
+	do_restore.$(OBJEXT) optimal_restore.$(OBJEXT) \
+	assembly_restore.$(OBJEXT)
+libdestor_a_OBJECTS = $(am_libdestor_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -62,8 +65,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libserver_a_SOURCES)
-DIST_SOURCES = $(libserver_a_SOURCES)
+SOURCES = $(libdestor_a_SOURCES)
+DIST_SOURCES = $(libdestor_a_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -154,8 +157,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-noinst_LIBRARIES = libserver.a
-libserver_a_SOURCES = dedup.c read_phase.c chunk_phase.c hash_phase.c segment_phase.c filter_phase.c append_phase.c cfl_filter.c destor.c backup.c restore.c statistic.c jcr.c config.c cbr_filter.c cap_filter.c make_trace.c delete.c
+noinst_LIBRARIES = libdestor.a
+libdestor_a_SOURCES = destor.c jcr.c config.c do_backup.c read_phase.c chunk_phase.c hash_phase.c trace_phase.c dedup_phase.c rewrite_phase.c filter_phase.c append_phase.c cfl_rewrite.c cap_rewrite.c cbr_rewrite.c har_rewrite.c restore_aware.c do_restore.c optimal_restore.c assembly_restore.c
 all: all-am
 
 .SUFFIXES:
@@ -193,10 +196,10 @@ $(am__aclocal_m4_deps):
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-libserver.a: $(libserver_a_OBJECTS) $(libserver_a_DEPENDENCIES) $(EXTRA_libserver_a_DEPENDENCIES) 
-	-rm -f libserver.a
-	$(libserver_a_AR) libserver.a $(libserver_a_OBJECTS) $(libserver_a_LIBADD)
-	$(RANLIB) libserver.a
+libdestor.a: $(libdestor_a_OBJECTS) $(libdestor_a_DEPENDENCIES) $(EXTRA_libdestor_a_DEPENDENCIES) 
+	-rm -f libdestor.a
+	$(libdestor_a_AR) libdestor.a $(libdestor_a_OBJECTS) $(libdestor_a_LIBADD)
+	$(RANLIB) libdestor.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -205,23 +208,25 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/append_phase.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/backup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cap_filter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cbr_filter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cfl_filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/assembly_restore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cap_rewrite.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cbr_rewrite.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cfl_rewrite.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chunk_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dedup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delete.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dedup_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/destor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/do_backup.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/do_restore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_phase.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/har_rewrite.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hash_phase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jcr.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_trace.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/optimal_restore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read_phase.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/restore.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segment_phase.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statistic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/restore_aware.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rewrite_phase.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trace_phase.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

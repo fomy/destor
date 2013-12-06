@@ -4,33 +4,10 @@
  */
 #include "destor.h"
 #include "jcr.h"
-#include "tools/sync_queue.h"
 #include "rewrite_phase.h"
-
-extern int recv_dedup_chunk(struct chunk **chunk);
+#include "backup.h"
 
 static pthread_t rewrite_t;
-static SyncQueue* rewrite_chunk_queue;
-
-void send_rewrite_chunk(struct chunk* c) {
-	if (destor.rewrite_enable_har)
-		har_check(c);
-
-	sync_queue_push(rewrite_chunk_queue, c);
-}
-
-void term_rewrite_chunk_queue() {
-	sync_queue_term(rewrite_chunk_queue);
-}
-
-int recv_rewrite_chunk(struct chunk** c) {
-	*c = sync_queue_pop(rewrite_chunk_queue);
-	if ((*c) == NULL)
-		return STREAM_END;
-	if ((*c)->size < 0)
-		return FILE_END;
-	return (*c)->size;
-}
 
 /* Descending order */
 gint g_record_descmp_by_length(struct containerRecord* a,
@@ -52,10 +29,10 @@ static void init_rewrite_buffer() {
 void rewrite_buffer_push(struct chunk* c) {
 	g_queue_push_tail(rewrite_buffer.chunk_queue, c);
 
-	if (c->size < 0)
+	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 		return;
 
-	if (CHECK_CHUNK_DUPLICATE(c)) {
+	if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 		struct containerRecord tmp_record;
 		tmp_record.cid = c->id;
 		GSequenceIter *iter = g_sequence_lookup(
@@ -82,11 +59,12 @@ void rewrite_buffer_push(struct chunk* c) {
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_tail(rewrite_buffer.chunk_queue);
 
-	if (c->size > 0) {
+	if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		/* A normal chunk */
-		if (CHECK_CHUNK_DUPLICATE(c)) {
+		if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			GSequenceIter *iter = g_sequence_lookup(
-					rewrite_buffer.container_record_seq, &c->id);
+					rewrite_buffer.container_record_seq, &c->id,
+					g_record_cmp_by_id, NULL);
 			assert(iter);
 			struct containerRecord* record = g_sequence_get(iter);
 			record->size -= c->size;
@@ -104,40 +82,39 @@ struct chunk* rewrite_buffer_pop() {
  */
 static void* no_rewrite(void* arg) {
 	while (1) {
-		struct chunk* c;
-		int signal = recv_dedup_chunk(&c);
+		struct chunk* c = sync_queue_pop(dedup_queue);
 
-		if (signal == STREAM_END) {
+		if (c == NULL)
 			break;
-		}
 
-		send_rewrite_chunk(c);
+		sync_queue_push(rewrite_queue, c);
 
 	}
 
-	term_rewrite_chunk_queue();
+	sync_queue_term(rewrite_queue);
 
 	return NULL;
 }
 
 void start_rewrite_phase() {
-	rewrite_chunk_queue = sync_queue_new(1000);
+	rewrite_queue = sync_queue_new(1000);
 	init_rewrite_buffer();
 
 	init_har();
 
 	init_restore_aware();
 
-	if (destor.rewrite_algorithm == REWRITE_NO) {
+	if (destor.rewrite_algorithm[0] == REWRITE_NO) {
 		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
-	} else if (destor.rewrite_algorithm == REWRITE_CFL_SELECTIVE_DEDUPLICATION) {
-		pthread_create(&rewrite_t, NULL, cfl_rewrite, jcr);
-	} else if (destor.rewrite_algorithm == REWRITE_CONTEXT_BASED) {
-		pthread_create(&rewrite_t, NULL, cbr_rewrite, jcr);
-	} else if (destor.rewrite_algorithm == REWRITE_CAPPING) {
-		pthread_create(&rewrite_t, NULL, cap_rewrite, jcr);
+	} else if (destor.rewrite_algorithm[0]
+			== REWRITE_CFL_SELECTIVE_DEDUPLICATION) {
+		pthread_create(&rewrite_t, NULL, cfl_rewrite, NULL);
+	} else if (destor.rewrite_algorithm[0] == REWRITE_CONTEXT_BASED) {
+		pthread_create(&rewrite_t, NULL, cbr_rewrite, NULL);
+	} else if (destor.rewrite_algorithm[0] == REWRITE_CAPPING) {
+		pthread_create(&rewrite_t, NULL, cap_rewrite, NULL);
 	} else {
-		dprint("Invalid rewrite algorithm\n");
+		fprintf(stderr, "Invalid rewrite algorithm\n");
 		exit(1);
 	}
 

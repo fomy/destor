@@ -97,7 +97,7 @@ unsigned int (*hash_func[])(unsigned char *, unsigned int) = {
 
 void insert_word(unsigned char filter[], char *str, int len)
 {
-	unsigned int hash[NUM_HASHES];
+	unsigned long hash[NUM_HASHES];
 	int i;
 	
 	for (i = 0; i < NUM_HASHES; i++) {

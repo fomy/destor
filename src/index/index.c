@@ -15,7 +15,7 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 	static int count = 0;
 	static fingerprint candidate;
 
-	if (fp == NULL && success != 1)
+	if (!fp && !success)
 		return NULL;
 
 	/* Init */
@@ -78,7 +78,7 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 	static GHashTable* features = NULL;
 
-	if (fp == NULL && success != 1)
+	if (!fp && !success)
 		return NULL;
 
 	if (destor.index_feature_method[0] == INDEX_FEATURE_NO)
@@ -123,7 +123,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 	static GHashTable* features = NULL;
 	static int count;
 
-	if (fp == NULL && success != 1)
+	if (!fp && !success)
 		return NULL;
 
 	if (destor.index_feature_method[0] == INDEX_FEATURE_NO)
@@ -148,7 +148,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 	}
 
 	if (success) {
-		if (g_queue_get_length(features) == 0) {
+		if (g_hash_table_size(features) == 0) {
 			/* No feature? Empty segment.*/
 			assert(fp == NULL);
 			fingerprint *new_feature = (fingerprint*) malloc(

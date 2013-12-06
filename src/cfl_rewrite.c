@@ -2,13 +2,14 @@
 #include "jcr.h"
 #include "rewrite_phase.h"
 #include "storage/containerstore.h"
+#include "backup.h"
 
 /* First chunk with an ID that is different from the chunks in buffer. */
 static struct chunk *wait;
 static int buffer_size;
 
 static int cfl_push(struct chunk *c) {
-	if (c->size < 0) {
+	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		rewrite_buffer_push(c);
 		return 0;
 	}
@@ -51,10 +52,9 @@ void *cfl_rewrite(void* arg) {
 	int out_of_order = 0;
 
 	while (1) {
-		struct chunk* c = NULL;
-		int signal = recv_dedup_chunk(&c);
+		struct chunk* c = sync_queue_pop(dedup_queue);
 
-		if (signal == STREAM_END) {
+		if (c == NULL) {
 			cfl_push(NULL);
 			break;
 		}
@@ -66,11 +66,13 @@ void *cfl_rewrite(void* arg) {
 		if (buffer_size < destor.rewrite_cfl_usage_threshold * CONTAINER_SIZE)
 			out_of_order = 1;
 
-		struct chunk *c;
 		while ((c = cfl_pop())) {
-			if (out_of_order && c->size > 0 && CHECK_CHUNK_DUPLICATE(c))
-				c->flag |= CHUNK_DUPLICATE;
-			send_rewrite_chunk(c);
+			if (out_of_order
+					&& !(CHECK_CHUNK(c, CHUNK_FILE_START)
+							|| CHECK_CHUNK(c, CHUNK_FILE_END))
+					&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
+				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+			sync_queue_push(rewrite_queue, c);
 		}
 
 		out_of_order = 0;
@@ -81,12 +83,15 @@ void *cfl_rewrite(void* arg) {
 
 	struct chunk *c;
 	while ((c = cfl_pop())) {
-		if (out_of_order && c->size > 0 && CHECK_CHUNK_DUPLICATE(c))
-			c->flag |= CHUNK_DUPLICATE;
-		send_rewrite_chunk(c);
+		if (out_of_order
+				&& !(CHECK_CHUNK(c, CHUNK_FILE_START)
+						|| CHECK_CHUNK(c, CHUNK_FILE_END))
+				&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
+			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+		sync_queue_push(rewrite_queue, c);
 	}
 
-	term_rewrite_chunk_queue();
+	sync_queue_term(rewrite_queue);
 
 	return NULL;
 }

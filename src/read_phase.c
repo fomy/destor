@@ -1,76 +1,8 @@
 #include "destor.h"
-#include "tools/sync_queue.h"
 #include "jcr.h"
-#include "tools/serial.h"
+#include "backup.h"
 
-/*
- * block structure
- * ------------------------------------
- * - 4-byte size of data -    data    -
- * ------------------------------------
- *
- * protocol
- * -----------------------
- * - (n) -    block      -
- * -----------------------
- * -----------------------
- * - (-n) -  filename    -
- * -----------------------
- */
-static SyncQueue* block_queue;
 static pthread_t read_t;
-
-/*
- * If size < 0, it's file name;
- * or else, it's a normal block.
- */
-void send_block(unsigned char* buf, int size) {
-	int s = size > 0 ? size : -size;
-	unsigned char* b = (unsigned char*) malloc(sizeof(int) + s);
-
-	ser_declare;
-	ser_begin(b, sizeof(int) + s);
-
-	ser_int32(size);
-	ser_bytes(buf, s);
-
-	ser_end(b, sizeof(int) + s);
-
-	sync_queue_push(block_queue, b);
-}
-
-void term_block_queue() {
-	sync_queue_term(block_queue);
-}
-
-int recv_block(unsigned char **data) {
-	unsigned char* b = sync_queue_pop(block_queue);
-
-	if (b == NULL) {
-		*data = NULL;
-		return STREAM_END;
-	}
-	unser_declare;
-	unser_begin(b, 4);
-	int size;
-	unser_int32(size);
-
-	if (size < 0) {
-		char buf[-size];
-		unser_bytes(buf, -size);
-		sds fname = sdsnew(buf);
-		*data = fname;
-		free(b);
-		return FILE_END;
-	}
-
-	*data = (unsigned char*) malloc(size);
-	unser_bytes(*data, size);
-
-	free(b);
-
-	return size;
-}
 
 static void read_file(sds path) {
 	static unsigned char buf[DEFAULT_BLOCK_SIZE];
@@ -88,8 +20,11 @@ static void read_file(sds path) {
 	}
 	jcr.file_num++;
 
-	send_block(filename, -(strlen(filename) + 1));
-	sdsfree(filename);
+	struct chunk *c = new_chunk(sdslen(filename) + 1);
+	strcpy(c->data, filename);
+	SET_CHUNK(c, CHUNK_FILE_START);
+
+	sync_queue_push(read_queue, c);
 
 	TIMER_DECLARE(b, e);
 	TIMER_BEGIN(b);
@@ -97,11 +32,22 @@ static void read_file(sds path) {
 
 	while ((size = fread(buf, DEFAULT_BLOCK_SIZE, 1, fp)) == 0) {
 		TIMER_END(jcr.read_time, b, e);
-		send_block(buf, size);
+
+		c = new_chunk(size);
+		memcpy(c->data, buf, size);
+
+		sync_queue_push(read_queue, c);
+
 		TIMER_BEGIN(b);
 	}
-	/* file end */
+
+	c = new_chunk(0);
+	SET_CHUNK(c, CHUNK_FILE_END);
+	sync_queue_push(read_queue, c);
+
 	fclose(fp);
+
+	sdsfree(filename);
 }
 
 static void find_one_file(sds path) {
@@ -142,12 +88,12 @@ static void find_one_file(sds path) {
 static void* read_thread(void *argv) {
 	/* Each file will be processed separately */
 	find_one_file(jcr.path);
-	term_block_queue();
+	sync_queue_term(read_queue);
 	return NULL;
 }
 
 void start_read_phase() {
-	block_queue = sync_queue_new(10);
+	read_queue = sync_queue_new(10);
 	pthread_create(&read_t, NULL, read_thread, NULL);
 }
 

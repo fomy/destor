@@ -301,14 +301,14 @@ sds sdscatvprintf(sds s, const char *fmt, va_list ap) {
         va_copy(cpy,ap);
         vsnprintf(buf, buflen, fmt, cpy);
         if (buf[buflen-2] != '\0') {
-            zfree(buf);
+            free(buf);
             buflen *= 2;
             continue;
         }
         break;
     }
     t = sdscat(s, buf);
-    zfree(buf);
+    free(buf);
     return t;
 }
 
@@ -510,7 +510,7 @@ cleanup:
     {
         int i;
         for (i = 0; i < elements; i++) sdsfree(tokens[i]);
-        zfree(tokens);
+        free(tokens);
         *count = 0;
         return NULL;
     }
@@ -521,7 +521,7 @@ void sdsfreesplitres(sds *tokens, int count) {
     if (!tokens) return;
     while(count--)
         sdsfree(tokens[count]);
-    zfree(tokens);
+    free(tokens);
 }
 
 /* Create an sds string from a long long value. It is much faster than:
@@ -728,7 +728,7 @@ sds *sdssplitargs(const char *line, int *argc) {
 err:
     while((*argc)--)
         sdsfree(vector[*argc]);
-    zfree(vector);
+    free(vector);
     if (current) sdsfree(current);
     *argc = 0;
     return NULL;

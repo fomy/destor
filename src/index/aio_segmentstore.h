@@ -1,12 +1,12 @@
 /*
- * aio_segment_management.h
+ * aio_segmentstore.h
  *
  *  Created on: Nov 23, 2013
  *      Author: fumin
  */
 
-#ifndef AIO_SEGMENT_MANAGEMENT_H_
-#define AIO_SEGMENT_MANAGEMENT_H_
+#ifndef AIO_SEGMENTSTORE_H_
+#define AIO_SEGMENTSTORE_H_
 
 #include "index.h"
 
@@ -25,4 +25,4 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id);
  */
 struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe*);
 
-#endif /* AIO_SEGMENT_MANAGEMENT_H_ */
+#endif /* AIO_SEGMENTSTORE_H_ */

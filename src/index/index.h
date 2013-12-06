@@ -20,7 +20,7 @@ struct indexElem {
 struct {
 	/* Queue of queue (segment). */
 	GQueue *segment_queue;
-	/* map a fingerprint to a queue */
+	/* map a fingerprint to a queue of indexElem */
 	GHashTable *table;
 } index_buffer;
 

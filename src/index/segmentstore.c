@@ -1,11 +1,11 @@
 /*
- * segment_management.c
+ * segmentstore.c
  *
  *  Created on: Nov 24, 2013
  *      Author: fumin
  */
 
-#include "segment_management.h"
+#include "segmentstore.h"
 #include "../tools/serial.h"
 
 #define VOLUME_HEAD 20
@@ -114,7 +114,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 
 struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	int64_t offset = segment_volume.current_length;
-	int64_t length = 8 + 4 + g_sequence_get_length(sr->features) + 4
+	int64_t length = 8 + 4 + g_hash_table_size(sr->features) + 4
 			+ g_hash_table_size(sr->table);
 	sr->id = make_segment_id(offset, length);
 
@@ -123,7 +123,7 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	ser_begin(buf, length);
 
 	ser_int64(sr->id);
-	int num = g_sequence_get_length(sr->features);
+	int num = g_hash_table_size(sr->features);
 	ser_int32(num);
 
 	GHashTableIter iter;
@@ -145,7 +145,7 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	ser_end(buf, length);
 
 	fseek(segment_volume.fp, offset, SEEK_SET);
-	fwrite(buf, length, 1, fp);
+	fwrite(buf, length, 1, segment_volume.fp);
 
 	segment_volume.current_length += length;
 	segment_volume.segment_num++;

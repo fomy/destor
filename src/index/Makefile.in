@@ -46,10 +46,12 @@ AR = ar
 ARFLAGS = cru
 libindex_a_AR = $(AR) $(ARFLAGS)
 libindex_a_LIBADD =
-am_libindex_a_OBJECTS = index.$(OBJEXT) ramindex.$(OBJEXT) \
-	ddfsindex.$(OBJEXT) extreme_binning.$(OBJEXT) silo.$(OBJEXT) \
-	sparse_index.$(OBJEXT) htable.$(OBJEXT) sample_index.$(OBJEXT) \
-	db_mysql.$(OBJEXT) blc_index.$(OBJEXT)
+am_libindex_a_OBJECTS = index.$(OBJEXT) aio_segmentstore.$(OBJEXT) \
+	exact_locality_index.$(OBJEXT) \
+	exact_similarity_index.$(OBJEXT) feature_index.$(OBJEXT) \
+	global_fingerprint_index.$(OBJEXT) \
+	near_exact_locality_index.$(OBJEXT) \
+	near_exact_similarity_index.$(OBJEXT) segmentstore.$(OBJEXT)
 libindex_a_OBJECTS = $(am_libindex_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -152,7 +154,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libindex.a
-libindex_a_SOURCES = index.c ramindex.c ddfsindex.c extreme_binning.c silo.c sparse_index.c htable.c sample_index.c db_mysql.c blc_index.c
+libindex_a_SOURCES = index.c aio_segmentstore.c exact_locality_index.c exact_similarity_index.c feature_index.c global_fingerprint_index.c near_exact_locality_index.c near_exact_similarity_index.c segmentstore.c 
 all: all-am
 
 .SUFFIXES:
@@ -201,16 +203,15 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blc_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db_mysql.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ddfsindex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extreme_binning.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/htable.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aio_segmentstore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exact_locality_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exact_similarity_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/feature_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/global_fingerprint_index.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ramindex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sample_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/silo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sparse_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/near_exact_locality_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/near_exact_similarity_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segmentstore.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -18,7 +18,7 @@ void init_backup_jcr(char *path) {
 	if (S_ISDIR(s.st_mode) && jcr.path[sdslen(jcr.path) - 1] != '/')
 		jcr.path = sdscat(jcr.path, "/");
 
-	jcr.bv = create_backup_verion(jcr.path);
+	jcr.bv = NULL;
 
 	jcr.id = jcr.bv->number;
 

@@ -39,7 +39,7 @@ void free_lru_cache(struct lruCache* c) {
 void* lru_cache_lookup(struct lruCache* c, void* user_data) {
 	GList* elem = g_list_first(c->elem_queue);
 	while (elem) {
-		if (elem_hit(elem->data, user_data))
+		if (c->hit_elem(elem->data, user_data))
 			break;
 		elem = g_list_next(elem);
 	}
@@ -57,7 +57,7 @@ void* lru_cache_lookup(struct lruCache* c, void* user_data) {
 void* lru_cache_lookup_without_update(struct lruCache* c, void* user_data) {
 	GList* elem = g_list_first(c->elem_queue);
 	while (elem) {
-		if (elem_hit(elem->data, user_data))
+		if (c->hit_elem(elem->data, user_data))
 			break;
 		elem = g_list_next(elem);
 	}
@@ -116,7 +116,7 @@ void lru_cache_kicks(struct lruCache* c, void* user_data,
 	while (elem) {
 		if (func(elem->data, user_data))
 			break;
-		elem = g_list_prev(elem);
+		elem = g_list_previous(elem);
 	}
 	if (elem) {
 		c->elem_queue = g_list_remove_link(c->elem_queue, elem);

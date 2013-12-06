@@ -1,5 +1,6 @@
 /*  Serialisation support functions from serial.c.  */
 #include <stdint.h>
+#include <assert.h>
 
 extern void serial_int16(uint8_t * * const ptr, const int16_t v);
 extern void serial_uint16(uint8_t * * const ptr, const uint16_t v);
@@ -23,12 +24,12 @@ extern void unserial_string(uint8_t * * const ptr, char * const str);
 
 /*
 
-                         Serialisation Macros
+ Serialisation Macros
 
-    These macros use a uint8_t pointer, ser_ptr, which must be
-    defined by the code which uses them.
+ These macros use a uint8_t pointer, ser_ptr, which must be
+ defined by the code which uses them.
 
-*/
+ */
 
 #ifndef __SERIAL_H_
 #define __SERIAL_H_ 1
@@ -42,17 +43,17 @@ extern void unserial_string(uint8_t * * const ptr, char * const str);
 #define unser_begin(x, s) ser_ptr = ((uint8_t *)(x))
 
 /*  ser_length  --  Determine length in bytes of serialised into a
-                    buffer x.  */
+ buffer x.  */
 #define ser_length(x)  (ser_ptr - (uint8_t *)(x))
 #define unser_length(x)  (ser_ptr - (uint8_t *)(x))
 
 /*  ser_end(x, s)  --  End serialisation into a buffer x of size s.  */
-#define ser_end(x, s)   ASSERT(ser_length(x) <= (s))
-#define unser_end(x, s)   ASSERT(ser_length(x) <= (s))
+#define ser_end(x, s)   assert(ser_length(x) <= (s))
+#define unser_end(x, s)   assert(ser_length(x) <= (s))
 
 /*  ser_check(x, s)  --  Verify length of serialised data in buffer x is
-                         expected length s.  */
-#define ser_check(x, s) ASSERT(ser_length(x) == (s))
+ expected length s.  */
+#define ser_check(x, s) assert(ser_length(x) == (s))
 
 /*                          Serialisation                   */
 
@@ -78,7 +79,6 @@ extern void unserial_string(uint8_t * * const ptr, char * const str);
 
 /* btime -- 64 bit unsigned integer */
 #define ser_btime(x)    serial_btime(&ser_ptr, x)
-
 
 /*  64 bit IEEE floating point number  */
 #define ser_float64(x)  serial_float64(&ser_ptr, x)

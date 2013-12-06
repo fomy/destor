@@ -13,7 +13,7 @@ struct featureIndexElem {
 };
 
 static GHashTable *feature_index;
-static const int max_id_num_per_feature = 5;
+static int max_id_num_per_feature;
 
 static struct featureIndexElem* new_feature_index_elem() {
 	struct featureIndexElem* e = (struct featureIndexElem*) malloc(
@@ -48,7 +48,7 @@ void init_feature_index() {
 
 	FILE *fp;
 	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprint(stderr, "Can not open index/feature.index!");
+		fprintf(stderr, "Can not open index/feature.index!");
 		exit(1);
 	}
 
@@ -84,7 +84,7 @@ void close_feature_index() {
 
 	FILE *fp;
 	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprint(stderr, "Can not open index/feature.index!\n");
+		fprintf(stderr, "Can not open index/feature.index!\n");
 		exit(1);
 	}
 	int feature_num = g_hash_table_size(feature_index);
@@ -94,14 +94,14 @@ void close_feature_index() {
 	gpointer key;
 	struct featureIndexElem* ie;
 
-	g_hash_table_iter_init(&iter, &feature_index);
+	g_hash_table_iter_init(&iter, feature_index);
 	while (g_hash_table_iter_next(&iter, &key, &ie)) {
 		fwrite(&ie->feature, sizeof(fingerprint), 1, fp);
 		int id_num = g_queue_get_length(ie->ids);
 		fwrite(&id_num, sizeof(int), 1, fp);
 		int i;
 		for (i = 0; i < id_num; i++) {
-			fwrite(g_queue_peak_nth(ie->ids, i), sizeof(int64_t), 1, fp);
+			fwrite(g_queue_peek_nth(ie->ids, i), sizeof(int64_t), 1, fp);
 		}
 	}
 
@@ -126,7 +126,7 @@ GQueue* feature_index_lookup(fingerprint *feature) {
 segmentid feature_index_lookup_for_latest(fingerprint *feature) {
 	struct featureIndexElem* ie = g_hash_table_lookup(feature_index, feature);
 	if (ie) {
-		segmentid *id = g_queue_peak_tail(ie->ids);
+		segmentid *id = g_queue_peek_tail(ie->ids);
 		return *id;
 	} else
 		return TEMPORARY_ID;
@@ -136,7 +136,7 @@ void feature_index_update(fingerprint *feature, int64_t id) {
 	struct featureIndexElem* ie = g_hash_table_lookup(feature_index, feature);
 	if (!ie) {
 		ie = new_feature_index_elem();
-		memcpy(&ie->feature, feature);
+		memcpy(&ie->feature, feature, sizeof(fingerprint));
 		g_hash_table_insert(feature_index, &ie->feature, ie);
 	}
 	feature_index_elem_add_id(ie, id);

@@ -1,6 +1,7 @@
 #include "destor.h"
 #include "jcr.h"
 #include "rewrite_phase.h"
+#include "backup.h"
 
 static int cap_segment_push(struct chunk *c) {
 
@@ -47,12 +48,10 @@ void *cap_rewrite(void* arg) {
 	top = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, free);
 
 	while (1) {
-		struct chunk *c = NULL;
-		int signal = recv_dedup_chunk(&c);
+		struct chunk *c = sync_queue_pop(dedup_queue);
 
-		if (signal == STREAM_END) {
+		if (c == NULL)
 			break;
-		}
 
 		if (!cap_segment_push(c))
 			continue;
@@ -60,13 +59,14 @@ void *cap_rewrite(void* arg) {
 		cap_segment_get_top();
 
 		while ((c = cap_segment_pop())) {
-			if (c->size > 0 && CHECK_CHUNK_DUPLICATE(c)) {
-				if (g_hash_table_lookup(top, &c->id) == NULL) {
+			if (!CHECK_CHUNK(c,
+					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+					&& CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
+				if (g_hash_table_lookup(top, &c->id) == NULL)
 					/* not in TOP */
-					c->flag |= CHUNK_OUT_OF_ORDER;
-				}
+					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 			}
-			send_rewrite_chunk(c);
+			sync_queue_push(rewrite_queue, c);
 		}
 
 		g_hash_table_remove_all(top);
@@ -76,21 +76,18 @@ void *cap_rewrite(void* arg) {
 
 	struct chunk *c;
 	while ((c = cap_segment_pop())) {
-		if (c->size > 0 && CHECK_CHUNK_DUPLICATE(c)) {
-			if (g_hash_table_lookup(top, &c->id) == NULL) {
+		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+		&& CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
+			if (g_hash_table_lookup(top, &c->id) == NULL)
 				/* not in TOP */
-				c->flag |= CHUNK_OUT_OF_ORDER;
-			}
+				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 		}
-		send_rewrite_chunk(c);
+		sync_queue_push(rewrite_queue, c);
 	}
 
 	g_hash_table_remove_all(top);
 
-	term_rewrite_chunk_queue();
-
-	g_queue_free(rewrite_buffer.chunk_queue, free_chunk);
-	g_sequence_free(rewrite_buffer.container_record_seq);
+	sync_queue_term(rewrite_queue);
 
 	return NULL;
 }

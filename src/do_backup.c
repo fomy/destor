@@ -1,13 +1,15 @@
 #include "destor.h"
 #include "jcr.h"
-#include "recipe/recipestore.h"
 #include "tools/sync_queue.h"
 #include "index/index.h"
-#include "pipeline.h"
+#include "backup.h"
 
 void do_backup(char *path) {
 
 	init_backup_jcr(path);
+
+	jcr.bv = create_backup_version(jcr.path);
+
 	init_index();
 
 	puts("==== backup begin ====");
@@ -16,7 +18,7 @@ void do_backup(char *path) {
 	struct timeval begin, end;
 	gettimeofday(&begin, 0);
 
-	if (simulation_level == SIMULATION_ALL) {
+	if (destor.simulation_level == SIMULATION_ALL) {
 		start_read_trace_phase();
 	} else {
 		start_read_phase();
@@ -50,7 +52,7 @@ void do_backup(char *path) {
 	printf("stored data size: %ld\n", jcr.unique_data_size);
 	printf("dedup efficiency: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
-					(jcr.data_size - jcr->unique_data_size)
+					(jcr.data_size - jcr.unique_data_size)
 							/ (double) (jcr.data_size) :
 					0, jcr.data_size / (double) (jcr.unique_data_size));
 	printf("total time: %.3fs\n", jcr.total_time);
@@ -61,7 +63,7 @@ void do_backup(char *path) {
 	printf("rewritten_chunk_num: %d\n", jcr.rewritten_chunk_num);
 	printf("rewritten_chunk_size: %ld\n", jcr.rewritten_chunk_size);
 	printf("rewritten rate in size: %.3f\n",
-			jcr->rewritten_chunk_size / (double) jcr.data_size);
+			jcr.rewritten_chunk_size / (double) jcr.data_size);
 
 	destor.data_size += jcr.data_size;
 	destor.stored_data_size += jcr.unique_data_size;
@@ -74,15 +76,15 @@ void do_backup(char *path) {
 	destor.rewritten_chunk_size += jcr.rewritten_chunk_size;
 
 	printf("read_time : %.3fs, %.2fMB/s\n", jcr.read_time / 1000000,
-			jcr->data_size * 1000000 / jcr.read_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.read_time / 1024 / 1024);
 	printf("chunk_time : %.3fs, %.2fMB/s\n", jcr.chunk_time / 1000000,
-			jcr->data_size * 1000000 / jcr.chunk_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.chunk_time / 1024 / 1024);
 	printf("hash_time : %.3fs, %.2fMB/s\n", jcr.hash_time / 1000000,
-			jcr->data_size * 1000000 / jcr.hash_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024);
 	printf("dedup_time : %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
-			jcr->data_size * 1000000 / jcr.filter_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
-			jcr->data_size * 1000000 / jcr.write_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
 
 	puts("==== backup end ====");
 

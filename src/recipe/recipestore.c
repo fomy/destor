@@ -65,7 +65,9 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	b->fname_prefix = sdsdup(recipepath);
 	b->fname_prefix = sdscat(b->fname_prefix, "bv");
-	b->fname_prefix = sdscat(b->fname_prefix, itoa(b->number));
+	char s[20];
+	sprintf(s, "%d", b->number);
+	b->fname_prefix = sdscat(b->fname_prefix, s);
 
 	sds fname = sdsdup(b->fname_prefix);
 	fname = sdscat(fname, ".meta");
@@ -114,7 +116,9 @@ struct backupVersion* create_backup_version(const char *path) {
 int backup_version_exists(int number) {
 	sds fname = sdsdup(recipepath);
 	fname = sdscat(fname, "bv");
-	fname = sdscat(fname, itoa(number));
+	char s[20];
+	sprintf(s, "%d", number);
+	fname = sdscat(fname, s);
 	fname = sdscat(fname, ".meta");
 
 	if (access(fname, 0) == 0)
@@ -140,7 +144,9 @@ struct backupVersion* open_backup_version(int number) {
 
 	b->fname_prefix = sdsdup(recipepath);
 	b->fname_prefix = sdscat(b->fname_prefix, "bv");
-	b->fname_prefix = sdscat(b->fname_prefix, itoa(b->number));
+	char s[20];
+	sprintf(s, "%d", b->number);
+	b->fname_prefix = sdscat(b->fname_prefix, s);
 
 	sds fname = sdsdup(b->fname_prefix);
 	fname = sdscat(fname, ".meta");
@@ -280,37 +286,26 @@ struct recipe* read_next_recipe_meta(struct backupVersion* b) {
  * If no recipe and chunkpointer are read,
  * we arrive at the end of the stream.
  */
-struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
-		struct chunkPointer** cp, int *k) {
+struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
+		int *k) {
 
-	/* The number of remaining chunks in the file. */
-	static int number_of_remaining_chunks;
 	/* Total number of read chunks. */
 	static int read_chunk_num;
 
 	if (read_chunk_num == b->number_of_chunks) {
 		/* It's the stream end. */
-		*cp = 0;
 		*k = 0;
 		return NULL;
 	}
 
-	if (number_of_remaining_chunks == 0) {
-		struct recipe *r = read_next_recipe_meta(b);
-		number_of_remaining_chunks = r->chunknum;
-		return r;
-	}
-
-	*cp = (struct chunkPointer *) malloc(sizeof(struct chunkPointer) * n);
+	struct chunkPointer *cp = (struct chunkPointer *) malloc(
+			sizeof(struct chunkPointer) * n);
 
 	int i;
 	for (i = 0; i < n; i++) {
-		if (number_of_remaining_chunks == 0)
-			break;
-		fread(&(*cp)[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
-		fread(&(*cp)[i].id, sizeof(containerid), 1, b->recipe_fp);
-		fread(&(*cp)[i].size, sizeof(int32_t), 1, b->recipe_fp);
-		number_of_remaining_chunks--;
+		fread(&(cp[i].fp), sizeof(fingerprint), 1, b->recipe_fp);
+		fread(&(cp[i].id), sizeof(containerid), 1, b->recipe_fp);
+		fread(&(cp[i].size), sizeof(int32_t), 1, b->recipe_fp);
 	}
 
 	*k = i;
@@ -318,7 +313,7 @@ struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 	read_chunk_num += (*k);
 	assert(read_chunk_num <= b->number_of_chunks);
 
-	return NULL;
+	return cp;
 }
 
 containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k) {
@@ -329,9 +324,9 @@ containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k) {
 		return NULL;
 	}
 
-	containerid *ids = (containerid *) malloc(sizeof(containerid) * n);
+	containerid *ids = (containerid *) malloc(sizeof(containerid) * (n + 1));
 	int i;
-	for (i = 0; i < n; i++) {
+	for (i = 1; i < n + 1; i++) {
 		fscanf(b->seed_fp, "%ld", &ids[i]);
 		if (ids[i] == TEMPORARY_ID) {
 			end = 1;
@@ -339,7 +334,8 @@ containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k) {
 		}
 	}
 
-	*k = i;
+	*k = i - 1;
+	ids[0] = *k;
 	return ids;
 }
 

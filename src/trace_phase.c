@@ -1,6 +1,6 @@
 #include "destor.h"
 #include "jcr.h"
-#include "pipeline.h"
+#include "backup.h"
 
 void hash2code(unsigned char hash[20], char code[40]) {
 	int i, j, b;
@@ -31,9 +31,6 @@ void hash2code(unsigned char hash[20], char code[40]) {
 				break;
 			default:
 				c = b + 48;
-				if (c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E'
-						|| c == 'F')
-					dprint("not good");
 				break;
 
 			}
@@ -97,7 +94,7 @@ void code2hash(unsigned char code[40], unsigned char hash[20]) {
 }
 
 void make_trace(char* path) {
-	init_jcr(path);
+	init_backup_jcr(path);
 
 	sds trace_file = sdsnew(path);
 
@@ -119,15 +116,18 @@ void make_trace(char* path) {
 
 	FILE *fp = fopen(trace_file, "w");
 	while (1) {
-		struct chunk *c = NULL;
-		int signal = recv_hashed_chunk(&c);
-		if (signal == STREAM_END) {
+		struct chunk *c = sync_queue_pop(hash_queue);
+
+		if (c == NULL) {
 			break;
 		}
 
-		if (signal == FILE_END) {
+		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
 			destor_log(DESTOR_NOTICE, c->data);
-			fprintf(fp, "fileindex %d\n", file_index);
+			fprintf(fp, "file start %d\n", file_index);
+
+		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
+			fprintf(fp, "file end %d\n", file_index);
 			file_index++;
 		} else {
 			hash2code(c->fp, code);
@@ -137,32 +137,12 @@ void make_trace(char* path) {
 		free_chunk(c);
 	}
 
-	fprintf(fp, "STREAM_END");
+	fprintf(fp, "END");
 	fclose(fp);
 
 }
 
-static SyncQueue* trace_queue;
 static pthread_t trace_t;
-
-int recv_trace_chunk(struct chunk **c) {
-	*c = sync_queue_pop(trace_queue);
-	if (*c == NULL)
-		return STREAM_END;
-
-	if ((*c)->size < 0)
-		return FILE_END;
-
-	return (*c)->size;
-}
-
-static void send_trace_chunk(struct chunk* c) {
-	sync_queue_push(trace_queue, c);
-}
-
-static void term_trace_queue() {
-	term_sync_queue(trace_queue);
-}
 
 static void* read_trace_thread(void *argv) {
 
@@ -172,31 +152,37 @@ static void* read_trace_thread(void *argv) {
 	while (TRUE) {
 		fgets(line, 128, trace_file);
 
-		if (strcmp(line, "STREAM_END") == 0) {
-			term_trace_queue();
+		if (strcmp(line, "END") == 0) {
+			sync_queue_term(trace_queue);
 			break;
 		}
 
-		struct chunk* c = new_chunk(0);
+		struct chunk* c;
 
-		if (strncmp(line, "fileindex ", 10) == 0) {
+		if (strncmp(line, "file start ", 11) == 0) {
 			char fileindex[10];
-			strncpy(fileindex, line + 10, strlen(line + 10) - 1);
-			fileindex[strlen(line + 10) - 1] = 0;
+			strcpy(fileindex, line + 11);
 
+			c = new_chunk(strlen(fileindex) + 1);
 			strcpy(c->data, fileindex);
-			c->size = -(strlen(fileindex) + 1);
+			SET_CHUNK(c, CHUNK_FILE_START);
 
 			jcr.file_num++;
 
+		} else if (strncmp(line, "file end ", 9) == 0) {
+			c = new_chunk(0);
+			SET_CHUNK(c, CHUNK_FILE_END);
 		} else {
+			c = new_chunk(0);
+
 			char code[41];
 			strncpy(code, line, 40);
-			code2hash(code, &c->fp);
+			code2hash(code, c->fp);
 
 			c->size = atoi(line + 41);
 		}
-		send_trace_chunk(new_chunk);
+
+		sync_queue_push(trace_queue, c);
 	}
 
 	fclose(trace_file);

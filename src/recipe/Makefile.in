@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-subdir = src/job
+subdir = src/recipe
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -44,10 +44,10 @@ CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
 ARFLAGS = cru
-libjob_a_AR = $(AR) $(ARFLAGS)
-libjob_a_LIBADD =
-am_libjob_a_OBJECTS = jobmanage.$(OBJEXT) recipe.$(OBJEXT)
-libjob_a_OBJECTS = $(am_libjob_a_OBJECTS)
+librecipe_a_AR = $(AR) $(ARFLAGS)
+librecipe_a_LIBADD =
+am_librecipe_a_OBJECTS = recipestore.$(OBJEXT)
+librecipe_a_OBJECTS = $(am_librecipe_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -56,8 +56,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libjob_a_SOURCES)
-DIST_SOURCES = $(libjob_a_SOURCES)
+SOURCES = $(librecipe_a_SOURCES)
+DIST_SOURCES = $(librecipe_a_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -148,8 +148,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-noinst_LIBRARIES = libjob.a
-libjob_a_SOURCES = jobmanage.c recipe.c
+noinst_LIBRARIES = librecipe.a
+librecipe_a_SOURCES = recipestore.c
 all: all-am
 
 .SUFFIXES:
@@ -163,9 +163,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/job/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/recipe/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/job/Makefile
+	  $(AUTOMAKE) --gnu src/recipe/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -187,10 +187,10 @@ $(am__aclocal_m4_deps):
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-libjob.a: $(libjob_a_OBJECTS) $(libjob_a_DEPENDENCIES) $(EXTRA_libjob_a_DEPENDENCIES) 
-	-rm -f libjob.a
-	$(libjob_a_AR) libjob.a $(libjob_a_OBJECTS) $(libjob_a_LIBADD)
-	$(RANLIB) libjob.a
+librecipe.a: $(librecipe_a_OBJECTS) $(librecipe_a_DEPENDENCIES) $(EXTRA_librecipe_a_DEPENDENCIES) 
+	-rm -f librecipe.a
+	$(librecipe_a_AR) librecipe.a $(librecipe_a_OBJECTS) $(librecipe_a_LIBADD)
+	$(RANLIB) librecipe.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -198,8 +198,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jobmanage.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/recipe.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/recipestore.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

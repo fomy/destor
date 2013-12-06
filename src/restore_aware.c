@@ -38,28 +38,28 @@ void init_restore_aware() {
  * Maintain a LRU cache internally to simulate recovery process when backing-up.
  */
 void restore_aware_update(containerid id, int32_t chunklen) {
-	monitor->total_size += chunklen + CONTAINER_META_ENTRY;
+	monitor.total_size += chunklen + CONTAINER_META_ENTRY;
 
 	struct containerRecord* record = lru_cache_lookup(monitor.cache, &id);
 	if (!record) {
 		record = (struct containerRecord*) malloc(
 				sizeof(struct containerRecord));
 		record->cid = id;
-		lru_cache_insert(monitor->cache, record, NULL, NULL);
+		lru_cache_insert(monitor.cache, record, NULL, NULL);
 
-		monitor->ccf++;
+		monitor.ccf++;
 	}
 
-	monitor->ocf = (monitor->total_size + CONTAINER_SIZE - 1) / CONTAINER_SIZE;
-	monitor->cfl = monitor->ocf / (double) monitor->ccf;
+	monitor.ocf = (monitor.total_size + CONTAINER_SIZE - 1) / CONTAINER_SIZE;
+	monitor.cfl = monitor.ocf / (double) monitor.ccf;
 }
 
 int restore_aware_contains(containerid id) {
 	struct containerRecord record;
 	record.cid = id;
-	return lru_cache_lookup_without_update(monitor->cache, &record) ? 1 : 0;
+	return lru_cache_lookup_without_update(monitor.cache, &record) ? 1 : 0;
 }
 
 double restore_aware_get_cfl() {
-	return monitor->cfl > 1 ? 1 : monitor->cfl;
+	return monitor.cfl > 1 ? 1 : monitor.cfl;
 }

@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -128,7 +129,6 @@
  * A specific fingerprint index,
  * similar with a combo.
  */
-#define INDEX_SPECIFIC_RAM 0
 #define INDEX_SPECIFIC_DDFS 1
 #define INDEX_SPECIFIC_EXTREME_BINNING 2
 #define INDEX_SPECIFIC_SILO 3
@@ -146,32 +146,29 @@
 #define REWRITE_CONTEXT_BASED 2
 #define REWRITE_CAPPING 3
 
-#define TEMPORARY_ID -1
+#define TEMPORARY_ID (-1L)
 
 /* the buffer size for read phase */
 #define DEFAULT_BLOCK_SIZE 1073741824 //1MB
 
-/* states of chunks. */
+/* states of normal chunks. */
 #define CHUNK_UNIQUE (0x00)
 #define CHUNK_DUPLICATE (0x01)
 #define CHUNK_SPARSE (0x02)
 #define CHUNK_OUT_OF_ORDER (0x04)
 #define CHUNK_IN_CACHE (0x08)
 
-#define CHECK_CHUNK_UNIQUE(c) (!(c->flag & CHUNK_DUPLICATE))
-#define CHECK_CHUNK_DUPLICATE(c) (c->flag & CHUNK_DUPLICATE)
-#define CHECK_CHUNK_SPARSE(c) (c->flag & CHUNK_SPARSE)
-#define CHECK_CHUNK_OUT_OF_ORDER(c) (c->flag & CHUNK_OUT_OF_ORDER)
-#define CHECK_CHUNK_IN_CACHE(c) (c->flag & CHUNK_IN_CACHE)
+/* signal chunk */
+#define CHUNK_FILE_START (0x10)
+#define CHUNK_FILE_END (0x20)
+
+#define SET_CHUNK(c, f) (c->flag |= f)
+#define UNSET_CHUNK(c, f) (c->flag &= ~f)
+#define CHECK_CHUNK(c, f) (c->flag & f)
 
 /* Flags for restore */
 #define CHUNK_WAIT 0
 #define CHUNK_READY 1
-
-#define CHECK_CHUNK_READY (c->flag & CHUNK_READY)
-
-#define STREAM_END -1 /* Indicates the end of stream. */
-#define FILE_END -2 /* IIndicates the end of file. */
 
 struct destor {
 	sds working_directory;
@@ -195,8 +192,16 @@ struct destor {
 	int index_container_cache_size;
 	int index_bloom_filter_size;
 
+	/*
+	 * [0] specifies the feature method,
+	 * and we select one feature every [1].
+	 */
 	int index_feature_method[2];
 
+	/*
+	 * [0] specifies the algorithm,
+	 * and [1] specifies the segment size.
+	 */
 	int index_segment_algorithm[2];
 	int index_segment_selection_method[2];
 	int index_segment_prefech;
@@ -249,7 +254,7 @@ struct chunk {
 
 /* struct segment only makes sense for index. */
 struct segment {
-	/* The actual number because there are FILE_END flag in chunks. */
+	/* The actual number because there are signal chunks. */
 	int32_t chunk_num;
 	GQueue *chunks;
 	GHashTable* features;
@@ -259,7 +264,7 @@ struct chunk* new_chunk(int32_t);
 void free_chunk(struct chunk*);
 
 struct segment* new_segment();
-void free_segment(struct segment*);
+void free_segment(struct segment* s, void (*free_data)(void *));
 
 gboolean g_fingerprint_equal(gconstpointer fp1, gconstpointer fp2);
 gboolean g_fingerprint_cmp(gconstpointer fp1, gconstpointer fp2,

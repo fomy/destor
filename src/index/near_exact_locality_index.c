@@ -5,9 +5,11 @@
  *      Author: fumin
  */
 
+#include "index.h"
 #include "near_exact_locality_index.h"
 #include "feature_index.h"
 #include "../tools/lru_cache.h"
+#include "../storage/containerstore.h"
 
 static struct lruCache* container_meta_cache = NULL;
 static containerid cid = TEMPORARY_ID;
@@ -30,13 +32,15 @@ void init_near_exact_locality_index() {
 
 void close_near_exact_locality_index() {
 	if (cid != TEMPORARY_ID) {
-		GQueue *features = featuring(NULL, 1);
-		fingerprint *feature = g_queue_pop_head(features);
-		do {
+		GHashTable *features = featuring(NULL, 1);
+
+		GHashTableIter iter;
+		fingerprint *feature, *value;
+		g_hash_table_iter_init(&iter, features);
+		while (g_hash_table_iter_next(&iter, &feature, &value))
 			feature_index_update(feature, cid);
-			free(feature);
-		} while ((feature = g_queue_pop_head(features)));
-		g_queue_free(features);
+
+		g_hash_table_destroy(features);
 	}
 
 	close_feature_index();
@@ -60,35 +64,35 @@ void near_exact_locality_index_lookup(struct segment* s) {
 	for (i = 0; i < len; ++i) {
 		struct chunk* c = g_queue_peek_nth(s->chunks, i);
 
-		if (c->size < 0)
+		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
 		if (tq) {
-			struct indexElem *be = g_queue_peak_head(tq);
+			struct indexElem *be = g_queue_peek_head(tq);
 			c->id = be->id;
-			c->flag |= CHUNK_DUPLICATE;
+			SET_CHUNK(c, CHUNK_DUPLICATE);
 		} else {
 			tq = g_queue_new();
 		}
 
-		if (CHECK_CHUNK_UNIQUE(c) && container_meta_cache) {
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) && container_meta_cache) {
 			struct containerMeta* cm = lru_cache_lookup(container_meta_cache,
 					c->fp);
 			if (cm) {
 				/* Find it */
-				c->flag |= CHUNK_DUPLICATE;
+				SET_CHUNK(c, CHUNK_DUPLICATE);
 				c->id = cm->id;
 			}
 		}
 
-		if (CHECK_CHUNK_UNIQUE(c)) {
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			GQueue *ids = feature_index_lookup(&c->fp);
 
 			if (ids) {
-				containerid *id = g_queue_peak_tail(ids);
+				containerid *id = g_queue_peek_tail(ids);
 				/* Find it */
-				c->flag |= CHUNK_DUPLICATE;
+				SET_CHUNK(c, CHUNK_DUPLICATE);
 				c->id = *id;
 
 				if (container_meta_cache) {
@@ -105,6 +109,8 @@ void near_exact_locality_index_lookup(struct segment* s) {
 		memcpy(&ne->fp, &c->fp, sizeof(fingerprint));
 
 		g_queue_push_tail(bs->chunks, ne);
+		bs->chunk_num++;
+
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
@@ -119,14 +125,16 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 
 	containerid final_id = TEMPORARY_ID;
 
-	struct segment* bs = g_queue_peak_head(index_buffer.segment_queue); // current segment
+	struct segment* bs = g_queue_peek_head(index_buffer.segment_queue); // current segment
 
-	struct indexElem* e = g_queue_peak_nth(bs->chunks, n++); // current chunk
+	struct indexElem* e = g_queue_peek_nth(bs->chunks, n++); // current chunk
 
 	assert(from >= to);
 	assert(e->id >= from);
 	assert(g_fingerprint_equal(&fp, &e->fp));
-	assert(g_queue_peak_head(g_hash_table_lookup(&fp)) == e);
+	assert(
+			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
+					== e);
 
 	if (from < e->id) {
 		/* to is meaningless. */
@@ -149,14 +157,14 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 			}
 
 			cid = to;
-			featuring(fp, 0);
+			featuring(&fp, 0);
 
-			GQueue *tq = g_hash_table_lookup(&e->fp);
+			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
 
 			int len = g_queue_get_length(tq), i;
 			for (i = 0; i < len; i++) {
-				struct indexElem* ue = g_queue_peak_nth(tq, i);
+				struct indexElem* ue = g_queue_peek_nth(tq, i);
 				ue->id = to;
 			}
 		} else {
@@ -174,7 +182,7 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 		struct indexElem* ee = g_queue_pop_head(bs->chunks);
 		do {
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &ee->fp);
-			assert(g_queue_peak_head(tq) == ee);
+			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
 				/* tp is freed by hash table automatically. */

@@ -1,12 +1,12 @@
 /*
- * segment_management.h
+ * segmentstore.h
  *
  *  Created on: Nov 24, 2013
  *      Author: fumin
  */
 
-#ifndef SEGMENT_MANAGEMENT_H_
-#define SEGMENT_MANAGEMENT_H_
+#ifndef SEGMENTSTORE_H_
+#define SEGMENTSTORE_H_
 
 #include "index.h"
 
@@ -18,4 +18,4 @@ struct segmentRecipe* retrieve_segment(segmentid);
 
 struct segmentRecipe* update_segment(struct segmentRecipe*);
 
-#endif /* SEGMENT_MANAGEMENT_H_ */
+#endif /* SEGMENTSTORE_H_ */

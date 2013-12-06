@@ -8,10 +8,12 @@
 #ifndef RESTORE_H_
 #define RESTORE_H_
 
-void send_restore_chunk(struct chunk* c);
+#include "tools/sync_queue.h"
 
-void term_restore_chunk_queue() ;
+SyncQueue *restore_chunk_queue;
+SyncQueue *restore_recipe_queue;
 
-int recv_restore_recipe(void **cp);
+void* assembly_restore_thread(void *arg);
+void* optimal_restore_thread(void *arg);
 
 #endif /* RESTORE_H_ */

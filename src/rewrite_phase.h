@@ -5,10 +5,10 @@
  *      Author: fumin
  */
 
-#include "destor.h"
-
 #ifndef REWRITE_PHASE_H_
 #define REWRITE_PHASE_H_
+
+#include "destor.h"
 
 struct containerRecord {
 	containerid cid;
@@ -37,13 +37,9 @@ void restore_aware_update(containerid id, int32_t chunklen);
 int restore_aware_contains(containerid id);
 double restore_aware_get_cfl();
 
-void send_rewrite_chunk(struct chunk* c);
-
-void term_rewrite_chunk_queue();
-
 /* For sorting container records. */
 gint g_record_descmp_by_length(struct containerRecord* a,
-		struct containerRecord* b, gpointer user_data)
+		struct containerRecord* b, gpointer user_data);
 gint g_record_cmp_by_id(struct containerRecord* a, struct containerRecord* b,
 		gpointer user_data);
 

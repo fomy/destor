@@ -50,8 +50,9 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_destor_OBJECTS =
 destor_OBJECTS = $(am_destor_OBJECTS)
-destor_DEPENDENCIES = src/libserver.a src/index/libindex.a \
-	src/storage/libstorage.a src/tools/libtools.a src/job/libjob.a
+destor_DEPENDENCIES = src/libdestor.a src/index/libindex.a \
+	src/storage/libstorage.a src/tools/libtools.a \
+	src/recipe/librecipe.a
 DEFAULT_INCLUDES = -I.@am__isrc@
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -202,8 +203,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 destor_SOURCES = 
-destor_LDADD = src/libserver.a src/index/libindex.a src/storage/libstorage.a src/tools/libtools.a src/job/libjob.a
-SUBDIRS = src src/index src/job src/storage src/tools
+destor_LDADD = src/libdestor.a src/index/libindex.a src/storage/libstorage.a src/tools/libtools.a src/recipe/librecipe.a
+SUBDIRS = src src/index src/recipe src/storage src/tools
 all: all-recursive
 
 .SUFFIXES:

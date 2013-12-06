@@ -43,7 +43,7 @@ struct recipe {
 void init_recipe_store();
 void close_recipe_store();
 
-struct backupVersion* create_backup_verion(const char *path);
+struct backupVersion* create_backup_version(const char *path);
 int backup_version_exists(int number);
 struct backupVersion* open_backup_version(int number);
 void update_backup_version(struct backupVersion *b);
@@ -53,8 +53,8 @@ void append_recipe_meta(struct backupVersion* b, struct recipe* r);
 void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
 		int n);
 struct recipe* read_next_recipe_meta(struct backupVersion* b);
-struct recipe* read_next_n_chunk_pointers(struct backupVersion* b, int n,
-		struct chunkpointer** cp, int *k);
+struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
+		int *k);
 void append_seed(struct backupVersion* b, containerid id, int32_t size);
 containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k);
 struct recipe* new_recipe(char* name);

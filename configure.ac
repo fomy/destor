@@ -2,10 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([destor], [1.0], [fumin@hust.edu.cn])
-#AC_CONFIG_SRCDIR([jcr.h])
-#AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([destor], [1.0])
+AC_INIT([destor], [2.0], [fumin@hust.edu.cn])
+AM_INIT_AUTOMAKE([destor], [2.0])
 
 # Checks for programs.
 AC_PROG_CC
@@ -64,5 +62,5 @@ AC_OUTPUT(Makefile
         src/Makefile
         src/tools/Makefile
         src/index/Makefile
-        src/job/Makefile
+        src/recipe/Makefile
         src/storage/Makefile)

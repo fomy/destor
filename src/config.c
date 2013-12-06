@@ -75,9 +75,9 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "chunk-algorithm") == 0 && argc == 2) {
 			if (strcasecmp(argv[1], "fixed") == 0) {
 				destor.chunk_algorithm = CHUNK_FIXED;
-			} else if (strcasecmp(argv[0], "rabin") == 0) {
+			} else if (strcasecmp(argv[1], "rabin") == 0) {
 				destor.chunk_algorithm = CHUNK_RABIN;
-			} else if (strcasecmp(argv[0], "normalized rabin") == 0) {
+			} else if (strcasecmp(argv[1], "normalized rabin") == 0) {
 				destor.chunk_algorithm = CHUNK_NORMALIZED_RABIN;
 			} else {
 				err = "Invalid chunk algorithm";
@@ -99,9 +99,9 @@ void load_config_from_string(sds config) {
 				goto loaderr;
 			}
 
-			if (strcasecmp(argv[1], "locality") == 0) {
+			if (strcasecmp(argv[2], "locality") == 0) {
 				destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
-			} else if (strcasecmp(argv[1], "similarity") == 0) {
+			} else if (strcasecmp(argv[2], "similarity") == 0) {
 				destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
 			} else {
 				err = "Invalid index category";
@@ -111,52 +111,29 @@ void load_config_from_string(sds config) {
 			if (argc > 3) {
 				if (strcasecmp(argv[3], "ddfs") == 0) {
 					assert(
-							destor.index_category[0] == INDEX_CATEGORY_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
+							destor.index_category[0] == INDEX_CATEGORY_EXACT && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_DDFS;
-				} else if (strcasecmp(argv[3], "ram") == 0) {
-					assert(
-							destor.index_category[0]
-									== INDEX_CATEGORY_NEAR_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
-					destor.index_specific = INDEX_SPECIFIC_RAM;
 				} else if (strcasecmp(argv[3], "sampled index") == 0) {
 					assert(
-							destor.index_category[0]
-									== INDEX_CATEGORY_NEAR_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_PHYSICAL_LOCALITY);
+							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_SAMPLED;
 				} else if (strcasecmp(argv[3], "block locality caching") == 0) {
 					assert(
-							destor.index_category[0] == INDEX_CATEGORY_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+							destor.index_category[0] == INDEX_CATEGORY_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific =
 					INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING;
 				} else if (strcasecmp(argv[3], "extreme binning") == 0) {
 					assert(
-							destor.index_category[0]
-									== INDEX_CATEGORY_NEAR_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_EXTREME_BINNING;
 				} else if (strcasecmp(argv[3], "sparse index") == 0) {
 					assert(
-							destor.index_category[0]
-									== INDEX_CATEGORY_NEAR_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_LOGICAL_LOCALITY);
+							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_SPARSE;
 				} else if (strcasecmp(argv[3], "silo") == 0) {
 					assert(
-							destor.index_category[0]
-									== INDEX_CATEGORY_NEAR_EXACT
-									&& destor.index_category[1]
-											== INDEX_CATEGORY_LOGICAL_LOCALITY);
-					destor.index_specific = INDEX_SPECIFIC_SPARSE;
+							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
+					destor.index_specific = INDEX_SPECIFIC_SILO;
 				} else {
 					err = "Invalid index specific";
 					goto loaderr;
@@ -207,8 +184,7 @@ void load_config_from_string(sds config) {
 
 			if (argc > 2) {
 				assert(
-						destor.index_segment_algorithm
-								!= INDEX_SEGMENT_FILE_DEFINED);
+						destor.index_segment_algorithm[0] != INDEX_SEGMENT_FILE_DEFINED);
 				destor.index_segment_algorithm[1] = atoi(argv[2]);
 			}
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-selection")

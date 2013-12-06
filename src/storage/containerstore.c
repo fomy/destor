@@ -78,7 +78,7 @@ void write_container(struct container* c) {
 
 	ser_end(cur, CONTAINER_META_SIZE);
 
-	lseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
+	fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
 	fwrite(c->data, CONTAINER_SIZE, 1, fp);
 }
 
@@ -215,7 +215,7 @@ int lookup_fingerprint_in_container(struct container* c, fingerprint *fp) {
 
 gint g_container_cmp_desc(struct container* c1, struct container* c2,
 		gpointer user_data) {
-	return g_container_meta_cmp_desc(c1, c2, user_data);
+	return g_container_meta_cmp_desc(&c1->meta, &c2->meta, user_data);
 }
 
 gint g_container_meta_cmp_desc(struct containerMeta* cm1,

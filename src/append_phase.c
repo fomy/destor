@@ -8,18 +8,15 @@
 #include "destor.h"
 #include "jcr.h"
 #include "storage/containerstore.h"
-#include "tools/sync_queue.h"
-
-extern int recv_container(struct container** c);
+#include "backup.h"
 
 static pthread_t append_t;
 
 static void* append_thread(void *arg) {
 
 	while (1) {
-		struct container *c;
-		int sig = recv_container(&c);
-		if (sig == STREAM_END)
+		struct container *c = sync_queue_pop(container_queue);
+		if (c == NULL)
 			break;
 
 		TIMER_DECLARE(b, e);
@@ -27,7 +24,7 @@ static void* append_thread(void *arg) {
 
 		write_container(c);
 
-		TIMER_END(jcr->write_time, b, e);
+		TIMER_END(jcr.write_time, b, e);
 
 		free_container(c);
 	}

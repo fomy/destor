@@ -4,20 +4,18 @@
 #include "rabin_chunking.h"
 #include "../destor.h"
 
-extern int chunking_algorithm;
-
-#define SLIDE(m,fingerprint,bufPos,buf) do{	\
+#define SLIDE(m,fp,bufPos,buf) do{	\
 	    unsigned char om;   \
 	    u_int64_t x;	 \
 		if (++bufPos >= size)  \
         bufPos = 0;				\
         om = buf[bufPos];		\
         buf[bufPos] = m;		 \
-		fingerprint ^= U[om];	 \
-		x = fingerprint >> shift;  \
-		fingerprint <<= 8;		   \
-		fingerprint |= m;		  \
-		fingerprint ^= T[x];	 \
+		fp ^= U[om];	 \
+		x = fp >> shift;  \
+		fp <<= 8;		   \
+		fp |= m;		  \
+		fp ^= T[x];	 \
 }while(0)
 
 typedef unsigned int UINT32;
@@ -166,7 +164,7 @@ UINT64 slide8(unsigned char m) {
 		bufpos = 0;
 	om = buf[bufpos];
 	buf[bufpos] = m;
-	return fp = append8(fingerprint ^ U[om], m);
+	return fp = append8(fp ^ U[om], m);
 }
 
 UINT64 polymmult(UINT64 x, UINT64 y, UINT64 d) {
@@ -246,7 +244,7 @@ int rabin_chunk_data(unsigned char *p, int n) {
 
 	UINT64 f_break = 0;
 	UINT64 count = 0;
-	UINT64 fingerprint = 0;
+	UINT64 fp = 0;
 	int i = 1, bufPos = -1;
 
 	unsigned char om;
@@ -261,9 +259,9 @@ int rabin_chunk_data(unsigned char *p, int n) {
 		i = destor.chunk_min_size;
 	while (i <= n) {
 
-		SLIDE(p[i - 1], fingerprint, bufPos, buf);
+		SLIDE(p[i - 1], fp, bufPos, buf);
 		if (destor.chunk_algorithm == CHUNK_RABIN) {
-			if (((fingerprint & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE
+			if (((fp & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE
 					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
 					|| i == n) {
 				break;
@@ -271,16 +269,16 @@ int rabin_chunk_data(unsigned char *p, int n) {
 				i++;
 		} else if (destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN) {
 			if (i < destor.chunk_avg_size) {
-				if (((fingerprint & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE
-						&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
-						|| i == n) {
+				if (((fp & (destor.chunk_avg_size * 2 - 1))
+						== BREAKMARK_VALUE && i >= destor.chunk_min_size)
+						|| i >= destor.chunk_max_size || i == n) {
 					break;
 				} else
 					i++;
 			} else {
-				if (((fingerprint & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE
-						&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
-						|| i == n) {
+				if (((fp & (destor.chunk_avg_size / 2 - 1))
+						== BREAKMARK_VALUE && i >= destor.chunk_min_size)
+						|| i >= destor.chunk_max_size || i == n) {
 					break;
 				} else
 					i++;

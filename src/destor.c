@@ -113,7 +113,7 @@ void check_simulation_level(int last_level, int current_level) {
 void destor_start() {
 
 	/* Init */
-	destor.working_directory = newsds("/home/data/working/");
+	destor.working_directory = sdsnew("/home/data/working/");
 	destor.simulation_level = SIMULATION_NO;
 	destor.verbosity = DESTOR_WARNING;
 
@@ -128,14 +128,14 @@ void destor_start() {
 
 	destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
 	destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
-	destor.index_specific = INDEX_SPECIFIC_RAM;
+	destor.index_specific = INDEX_SPECIFIC_SAMPLED;
 	/* in number of containers, for DDFS/ChunkStash/BLC/Sampled Index. */
 	destor.index_container_cache_size = 4096;
 
 	destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
-	destor.index_segment_algorithm[1] = 1;
-	destor.index_feature_method[0] = INDEX_FEATURE_NO;
-	destor.index_feature_method[1] = 0;
+	destor.index_segment_algorithm[1] = 128;
+	destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
+	destor.index_feature_method[1] = 1;
 	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
 	destor.index_segment_selection_method[1] = 1;
 	destor.index_segment_prefech = 0;
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
 			else if (strcasecmp(optarg, "asm") == 0)
 				destor.restore_cache[0] = RESTORE_CACHE_ASM;
 			else {
-				fdprintf(stderr, "Invalid restore cache");
+				fprintf(stderr, "Invalid restore cache");
 				usage();
 			}
 			break;
@@ -419,7 +419,8 @@ struct segment* new_segment() {
 void free_segment(struct segment* s, void (*free_data)(void *)) {
 	g_queue_free_full(s->chunks, free_data);
 
-	g_hash_table_destroy(s->features);
+	if (s->features)
+		g_hash_table_destroy(s->features);
 
 	free(s);
 }

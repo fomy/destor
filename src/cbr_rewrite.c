@@ -2,6 +2,7 @@
 #include "jcr.h"
 #include "rewrite_phase.h"
 #include "storage/containerstore.h"
+#include "backup.h"
 
 static int stream_context_push(struct chunk *c) {
 
@@ -19,9 +20,10 @@ static struct chunk* stream_context_pop() {
 
 static double get_rewrite_utility(struct chunk *c) {
 	double rewrite_utility = 1;
-	struct containerRecord* record = g_hash_table_lookup(
-			rewrite_buffer->container_record_seq, &c->id);
-	if (record) {
+	GSequenceIter *iter = g_sequence_lookup(rewrite_buffer.container_record_seq,
+			&c->id, g_record_cmp_by_id, NULL);
+	if (iter) {
+		struct containerRecord *record = g_sequence_get(iter);
 		double coverage = (record->size + c->size) / (double) CONTAINER_SIZE;
 		rewrite_utility = coverage >= 1 ? 0 : rewrite_utility - coverage;
 	}
@@ -30,7 +32,7 @@ static double get_rewrite_utility(struct chunk *c) {
 
 static void mark_not_out_of_order(struct chunk *c, containerid *container_id) {
 	if (c->id == *container_id)
-		c->flag &= ~CHUNK_OUT_OF_ORDER;
+		UNSET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 }
 
 struct {
@@ -87,32 +89,32 @@ void *cbr_rewrite(void* arg) {
 
 	/* content-based rewrite*/
 	while (1) {
-		struct chunk *c;
-		int sig = recv_dedup_chunk(&c);
-		if (sig == STREAM_END)
+		struct chunk *c = sync_queue_pop(dedup_queue);
+		if (c == NULL)
 			break;
 
-		if (CHECK_CHUNK_DUPLICATE(c))
-			c->flag |= CHUNK_OUT_OF_ORDER;
+		if (CHECK_CHUNK(c, CHUNK_DUPLICATE))
+			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 
 		if (!stream_context_push(c))
 			continue;
 
 		struct chunk *decision_chunk = stream_context_pop();
 
-		if (decision_chunk->size > 0) {
+		if (!(CHECK_CHUNK(decision_chunk, CHUNK_FILE_START)
+				|| CHECK_CHUNK(decision_chunk, CHUNK_FILE_END))) {
 			/* A normal chunk */
 			double rewrite_utility = 0;
 
-			if (CHECK_CHUNK_DUPLICATE(decision_chunk)) {
+			if (CHECK_CHUNK(decision_chunk, CHUNK_DUPLICATE)) {
 				/* a duplicate chunk */
-				if (CHECK_CHUNK_OUT_OF_ORDER(decision_chunk)) {
+				if (CHECK_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER)) {
 					rewrite_utility = get_rewrite_utility(decision_chunk);
 					if (rewrite_utility < destor.rewrite_cbr_minimal_utility
 							|| rewrite_utility
 									< utility_buckets.current_utility_threshold) {
 						/* mark all physically adjacent chunks not out-of-order */
-						decision_chunk->flag &= ~CHUNK_OUT_OF_ORDER;
+						UNSET_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER);
 						g_queue_foreach(rewrite_buffer.chunk_queue,
 								mark_not_out_of_order, &decision_chunk->id);
 					}
@@ -124,16 +126,15 @@ void *cbr_rewrite(void* arg) {
 			utility_buckets_update(rewrite_utility);
 		}
 
-		send_rewrite_chunk(decision_chunk);
+		sync_queue_push(rewrite_queue, decision_chunk);
 	}
 
 	/* process the remaining chunks in stream context */
 	struct chunk *remaining_chunk = NULL;
-	while ((remaining_chunk = stream_context_pop())) {
-		send_rewrite_chunk(remaining_chunk);
-	}
+	while ((remaining_chunk = stream_context_pop()))
+		sync_queue_push(rewrite_queue, remaining_chunk);
 
-	term_rewrite_chunk_queue();
+	sync_queue_term(rewrite_queue);
 
 	return NULL;
 }

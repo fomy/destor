@@ -1,5 +1,5 @@
 /*
- * aio_segment_management.c
+ * aio_segmentstore.c
  *
  *  Created on: Nov 23, 2013
  *      Author: fumin
@@ -9,7 +9,7 @@
  * All-in-one segment management used by Extreme Binning.
  */
 
-#include "aio_segment_management.h"
+#include "aio_segmentstore.h"
 #include "../tools/serial.h"
 
 #define LEVEL_NUM 20
@@ -36,7 +36,9 @@ static struct segmentVolume* init_segment_volume(int32_t level) {
 
 	sv->fname = sdsnew(destor.working_directory);
 	sv->fname = sdscat(sv->fname, "index/segment.volume");
-	sv->fname = sdscat(sv->fname, itoa(level));
+	char s[20];
+	sprintf(s, "%d", level);
+	sv->fname = sdscat(sv->fname, s);
 
 	FILE *fp;
 	if ((fp = fopen(sv->fname, "rw+")) == NULL) {
@@ -183,7 +185,7 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 
 struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 
-	int level = no_to_level(g_sequence_get_length(sr->features),
+	int level = no_to_level(g_hash_table_size(sr->features),
 			g_hash_table_size(sr->table));
 	struct segmentVolume* sv = segment_volume_array[level];
 	int64_t offset;
@@ -215,7 +217,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	ser_begin(buf, level_to_max_size(level));
 
 	ser_int64(sr->id);
-	int32_t num = g_sequence_get_length(sr->features), i;
+	int32_t num = g_hash_table_size(sr->features), i;
 	ser_int32(num);
 
 	GHashTableIter iter;
@@ -239,7 +241,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 		sv->fp = fopen(sv->fname, "rw+");
 
 	fseek(sv->fp, offset, SEEK_SET);
-	fwrite(buf, level_to_max_size(level), 1, fp);
+	fwrite(buf, level_to_max_size(level), 1, sv->fp);
 
 	return sr;
 }

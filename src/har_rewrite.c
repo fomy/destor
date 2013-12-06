@@ -39,7 +39,9 @@ void init_har() {
 
 	sds fname = sdsdup(destor.working_directory);
 	fname = sdscat(fname, "recipe/sparse");
-	fname = sdscat(fname, itoa(jcr->id - 1));
+	char s[20];
+	sprintf(s, "%d", jcr.id - 1);
+	fname = sdscat(fname, s);
 
 	FILE* sparse_file = fopen(fname, "r+");
 
@@ -88,7 +90,9 @@ void har_monitor_update(containerid id, int32_t size) {
 void close_har() {
 	sds fname = sdsdup(destor.working_directory);
 	fname = sdscat(fname, "recipe/sparse");
-	fname = sdscat(fname, itoa(jcr->id));
+	char s[20];
+	sprintf(s, "%d", jcr.id);
+	fname = sdscat(fname, s);
 
 	GHashTableIter iter;
 	containerid* key;
@@ -112,7 +116,8 @@ void close_har() {
 }
 
 void har_check(struct chunk* c) {
-	if (c->size > 0 && CHECK_CHUNK_DUPLICATE(c))
+	if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+			&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
 		if (g_hash_table_lookup(inherited_sparse_containers, &c->id))
-			c->flag |= CHUNK_SPARSE;
+			SET_CHUNK(c, CHUNK_SPARSE);
 }

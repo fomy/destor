@@ -7,7 +7,8 @@
 
 #include "index.h"
 #include "global_fingerprint_index.h"
-#include "segment_management.h"
+#include "segmentstore.h"
+#include "aio_segmentstore.h"
 #include "../tools/lru_cache.h"
 
 static struct lruCache* segment_recipe_cache;
@@ -61,26 +62,26 @@ void exact_similarity_index_lookup(struct segment* s) {
 
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
 		if (tq) {
-			struct indexElem *be = g_queue_peak_head(tq);
+			struct indexElem *be = g_queue_peek_head(tq);
 			c->id = be->id;
-			c->flag |= CHUNK_DUPLICATE;
+			SET_CHUNK(c, CHUNK_DUPLICATE);
 		} else {
 			tq = g_queue_new();
 		}
 
-		if (CHECK_CHUNK_UNIQUE(c)) {
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			struct segmentRecipe* sr = lru_cache_lookup(segment_recipe_cache,
 					&c->fp);
 			if (sr) {
 				/* Find it */
-				c->flag |= CHUNK_DUPLICATE;
+				SET_CHUNK(c, CHUNK_DUPLICATE);
 				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);
 				assert(e);
 				c->id = e->id;
 			}
 		}
 
-		if (CHECK_CHUNK_UNIQUE(c)) {
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			segmentid id = db_lookup_fingerprint(&c->fp);
 			if (id != TEMPORARY_ID) {
 				/* Find it in database. */
@@ -98,7 +99,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 
 				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);
 				c->id = e->id;
-				c->flag |= CHUNK_DUPLICATE;
+				SET_CHUNK(c, CHUNK_DUPLICATE);
 			}
 		}
 
@@ -107,13 +108,15 @@ void exact_similarity_index_lookup(struct segment* s) {
 		ne->id = c->id;
 		memcpy(&ne->fp, &c->fp, sizeof(fingerprint));
 
-		g_queue_push_tail(bs, ne);
+		g_queue_push_tail(bs->chunks, ne);
 		bs->chunk_num++;
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
 	}
 
+	bs->features = s->features;
+	s->features = NULL;
 	g_queue_push_tail(index_buffer.segment_queue, bs);
 
 }
@@ -128,15 +131,15 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 
 	containerid final_id = TEMPORARY_ID;
 
-	struct segment *bs = g_queue_peak_head(index_buffer.segment_queue); // current segment
+	struct segment *bs = g_queue_peek_head(index_buffer.segment_queue); // current segment
 
-	struct indexElem* e = g_queue_peak_nth(bs->chunks, n++); // current chunk
+	struct indexElem* e = g_queue_peek_nth(bs->chunks, n++); // current chunk
 
 	assert(from >= to);
 	assert(e->id >= from);
 	assert(g_fingerprint_equal(&fp, &e->fp));
 	assert(
-			g_queue_peak_head(g_hash_table_lookup(index_buffer.table, &fp))
+			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
 					== e);
 
 	if (from < e->id) {
@@ -152,7 +155,7 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 			int len = g_queue_get_length(tq);
 			int i;
 			for (i = 0; i < len; i++) {
-				struct indexElem* ue = g_queue_peak_nth(tq, i);
+				struct indexElem* ue = g_queue_peek_nth(tq, i);
 				ue->id = to;
 			}
 
@@ -182,7 +185,7 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 		struct indexElem* ee = g_queue_pop_head(bs->chunks);
 		do {
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &ee->fp);
-			assert(g_queue_peak_head(tq) == ee);
+			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
 				/* tp is freed by hash table automatically. */
