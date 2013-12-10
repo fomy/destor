@@ -131,7 +131,7 @@ void write_restore_data() {
 
 			if (destor.simulation_level == SIMULATION_NO) {
 				assert(fp == NULL);
-				fp = fopen(filepath, "w+");
+				fp = fopen(filepath, "w");
 			}
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {

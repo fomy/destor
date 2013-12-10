@@ -76,7 +76,6 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
  * Used by Sparse Indexing.
  */
 static GHashTable* index_feature_sample(fingerprint *fp, int success) {
-	static GHashTable* features = NULL;
 
 	if (!fp && !success)
 		return NULL;
@@ -84,24 +83,25 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 	if (destor.index_feature_method[0] == INDEX_FEATURE_NO)
 		return NULL;
 
-	if (features == NULL)
-		features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-				free, NULL);
+	if (index_buffer.buffered_features == NULL)
+		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
+				g_fingerprint_equal, free, NULL);
 
 	assert(destor.index_feature_method[1] != 0);
 	if (fp) {
 		if ((*((int*) fp)) % destor.index_feature_method[1] == 0) {
-			if (!g_hash_table_contains(features, fp)) {
+			if (!g_hash_table_contains(index_buffer.buffered_features, fp)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
 				memcpy(new_feature, fp, sizeof(fingerprint));
-				g_hash_table_insert(features, new_feature, new_feature);
+				g_hash_table_insert(index_buffer.buffered_features, new_feature,
+						new_feature);
 			}
 		}
 	}
 
 	if (success) {
-		if (g_hash_table_size(features) == 0) {
+		if (g_hash_table_size(index_buffer.buffered_features) == 0) {
 			/* No feature? */
 			fingerprint *new_feature = (fingerprint*) malloc(
 					sizeof(fingerprint));
@@ -109,18 +109,16 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 				memcpy(new_feature, fp, sizeof(fingerprint));
 			else
 				memset(new_feature, 0x00, sizeof(fingerprint));
-			g_hash_table_insert(features, new_feature, new_feature);
+			g_hash_table_insert(index_buffer.buffered_features, new_feature,
+					new_feature);
 		}
-		GHashTable* f = features;
-		features = NULL;
-		return f;
+		return index_buffer.buffered_features;
 	}
 
 	return NULL;
 }
 
 static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
-	static GHashTable* features = NULL;
 	static int count;
 
 	if (!fp && !success)
@@ -129,18 +127,19 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 	if (destor.index_feature_method[0] == INDEX_FEATURE_NO)
 		return NULL;
 
-	if (features == NULL)
-		features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-				free, NULL);
+	if (index_buffer.buffered_features == NULL)
+		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
+				g_fingerprint_equal, free, NULL);
 
 	assert(destor.index_feature_method[1] != 0);
 	if (fp) {
 		if (count % destor.index_feature_method[1] == 0) {
-			if (!g_hash_table_contains(features, fp)) {
+			if (!g_hash_table_contains(index_buffer.buffered_features, fp)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
 				memcpy(new_feature, fp, sizeof(fingerprint));
-				g_hash_table_insert(features, new_feature, new_feature);
+				g_hash_table_insert(index_buffer.buffered_features, new_feature,
+						new_feature);
 			}
 			count = 0;
 		}
@@ -148,17 +147,16 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 	}
 
 	if (success) {
-		if (g_hash_table_size(features) == 0) {
+		if (g_hash_table_size(index_buffer.buffered_features) == 0) {
 			/* No feature? Empty segment.*/
 			assert(fp == NULL);
 			fingerprint *new_feature = (fingerprint*) malloc(
 					sizeof(fingerprint));
 			memset(new_feature, 0x00, sizeof(fingerprint));
-			g_hash_table_insert(features, new_feature, new_feature);
+			g_hash_table_insert(index_buffer.buffered_features, new_feature,
+					new_feature);
 		}
-		GHashTable* f = features;
-		features = NULL;
-		return f;
+		return index_buffer.buffered_features;
 	}
 
 	return NULL;
@@ -168,6 +166,10 @@ void init_index() {
 	index_buffer.segment_queue = g_queue_new();
 	index_buffer.table = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
 	NULL, g_queue_free);
+
+	index_buffer.buffered_features = g_hash_table_new(g_int64_hash,
+			g_fingerprint_cmp);
+	index_buffer.cid = TEMPORARY_ID;
 
 	switch (destor.index_feature_method[0]) {
 	case INDEX_FEATURE_SAMPLE:
@@ -185,13 +187,45 @@ void init_index() {
 		exit(1);
 	}
 
-	init_near_exact_locality_index();
+	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		init_exact_locality_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		init_near_exact_locality_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		init_exact_similarity_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		init_near_exact_similarity_index();
+	else {
+		fprintf(stderr, "Invalid fingerprint category");
+		exit(1);
+	}
+
 }
 
 void close_index() {
 	assert(g_queue_get_length(index_buffer.segment_queue) == 0);
 	assert(g_hash_table_size(index_buffer.table) == 0);
-	close_near_exact_locality_index();
+
+	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		close_exact_locality_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		close_near_exact_locality_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		close_exact_similarity_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		close_near_exact_similarity_index();
+	else {
+		fprintf(stderr, "Invalid fingerprint category");
+		exit(1);
+	}
 }
 
 /*
@@ -206,7 +240,22 @@ void index_lookup(struct segment* s) {
 	if (len > 2 * destor.rewrite_algorithm[1])
 		g_cond_wait(&not_full_cond, &mutex);
 
-	near_exact_locality_index_lookup(s);
+	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		exact_locality_index_lookup(s);
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		near_exact_locality_index_lookup(s);
+	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		exact_similarity_index_lookup(s);
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		near_exact_similarity_index_lookup(s);
+	else {
+		fprintf(stderr, "Invalid fingerprint category");
+		exit(1);
+	}
 
 	g_cond_broadcast(&not_empty_cond);
 
@@ -241,7 +290,24 @@ int index_update(fingerprint fp, containerid from, containerid to) {
 
 	int len1 = g_queue_get_length(index_buffer.segment_queue);
 
-	containerid final_id = near_exact_locality_index_update(fp, from, to);
+	containerid final_id;
+
+	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		final_id = exact_locality_index_update(fp, from, to);
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		final_id = near_exact_locality_index_update(fp, from, to);
+	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		final_id = exact_similarity_index_update(fp, from, to);
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		final_id = near_exact_similarity_index_update(fp, from, to);
+	else {
+		fprintf(stderr, "Invalid fingerprint category");
+		exit(1);
+	}
 
 	int len2 = g_queue_get_length(index_buffer.segment_queue);
 

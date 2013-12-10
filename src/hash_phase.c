@@ -13,8 +13,10 @@ static void* sha1_thread(void* arg) {
 			break;
 		}
 
-		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
 			sync_queue_push(hash_queue, c);
+			continue;
+		}
 
 		TIMER_DECLARE(b, e);
 		TIMER_BEGIN(b);

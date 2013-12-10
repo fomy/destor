@@ -17,11 +17,19 @@ struct indexElem {
 };
 
 /* The buffer size > 2 * destor.rewrite_buffer_size */
+/* All fingerprint that have been looked up in the index
+ * but not been updated. */
 struct {
-	/* Queue of queue (segment). */
+	/* Queue of buffered segments and their features. */
 	GQueue *segment_queue;
 	/* map a fingerprint to a queue of indexElem */
+	/* Index all fingerprints in the segment_queue. */
 	GHashTable *table;
+
+	/* Buffer selected features in the current open container/segment. */
+	GHashTable* buffered_features;
+	/* If cid == TEMPORARY_ID, features are for segment. */
+	containerid cid;
 } index_buffer;
 
 /*

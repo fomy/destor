@@ -198,7 +198,7 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 			GHashTableIter iter;
 			fingerprint *feature, *value;
 			g_hash_table_iter_init(&iter, bs->features);
-			while (g_hash_table_inter_next(&iter, &feature, &value)) {
+			while (g_hash_table_iter_next(&iter, &feature, &value)) {
 				if (!g_hash_table_contains(srbuf->features, feature)) {
 					fingerprint* f = (fingerprint*) malloc(sizeof(fingerprint));
 					memcpy(f, feature, sizeof(fingerprint));

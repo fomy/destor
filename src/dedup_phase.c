@@ -32,7 +32,9 @@ int segment_fixed(struct segment* s, struct chunk * c) {
 	if (c == NULL) {
 		/* STREAM_END */
 		return 1;
-	} else if (CHECK_CHUNK(c,
+	}
+
+	if (CHECK_CHUNK(c,
 			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		/* FILE_END */
 		g_queue_push_tail(s->chunks, c);
@@ -42,10 +44,10 @@ int segment_fixed(struct segment* s, struct chunk * c) {
 	g_queue_push_tail(s->chunks, c);
 	s->chunk_num++;
 
-	if (s->chunk_num == destor.index_segment_algorithm[1]) {
+	if (s->chunk_num == destor.index_segment_algorithm[1])
 		/* segment boundary */
 		return 1;
-	}
+
 	return 0;
 }
 
@@ -72,14 +74,14 @@ int segment_file_defined(struct segment* s, struct chunk *c) {
  * Used by Sparse Index.
  */
 int segment_content_defined(struct segment* s, struct chunk *c) {
-	if (c == NULL) {
+	if (c == NULL)
 		return 1;
-	} else if (CHECK_CHUNK(c,
-			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
-		g_queue_push_tail(s->chunks, c);
-		return 0;
-	}
+
 	g_queue_push_tail(s->chunks, c);
+	if (CHECK_CHUNK(c,
+			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+		return 0;
+
 	s->chunk_num++;
 
 	/* Avoid too small segment. */
@@ -88,6 +90,7 @@ int segment_content_defined(struct segment* s, struct chunk *c) {
 
 	if ((*((int*) (&c->fp))) % destor.index_segment_algorithm[1] == 0)
 		return 1;
+
 	return 0;
 }
 
@@ -95,7 +98,7 @@ void *dedup_thread(void *arg) {
 	struct segment* s = new_segment();
 	while (1) {
 		struct chunk *c = NULL;
-		if (destor.simulation_level == SIMULATION_ALL)
+		if (destor.simulation_level != SIMULATION_ALL)
 			c = sync_queue_pop(hash_queue);
 		else
 			c = sync_queue_pop(trace_queue);

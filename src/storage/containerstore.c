@@ -13,17 +13,14 @@ struct metaEntry {
 void init_container_store() {
 
 	sds containerfile = sdsdup(destor.working_directory);
-	containerfile = sdscat(containerfile, "/containers/container.pool");
+	containerfile = sdscat(containerfile, "/container.pool");
 
-	if ((fp = fopen(containerfile, "rw+")) == NULL) {
-		fprintf(stderr,
-				"Can not open containers/container.pool for read and write\n");
+	if ((fp = fopen(containerfile, "r+"))) {
+		fread(&container_count, 8, 1, fp);
+	} else if (!(fp = fopen(containerfile, "w+"))) {
+		perror(
+				"Can not create containers/container.pool for read and write because");
 		exit(1);
-	}
-
-	int32_t count;
-	if (fread(&count, 8, 1, fp) == 1) {
-		container_count = count;
 	}
 
 	sdsfree(containerfile);

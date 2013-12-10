@@ -12,16 +12,16 @@ static pthread_t filter_t;
  * When a container buffer is full, we push it into container_queue.
  */
 static void* filter_thread(void *arg) {
+	/* container buffer */
 	struct container *cbuf = NULL;
 	int enable_rewrite = 1;
 
 	while (1) {
 		struct chunk* c = sync_queue_pop(rewrite_queue);
 
-		if (c == NULL) {
+		if (c == NULL)
 			/* backup job finish */
 			break;
-		}
 
 		assert(CHECK_CHUNK(c, CHUNK_FILE_START));
 		struct recipe* r = new_recipe(c->data);

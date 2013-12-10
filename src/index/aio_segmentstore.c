@@ -41,26 +41,29 @@ static struct segmentVolume* init_segment_volume(int32_t level) {
 	sv->fname = sdscat(sv->fname, s);
 
 	FILE *fp;
-	if ((fp = fopen(sv->fname, "rw+")) == NULL) {
-		fprintf(stderr, "Failed to open segment volume %d\n", level);
-		exit(1);
-	}
-
-	int32_t tmp = -1;
-	if (fread(&tmp, sizeof(level), 1, fp) != 1 || tmp != level) {
-		destor_log(DESTOR_NOTICE, "Read an empty segment volume %d.\n", level);
-		fseek(fp, 0, SEEK_SET);
-		fwrite(&level, sizeof(level), 1, fp);
-		fwrite(&sv->current_segment_num, sizeof(sv->current_segment_num), 1,
-				fp);
-		fwrite(&sv->current_volume_length, sizeof(sv->current_volume_length), 1,
-				fp);
-
-	} else {
+	if ((fp = fopen(sv->fname, "r"))) {
+		int32_t tmp = -1;
+		fread(&tmp, sizeof(level), 1, fp);
+		assert(tmp == level);
 		fread(&sv->current_segment_num, sizeof(sv->current_segment_num), 1, fp);
 		fread(&sv->current_volume_length, sizeof(sv->current_volume_length), 1,
 				fp);
+
+		fclose(fp);
+		return sv;
 	}
+
+	destor_log(DESTOR_NOTICE, "Create segment volume %d.\n", level);
+	if (!(fp = fopen(sv->fname, "w"))) {
+		perror("Can not create index/segment.volume because");
+		exit(1);
+	}
+
+	fwrite(&level, sizeof(level), 1, fp);
+	fwrite(&sv->current_segment_num, sizeof(sv->current_segment_num), 1, fp);
+	fwrite(&sv->current_volume_length, sizeof(sv->current_volume_length), 1,
+			fp);
+
 	fclose(fp);
 
 	return sv;
@@ -71,10 +74,11 @@ static void close_segment_volume(struct segmentVolume *sv) {
 		return;
 
 	if (sv->fp == NULL) {
-		if ((sv->fp = fopen(sv->fname, "rw+")) == NULL) {
+		if ((sv->fp = fopen(sv->fname, "r+")) == NULL) {
 			destor_log(DESTOR_WARNING, "Failed to open segment volume %d\n",
 					sv->level);
-			return;
+			perror("The reason is");
+			exit(1);
 		}
 	}
 	fseek(sv->fp, 0, SEEK_SET);
@@ -149,7 +153,7 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 	struct segmentVolume* sv = segment_volume_array[level];
 
 	if (sv->fp == NULL)
-		sv->fp = fopen(sv->fname, "rw+");
+		sv->fp = fopen(sv->fname, "r+");
 
 	int32_t size = level_to_max_size(level);
 	char buf[size];
@@ -164,14 +168,14 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 	unser_int64(sr->id);
 	assert(sr->id == id);
 	int num, i;
-	unser_int(&num);
+	unser_int32(num);
 	for (i = 0; i < num; i++) {
 		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
 		unser_bytes(feature, sizeof(fingerprint));
 		g_hash_table_insert(sr->features, feature, feature);
 	}
 
-	unser_int(&num);
+	unser_int32(num);
 	for (i = 0; i < num; i++) {
 		struct indexElem* ie = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
@@ -238,7 +242,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	}
 
 	if (!sv->fp)
-		sv->fp = fopen(sv->fname, "rw+");
+		sv->fp = fopen(sv->fname, "r+");
 
 	fseek(sv->fp, offset, SEEK_SET);
 	fwrite(buf, level_to_max_size(level), 1, sv->fp);

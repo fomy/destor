@@ -165,12 +165,7 @@ void destor_start() {
 	stat_file = sdscat(stat_file, "/destor.stat");
 
 	FILE *fp;
-	if ((fp = fopen(stat_file, "rw+")) == 0) {
-		destor_log(DESTOR_WARNING, "Fatal error, can not open destor.stat!");
-		exit(1);
-	}
-
-	if (fp) {
+	if ((fp = fopen(stat_file, "r"))) {
 
 		fread(&destor.chunk_num, 8, 1, fp);
 		fread(&destor.stored_chunk_num, 8, 1, fp);
@@ -188,6 +183,7 @@ void destor_start() {
 		fread(&last_level, 4, 1, fp);
 		check_simulation_level(last_level, destor.simulation_level);
 
+		fclose(fp);
 	} else {
 		destor.chunk_num = 0;
 		destor.stored_chunk_num = 0;
@@ -199,7 +195,6 @@ void destor_start() {
 		destor.rewritten_chunk_size = 0;
 	}
 
-	fclose(fp);
 	sdsfree(stat_file);
 }
 

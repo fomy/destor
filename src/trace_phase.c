@@ -94,7 +94,7 @@ void code2hash(unsigned char code[40], unsigned char hash[20]) {
 }
 
 void make_trace(char* path) {
-	init_backup_jcr(path);
+	init_jcr(path);
 
 	sds trace_file = sdsnew(path);
 

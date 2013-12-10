@@ -57,10 +57,12 @@ void near_exact_locality_index_lookup(struct segment* s) {
 	 * the notion of segment is only for batch process,
 	 * not for similarity detection.
 	 */
+	/* bufferred segment */
 	struct segment *bs = new_segment();
 
 	int len = g_queue_get_length(s->chunks), i;
 
+	/* Traverse the segment */
 	for (i = 0; i < len; ++i) {
 		struct chunk* c = g_queue_peek_nth(s->chunks, i);
 
@@ -129,7 +131,7 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 
 	struct indexElem* e = g_queue_peek_nth(bs->chunks, n++); // current chunk
 
-	assert(from >= to);
+	assert(to >= from);
 	assert(e->id >= from);
 	assert(g_fingerprint_equal(&fp, &e->fp));
 	assert(
@@ -137,11 +139,13 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 					== e);
 
 	if (from < e->id) {
-		/* to is meaningless. */
+		/* to is meaningless.
+		 * An identical chunk has been written very recently. */
 		final_id = e->id;
 	} else {
 
 		if (from != to) {
+			/* It is written. */
 
 			if (cid != TEMPORARY_ID && cid != to) {
 				/* Another container */

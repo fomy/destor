@@ -118,9 +118,9 @@ void start_rewrite_phase() {
 		exit(1);
 	}
 
-	close_har();
 }
 
 void stop_rewrite_phase() {
+	close_har();
 	pthread_join(rewrite_t, NULL);
 }

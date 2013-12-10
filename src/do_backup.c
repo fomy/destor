@@ -8,8 +8,6 @@ void do_backup(char *path) {
 
 	init_backup_jcr(path);
 
-	jcr.bv = create_backup_version(jcr.path);
-
 	init_index();
 
 	puts("==== backup begin ====");
@@ -30,7 +28,18 @@ void do_backup(char *path) {
 	start_filter_phase();
 	start_append_phase();
 
+	if (destor.simulation_level == SIMULATION_ALL) {
+		stop_read_trace_phase();
+	} else {
+		stop_read_phase();
+		stop_chunk_phase();
+		stop_hash_phase();
+	}
+	stop_dedup_phase();
+	stop_rewrite_phase();
+	stop_filter_phase();
 	stop_append_phase();
+
 	gettimeofday(&end, 0);
 
 	close_index();
@@ -111,8 +120,7 @@ void do_backup(char *path) {
 	 estimated_throughput = index_write_throughput;*/
 
 	char logfile[] = "backup.log";
-	FILE *fp = fopen(logfile, "rw+");
-	fseek(fp, 0, SEEK_END);
+	FILE *fp = fopen(logfile, "a");
 	/*
 	 * job id,
 	 * chunk number,

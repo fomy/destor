@@ -38,22 +38,18 @@ void db_init() {
 	mysql_stmt_prepare(search_stmt, search_sql, strlen(search_sql));
 	mysql_stmt_prepare(insert_stmt, insert_sql, strlen(insert_sql));
 
-	filter = malloc(FILTER_SIZE_BYTES);
+	filter = calloc(1, FILTER_SIZE_BYTES);
 
 	sds indexpath = sdsdup(destor.working_directory);
 	indexpath = sdscat(indexpath, "index/bloom.filter");
 
 	FILE *fp;
-	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprint(stderr, "Can not open index/bloom.filter!");
-		exit(1);
+	if ((fp = fopen(indexpath, "r"))) {
+		/* Exist */
+		fread(filter, FILTER_SIZE_BYTES, 1, fp);
+		fclose(fp);
 	}
 
-	if (1 != fread(filter, FILTER_SIZE_BYTES, 1, fp)) {
-		bzero(filter, FILTER_SIZE_BYTES);
-	}
-
-	fclose(fp);
 	sdsfree(indexpath);
 }
 
@@ -70,6 +66,7 @@ int db_get_item_num() {
 		}
 	} else {
 		fprintf(stderr, "Fail to get item num.\n");
+		exit(1);
 	}
 
 	return item_num;
@@ -84,8 +81,9 @@ void db_close() {
 	indexpath = sdscat(indexpath, "index/bloom.filter");
 
 	FILE *fp;
-	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprint(stderr, "Can not open index/bloom.filter!");
+	if ((fp = fopen(indexpath, "w")) == NULL) {
+		fprintf(stderr, "Can not open index/bloom.filter for write!");
+		perror("The reason is");
 		exit(1);
 	}
 

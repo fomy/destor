@@ -12,11 +12,10 @@ static void read_file(sds path) {
 		sdsrange(filename, sdslen(jcr.path) - 1, -1);
 
 	FILE *fp;
-	if ((fp = fopen(path, "")) == NULL) {
-		destor_log(DESTOR_WARNING, "Can not open file %s, errno=%d\n", path,
-		errno);
-		sdsfree(filename);
-		return;
+	if ((fp = fopen(path, "r")) == NULL) {
+		destor_log(DESTOR_WARNING, "Can not open file %s\n", path);
+		perror("The reason is");
+		exit(1);
 	}
 	jcr.file_num++;
 

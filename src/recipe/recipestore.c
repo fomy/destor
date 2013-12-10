@@ -7,7 +7,7 @@
 
 #include "recipestore.h"
 
-static int32_t backup_version_count = 0;
+static int32_t backup_version_count;
 static sds recipepath;
 /* Used for seed */
 static containerid seed_id = TEMPORARY_ID;
@@ -20,18 +20,13 @@ void init_recipe_store() {
 	count_fname = sdscat(count_fname, "backupversion.count");
 
 	FILE *fp;
-	if ((fp = fopen(count_fname, "rw+")) == NULL) {
-		fprintf(stderr, "Can not open recipes/backupversion.count for read\n");
-		exit(1);
-	}
-
-	int32_t count;
-	if (fread(&count, 4, 1, fp) == 1) {
-		backup_version_count = count;
+	if ((fp = fopen(count_fname, "r"))) {
+		/* Read if exists. */
+		fread(&backup_version_count, 4, 1, fp);
+		fclose(fp);
 	}
 
 	sdsfree(count_fname);
-	fclose(fp);
 }
 
 void close_recipe_store() {
@@ -39,14 +34,15 @@ void close_recipe_store() {
 	count_fname = sdscat(count_fname, "backupversion.count");
 
 	FILE *fp;
-	if ((fp = fopen(count_fname, "w+")) == NULL) {
-		fprintf(stderr, "Can not open recipes/backupversion.count for write\n");
+	if ((fp = fopen(count_fname, "w")) == NULL) {
+		perror("Can not open recipes/backupversion.count for write");
 		exit(1);
 	}
 
 	fwrite(&backup_version_count, 4, 1, fp);
 
 	fclose(fp);
+	sdsfree(count_fname);
 }
 
 int32_t get_next_version_number() {
@@ -71,7 +67,7 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	sds fname = sdsdup(b->fname_prefix);
 	fname = sdscat(fname, ".meta");
-	if ((b->metadata_fp = fopen(fname, "w+")) == 0) {
+	if ((b->metadata_fp = fopen(fname, "w")) == 0) {
 		fprintf(stderr, "Can not create bv%d.meta!\n", b->number);
 		exit(1);
 	}
@@ -90,14 +86,14 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
-	if ((b->recipe_fp = fopen(fname, "w+")) <= 0) {
+	if ((b->recipe_fp = fopen(fname, "w")) <= 0) {
 		fprintf(stderr, "Can not create bv%d.recipe!\n", b->number);
 		exit(1);
 	}
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".seed");
-	if ((b->seed_fp = fopen(fname, "w+")) <= 0) {
+	if ((b->seed_fp = fopen(fname, "w")) <= 0) {
 		fprintf(stderr, "Can not create bv%d.seed!\n", b->number);
 		exit(1);
 	}

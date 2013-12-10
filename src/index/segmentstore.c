@@ -35,29 +35,36 @@ void init_segment_management() {
 	sds fname = sdsnew(destor.working_directory);
 	fname = sdscat(fname, "index/segment.volume");
 
-	if ((segment_volume.fp = fopen(fname, "rw+")) == NULL) {
-		fprintf(stderr, "Failed to open segment volume\n");
-		exit(1);
-	}
-
 	int32_t flag = -1;
-	if (fread(&flag, sizeof(flag), 1, segment_volume.fp) != 1
-			|| flag != 0xff00ff00) {
-		destor_log(DESTOR_NOTICE, "Read an empty segment volume.\n");
-		fseek(segment_volume.fp, 0, SEEK_SET);
-		flag = 0xff00ff00;
-		fwrite(&flag, sizeof(flag), 1, segment_volume.fp);
-		fwrite(&segment_volume.segment_num, sizeof(segment_volume.segment_num),
-				1, segment_volume.fp);
-		fwrite(&segment_volume.current_length,
-				sizeof(segment_volume.current_length), 1, segment_volume.fp);
-
-	} else {
+	if ((segment_volume.fp = fopen(fname, "r+"))) {
+		/* exist */
+		fread(&flag, sizeof(flag), 1, segment_volume.fp);
+		assert(flag == 0xff00ff00);
+		/* Invalid */
 		fread(&segment_volume.segment_num, sizeof(segment_volume.segment_num),
 				1, segment_volume.fp);
 		fread(&segment_volume.current_length,
 				sizeof(segment_volume.current_length), 1, segment_volume.fp);
+		sdsfree(fname);
+		return;
 	}
+
+	destor_log(DESTOR_NOTICE, "Create index/segment.volume.\n");
+
+	if (!(segment_volume.fp = fopen(fname, "w+"))) {
+
+		perror("Can not create index/segment.volume because");
+		exit(1);
+	}
+
+	flag = 0xff00ff00;
+	fwrite(&flag, sizeof(flag), 1, segment_volume.fp);
+	fwrite(&segment_volume.segment_num, sizeof(segment_volume.segment_num), 1,
+			segment_volume.fp);
+	fwrite(&segment_volume.current_length,
+			sizeof(segment_volume.current_length), 1, segment_volume.fp);
+
+	sdsfree(fname);
 }
 
 void close_segment_management() {

@@ -1,14 +1,13 @@
 #!/bin/sh
 
 DIR=/home/data/working/
-mkdir -p ${DIR}/jobs/
+mkdir -p ${DIR}/recipes/
 mkdir -p ${DIR}/index/
 
-rm -f ${DIR}/jobs/*
+rm -f ${DIR}/recipes/*
 rm -f ${DIR}/index/*
-rm -f ${DIR}/container_volume
-rm -f ${DIR}/container_count
-rm -f ${DIR}/destor_stat
+rm -f ${DIR}/container.pool
+rm -f ${DIR}/destor.stat
 
 #Assume mysql has no password
 mysql -u root $* -f <<END-OF-DATA;
@@ -19,6 +18,6 @@ USE destor_db;
 DROP TABLE IF EXISTS HashStore;
 CREATE TABLE HashStore(
     Fingerprint BINARY(20) PRIMARY KEY,
-    Pointer BIGINT NOT NULL,
+    Pointer BIGINT NOT NULL
 ) ENGINE=MyISAM;
 END-OF-DATA

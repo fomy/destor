@@ -35,17 +35,26 @@ static void* chunk_thread(void *arg) {
 			memcpy(leftbuf, c->data, c->size);
 			leftlen += c->size;
 			free_chunk(c);
+			c = NULL;
 		}
 
-		while (leftlen > 0) {
-			if ((leftlen < destor.chunk_max_size)
-					&& !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+		while (1) {
+			/* c == NULL indicates more data for this file can be read. */
+			if ((leftlen < destor.chunk_max_size) && c == NULL) {
 				c = sync_queue_pop(read_queue);
-				memmove(leftbuf, leftbuf + leftoff, leftlen);
-				leftoff = 0;
-				memcpy(leftbuf + leftlen, c->data, c->size);
-				leftlen += c->size;
-				free_chunk(c);
+				if (!CHECK_CHUNK(c, CHUNK_FILE_END)) {
+					memmove(leftbuf, leftbuf + leftoff, leftlen);
+					leftoff = 0;
+					memcpy(leftbuf + leftlen, c->data, c->size);
+					leftlen += c->size;
+					free_chunk(c);
+					c = NULL;
+				}
+			}
+
+			if (leftlen == 0) {
+				assert(c);
+				break;
 			}
 
 			TIMER_DECLARE(b, e);

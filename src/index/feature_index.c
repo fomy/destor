@@ -47,13 +47,9 @@ void init_feature_index() {
 	indexpath = sdscat(indexpath, "index/feature.index");
 
 	FILE *fp;
-	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprintf(stderr, "Can not open index/feature.index!");
-		exit(1);
-	}
-
-	int feature_num;
-	if (fread(&feature_num, sizeof(int), 1, fp) == 1) {
+	if ((fp = fopen(indexpath, "r"))) {
+		int feature_num;
+		fread(&feature_num, sizeof(int), 1, fp);
 		for (; feature_num > 0; feature_num--) {
 			struct featureIndexElem * ie = new_feature_index_elem();
 			fread(&ie->feature, sizeof(fingerprint), 1, fp);
@@ -65,10 +61,10 @@ void init_feature_index() {
 				g_queue_push_tail(ie->ids, id);
 			}
 		}
+		fclose(fp);
 	}
 
 	sdsfree(indexpath);
-	fclose(fp);
 
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL
 			|| destor.index_segment_selection_method[0]
@@ -83,10 +79,11 @@ void close_feature_index() {
 	indexpath = sdscat(indexpath, "index/feature.index");
 
 	FILE *fp;
-	if ((fp = fopen(indexpath, "rw+")) == NULL) {
-		fprintf(stderr, "Can not open index/feature.index!\n");
+	if ((fp = fopen(indexpath, "w")) == NULL) {
+		perror("Can not open index/feature.index for write because:");
 		exit(1);
 	}
+
 	int feature_num = g_hash_table_size(feature_index);
 	fwrite(&feature_num, sizeof(int), 1, fp);
 
@@ -106,6 +103,7 @@ void close_feature_index() {
 	}
 
 	fclose(fp);
+
 	sdsfree(indexpath);
 
 	g_hash_table_destroy(feature_index);
