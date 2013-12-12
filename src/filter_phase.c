@@ -29,6 +29,9 @@ static void* filter_thread(void *arg) {
 
 		c = sync_queue_pop(rewrite_queue);
 
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+
 		while (!(CHECK_CHUNK(c, CHUNK_FILE_END))) {
 			r->filesize += c->size;
 			r->chunknum++;
@@ -48,6 +51,13 @@ static void* filter_thread(void *arg) {
 			if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) || CHECK_CHUNK(c, CHUNK_SPARSE)
 					|| (enable_rewrite && CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)
 							&& !CHECK_CHUNK(c, CHUNK_IN_CACHE))) {
+				if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+					jcr.unique_chunk_num++;
+					jcr.unique_data_size += c->size;
+				} else {
+					jcr.rewritten_chunk_num++;
+					jcr.rewritten_chunk_size += c->size;
+				}
 				/*
 				 * If the chunk is unique,
 				 * sparse, or out of order and not in cache,
@@ -57,19 +67,21 @@ static void* filter_thread(void *arg) {
 					cbuf = create_container();
 
 				if (container_overflow(cbuf, c->size)) {
-
+					TIMER_END(1, jcr.filter_time);
 					sync_queue_push(container_queue, cbuf);
-
+					TIMER_BEGIN(1);
 					cbuf = create_container();
 				}
-				containerid ret = index_update(c->fp, c->id,
+				containerid ret = index_update(&c->fp, c->id,
 						get_container_id(cbuf));
 				if (ret == TEMPORARY_ID)
 					add_chunk_to_container(cbuf, c);
 				else
 					c->id = ret;
 			} else {
+				TIMER_END(1, jcr.filter_time);
 				index_update(c->fp, c->id, c->id);
+				TIMER_BEGIN(1);
 			}
 			struct chunkPointer* cp = (struct chunkPointer*) malloc(
 					sizeof(struct chunkPointer));
@@ -77,6 +89,8 @@ static void* filter_thread(void *arg) {
 			memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
 			cp->size = c->size;
 			append_n_chunk_pointers(jcr.bv, cp, 1);
+
+			TIMER_END(1, jcr.filter_time);
 
 			/* Collect historical information. */
 			har_monitor_update(c->id, c->size);
@@ -87,6 +101,7 @@ static void* filter_thread(void *arg) {
 			free_chunk(c);
 
 			c = sync_queue_pop(rewrite_queue);
+			TIMER_BEGIN(1);
 		}
 
 		free_chunk(c);

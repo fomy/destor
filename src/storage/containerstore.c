@@ -33,17 +33,17 @@ void close_container_store() {
 	fp = NULL;
 }
 
-static void init_container_meta(struct containerMeta meta) {
-	meta.chunk_num = 0;
-	meta.data_size = 0;
-	meta.id = TEMPORARY_ID;
-	meta.map = g_hash_table_new_full(g_int_hash, g_fingerprint_equal, free,
-	NULL);
+static void init_container_meta(struct containerMeta *meta) {
+	meta->chunk_num = 0;
+	meta->data_size = 0;
+	meta->id = TEMPORARY_ID;
+	meta->map = g_hash_table_new_full(g_int_hash, g_fingerprint_equal, NULL,
+			free);
 }
 
 struct container* create_container() {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
-	init_container_meta(c->meta);
+	init_container_meta(&c->meta);
 	c->meta.id = container_count++;
 	return c;
 }
@@ -64,13 +64,13 @@ void write_container(struct container* c) {
 	ser_int32(c->meta.data_size);
 
 	GHashTableIter iter;
-	gpointer key;
-	struct metaEntry *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, c->meta.map);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		ser_bytes(&value->fp, sizeof(fingerprint));
-		ser_bytes(&value->len, sizeof(int32_t));
-		ser_bytes(&value->off, sizeof(int32_t));
+		struct metaEntry *me = (struct metaEntry *) value;
+		ser_bytes(&me->fp, sizeof(fingerprint));
+		ser_bytes(&me->len, sizeof(int32_t));
+		ser_bytes(&me->off, sizeof(int32_t));
 	}
 
 	ser_end(cur, CONTAINER_META_SIZE);
@@ -81,7 +81,7 @@ void write_container(struct container* c) {
 
 struct container* retrieve_container_by_id(containerid id) {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
-	init_container_meta(c->meta);
+	init_container_meta(&c->meta);
 
 	fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
 	fread(c->data, CONTAINER_SIZE, 1, fp);
@@ -114,7 +114,7 @@ struct container* retrieve_container_by_id(containerid id) {
 struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 	struct containerMeta* cm = (struct containerMeta*) malloc(
 			sizeof(struct containerMeta));
-	init_container_meta(*cm);
+	init_container_meta(cm);
 
 	unsigned char buf[CONTAINER_META_SIZE];
 	fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8, SEEK_SET);
@@ -181,6 +181,7 @@ void add_chunk_to_container(struct container* c, struct chunk* ck) {
 	me->off = c->meta.data_size;
 
 	g_hash_table_insert(c->meta.map, &me->fp, me);
+	c->meta.chunk_num++;
 
 	memcpy(c->data + c->meta.data_size, ck->data, ck->size);
 	c->meta.data_size += ck->size;

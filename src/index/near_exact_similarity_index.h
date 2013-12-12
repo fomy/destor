@@ -13,7 +13,7 @@
 void init_near_exact_similarity_index();
 void close_near_exact_similarity_index();
 void near_exact_similarity_index_lookup(struct segment* s);
-containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
+containerid near_exact_similarity_index_update(fingerprint *fp, containerid from,
 		containerid to);
 
 #endif /* NEAR_EXACT_SIMILARITY_INDEX_H_ */

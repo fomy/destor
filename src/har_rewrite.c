@@ -61,6 +61,8 @@ void init_har() {
 }
 
 void har_monitor_update(containerid id, int32_t size) {
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 	struct containerRecord* record = g_hash_table_lookup(
 			container_utilization_monitor.dense_map, &id);
 	if (record) {
@@ -85,6 +87,7 @@ void har_monitor_update(containerid id, int32_t size) {
 					&record->cid, record);
 		}
 	}
+	TIMER_END(1, jcr.rewrite_time);
 }
 
 void close_har() {
@@ -94,9 +97,6 @@ void close_har() {
 	sprintf(s, "%d", jcr.id);
 	fname = sdscat(fname, s);
 
-	GHashTableIter iter;
-	containerid* key;
-	struct containerRecord* value;
 	FILE* fp = fopen(fname, "w");
 	if (!fp) {
 		fprintf(stderr, "Can not create sparse file");
@@ -106,14 +106,16 @@ void close_har() {
 
 	/* sparse containers */
 	int inherited_sparse_num = 0;
+	GHashTableIter iter;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, container_utilization_monitor.sparse_map);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct containerRecord* cr = (struct containerRecord*) value;
 		if (inherited_sparse_containers
-				&& g_hash_table_lookup(inherited_sparse_containers,
-						&value->cid)) {
+				&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid)) {
 			inherited_sparse_num++;
 		}
-		fprintf(fp, "%ld %d\n", value->cid, value->size);
+		fprintf(fp, "%lld %d\n", cr->cid, cr->size);
 	}
 	fclose(fp);
 

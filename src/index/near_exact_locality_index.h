@@ -16,6 +16,7 @@ void close_near_exact_locality_index();
 
 void near_exact_locality_index_lookup(struct segment*);
 
-containerid near_exact_locality_index_update(fingerprint fp, containerid from, containerid to);
+containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
+		containerid to);
 
 #endif /* NEAR_EXACT_LOCALITY_INDEX_H_ */

@@ -121,7 +121,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 
 }
 
-containerid exact_similarity_index_update(fingerprint fp, containerid from,
+containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 		containerid to) {
 	static int n = 0;
 	static struct segmentRecipe *srbuf;
@@ -137,10 +137,7 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 
 	assert(from >= to);
 	assert(e->id >= from);
-	assert(g_fingerprint_equal(&fp, &e->fp));
-	assert(
-			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
-					== e);
+	assert(g_fingerprint_equal(fp, &e->fp));
 
 	if (from < e->id) {
 		/* to is meaningless. */
@@ -172,7 +169,7 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 	struct indexElem * be = (struct indexElem*) malloc(
 			sizeof(struct indexElem));
 	be->id = final_id == TEMPORARY_ID ? to : final_id;
-	memcpy(&be->fp, &fp, sizeof(fingerprint));
+	memcpy(&be->fp, fp, sizeof(fingerprint));
 	g_hash_table_replace(srbuf->table, &be->fp, be);
 
 	if (n == g_queue_get_length(bs->chunks)) {
@@ -196,12 +193,13 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 
 		if (bs->features) {
 			GHashTableIter iter;
-			fingerprint *feature, *value;
+			gpointer key, value;
 			g_hash_table_iter_init(&iter, bs->features);
-			while (g_hash_table_iter_next(&iter, &feature, &value)) {
-				if (!g_hash_table_contains(srbuf->features, feature)) {
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				if (!g_hash_table_contains(srbuf->features,
+						(fingerprint*) key)) {
 					fingerprint* f = (fingerprint*) malloc(sizeof(fingerprint));
-					memcpy(f, feature, sizeof(fingerprint));
+					memcpy(f, (fingerprint*) key, sizeof(fingerprint));
 					g_hash_table_insert(srbuf->features, f, f);
 				}
 			}
@@ -212,10 +210,10 @@ containerid exact_similarity_index_update(fingerprint fp, containerid from,
 		srbuf = update_segment(srbuf);
 
 		GHashTableIter iter;
-		gpointer key;
-		struct indexElem* e;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, srbuf->features);
-		while (g_hash_table_iter_next(&iter, &key, &e)) {
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			struct indexElem* e = (struct indexElem*) value;
 			db_insert_fingerprint(&e->fp, srbuf->id);
 		}
 

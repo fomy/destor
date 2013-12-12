@@ -225,7 +225,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	ser_int32(num);
 
 	GHashTableIter iter;
-	fingerprint *key, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, sr->features);
 	while (!g_hash_table_iter_next(&iter, &key, &value)) {
 		ser_bytes(key, sizeof(fingerprint));
@@ -234,9 +234,9 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	num = g_hash_table_size(sr->table);
 	ser_int32(num);
 
-	struct indexElem* e;
 	g_hash_table_iter_init(&iter, sr->table);
-	while (g_hash_table_iter_next(&iter, &key, &e)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct indexElem* e = (struct indexElem*) value;
 		ser_int64(e->id);
 		ser_bytes(&e->fp, sizeof(fingerprint));
 	}

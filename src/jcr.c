@@ -35,6 +35,8 @@ void init_jcr(char *path) {
 	jcr.read_time = 0;
 	jcr.chunk_time = 0;
 	jcr.hash_time = 0;
+	jcr.dedup_time = 0;
+	jcr.rewrite_time = 0;
 	jcr.filter_time = 0;
 	jcr.write_time = 0;
 	/*	double test_time;*/

@@ -19,12 +19,12 @@ static void* append_thread(void *arg) {
 		if (c == NULL)
 			break;
 
-		TIMER_DECLARE(b, e);
-		TIMER_BEGIN(b);
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
 
 		write_container(c);
 
-		TIMER_END(jcr.write_time, b, e);
+		TIMER_END(1, jcr.write_time);
 
 		free_container(c);
 	}

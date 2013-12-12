@@ -98,7 +98,7 @@ void destor_log(int level, const char *fmt, ...) {
 	vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
 
-	fprintf(stdout, "%s", msg);
+	fprintf(stdout, "%s\n", msg);
 }
 
 void check_simulation_level(int last_level, int current_level) {
@@ -420,10 +420,10 @@ void free_segment(struct segment* s, void (*free_data)(void *)) {
 	free(s);
 }
 
-gboolean g_fingerprint_equal(gconstpointer fp1, gconstpointer fp2) {
+gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2) {
 	return !memcmp(fp1, fp2, sizeof(fingerprint));
 }
 
-gint g_fingerprint_cmp(gconstpointer fp1, gconstpointer fp2, gpointer user_data) {
+gint g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2, gpointer user_data) {
 	return memcmp(fp1, fp2, sizeof(fingerprint));
 }

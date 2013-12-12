@@ -60,10 +60,10 @@ static void latest_segment_select(GHashTable* features) {
 	segmentid latest = TEMPORARY_ID;
 
 	GHashTableIter iter;
-	fingerprint *feature, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
-	while (g_hash_table_iter_next(&iter, &feature, &value)) {
-		segmentid id = feature_index_lookup_for_latest(feature);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
 		if (id > latest)
 			latest = id;
 	}
@@ -94,7 +94,7 @@ static gint g_segment_feature_size_cmp(struct segmentRecipe* a,
 static void features_trim(struct segmentRecipe *target,
 		struct segmentRecipe *top) {
 	GHashTableIter iter;
-	fingerprint *key, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, top->features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		g_hash_table_remove(target->features, key);
@@ -106,10 +106,10 @@ static void top_segment_select(GHashTable* features) {
 			free_segment_recipe);
 
 	GHashTableIter iter;
-	fingerprint *key, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		GQueue *ids = feature_index_lookup(key);
+		GQueue *ids = feature_index_lookup((fingerprint*) key);
 		if (ids) {
 			int num = g_queue_get_length(ids), i;
 			for (i = 0; i < num; i++) {
@@ -136,12 +136,12 @@ static void top_segment_select(GHashTable* features) {
 		GSequence *seq = g_sequence_new(NULL);
 
 		GHashTableIter iter;
-		segmentid *key;
-		struct segmentRecipe* value;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, table);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			g_sequence_insert_sorted(seq, value, g_segment_feature_size_cmp,
-			NULL);
+			g_sequence_insert_sorted(seq, (struct segmentRecipe*) value,
+					g_segment_feature_size_cmp,
+					NULL);
 		}
 
 		int num =
@@ -185,7 +185,7 @@ static struct segmentRecipe* segment_absorb(struct segmentRecipe* base,
 	base->id = TEMPORARY_ID;
 
 	GHashTableIter iter;
-	fingerprint *key, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, delta->features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		assert(!g_hash_table_contains(base->features, key));
@@ -194,17 +194,17 @@ static struct segmentRecipe* segment_absorb(struct segmentRecipe* base,
 		g_hash_table_insert(base->features, feature, feature);
 	}
 
-	struct indexElem* ie;
 	g_hash_table_iter_init(&iter, delta->table);
-	while (g_hash_table_iter_next(&iter, &key, &ie)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct indexElem* base_elem = g_hash_table_lookup(base->table, key);
 		if (!base_elem) {
 			struct indexElem* ne = (struct indexElem*) malloc(
 					sizeof(struct indexElem));
-			memcpy(ne, ie, sizeof(struct indexElem));
+			memcpy(ne, value, sizeof(struct indexElem));
 			g_hash_table_insert(base->table, &ne->fp, ne);
 		} else {
 			/* Select the newer id. More discussions are required. */
+			struct indexElem* ie = (struct indexElem*) value;
 			base_elem->id = base_elem->id > ie->id ? base_elem->id : ie->id;
 		}
 	}
@@ -217,9 +217,10 @@ static void all_segment_select(GHashTable* features) {
 	NULL, free_segment_recipe);
 
 	GHashTableIter iter;
-	fingerprint *feature, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
-	while (g_hash_table_iter_next(&iter, &feature, &value)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		fingerprint *feature = (fingerprint*) key;
 		segmentid id = feature_index_lookup_for_latest(feature);
 		if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
 			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
@@ -231,12 +232,10 @@ static void all_segment_select(GHashTable* features) {
 	if (g_hash_table_size(segments) > 0) {
 
 		GHashTableIter iter;
-		segmentid *sid;
-		struct segmentRecipe *sr;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, segments);
-		while (g_hash_table_iter_next(&iter, &sid, &sr)) {
-			selected = segment_absorb(selected, sr);
-		}
+		while (g_hash_table_iter_next(&iter, &key, &value))
+			selected = segment_absorb(selected, (struct segmentRecipe *) value);
 
 		lru_cache_insert(segment_recipe_cache, segment_recipe_dup(selected),
 		NULL, NULL);
@@ -312,8 +311,8 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 	g_queue_push_tail(index_buffer.segment_queue, bs);
 }
 
-containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
-		containerid to) {
+containerid near_exact_similarity_index_update(fingerprint *fp,
+		containerid from, containerid to) {
 	static int n = 0;
 	static struct segmentRecipe *srbuf;
 
@@ -328,10 +327,7 @@ containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
 
 	assert(from >= to);
 	assert(e->id >= from);
-	assert(g_fingerprint_equal(&fp, &e->fp));
-	assert(
-			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
-					== e);
+	assert(g_fingerprint_equal(fp, &e->fp));
 
 	if (from < e->id) {
 		/* to is meaningless. */
@@ -357,7 +353,7 @@ containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
 	struct indexElem * be = (struct indexElem*) malloc(
 			sizeof(struct indexElem));
 	be->id = final_id == TEMPORARY_ID ? to : final_id;
-	memcpy(&be->fp, &fp, sizeof(fingerprint));
+	memcpy(&be->fp, fp, sizeof(fingerprint));
 	g_hash_table_replace(srbuf->table, &be->fp, be);
 
 	if (n == g_queue_get_length(bs->chunks)) {
@@ -381,12 +377,12 @@ containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
 
 		if (bs->features) {
 			GHashTableIter iter;
-			fingerprint *feature, *value;
+			gpointer key, value;
 			g_hash_table_iter_init(&iter, bs->features);
-			while (g_hash_table_iter_next(&iter, &feature, &value)) {
-				if (!g_hash_table_contains(srbuf->features, feature)) {
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				if (!g_hash_table_contains(srbuf->features, key)) {
 					fingerprint* f = (fingerprint*) malloc(sizeof(fingerprint));
-					memcpy(f, feature, sizeof(fingerprint));
+					memcpy(f, key, sizeof(fingerprint));
 					g_hash_table_insert(srbuf->features, f, f);
 				}
 			}
@@ -413,10 +409,10 @@ containerid near_exact_similarity_index_update(fingerprint fp, containerid from,
 		}
 
 		GHashTableIter iter;
-		gpointer key;
-		struct indexElem* e;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, srbuf->features);
-		while (g_hash_table_iter_next(&iter, &key, &e)) {
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			struct indexElem* e = (struct indexElem*) value;
 			feature_index_update(&e->fp, srbuf->id);
 		}
 

@@ -60,6 +60,7 @@ void init_feature_index() {
 				fread(id, sizeof(int64_t), 1, fp);
 				g_queue_push_tail(ie->ids, id);
 			}
+			g_hash_table_insert(feature_index, &ie->feature, ie);
 		}
 		fclose(fp);
 	}
@@ -88,11 +89,10 @@ void close_feature_index() {
 	fwrite(&feature_num, sizeof(int), 1, fp);
 
 	GHashTableIter iter;
-	gpointer key;
-	struct featureIndexElem* ie;
-
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, feature_index);
-	while (g_hash_table_iter_next(&iter, &key, &ie)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct featureIndexElem* ie = (struct featureIndexElem*) value;
 		fwrite(&ie->feature, sizeof(fingerprint), 1, fp);
 		int id_num = g_queue_get_length(ie->ids);
 		fwrite(&id_num, sizeof(int), 1, fp);

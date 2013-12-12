@@ -93,11 +93,15 @@ void *cbr_rewrite(void* arg) {
 		if (c == NULL)
 			break;
 
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
 		if (CHECK_CHUNK(c, CHUNK_DUPLICATE))
 			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 
-		if (!stream_context_push(c))
+		if (!stream_context_push(c)) {
+			TIMER_END(1, jcr.rewrite_time);
 			continue;
+		}
 
 		struct chunk *decision_chunk = stream_context_pop();
 
@@ -126,6 +130,7 @@ void *cbr_rewrite(void* arg) {
 			utility_buckets_update(rewrite_utility);
 		}
 
+		TIMER_END(1, jcr.rewrite_time);
 		sync_queue_push(rewrite_queue, decision_chunk);
 	}
 
@@ -133,7 +138,6 @@ void *cbr_rewrite(void* arg) {
 	struct chunk *remaining_chunk = NULL;
 	while ((remaining_chunk = stream_context_pop()))
 		sync_queue_push(rewrite_queue, remaining_chunk);
-
 	sync_queue_term(rewrite_queue);
 
 	return NULL;

@@ -53,8 +53,12 @@ void *cap_rewrite(void* arg) {
 		if (c == NULL)
 			break;
 
-		if (!cap_segment_push(c))
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+		if (!cap_segment_push(c)) {
+			TIMER_END(1, jcr.rewrite_time);
 			continue;
+		}
 
 		cap_segment_get_top();
 
@@ -66,10 +70,13 @@ void *cap_rewrite(void* arg) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 			}
+			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, c);
+			TIMER_BEGIN(1);
 		}
 
 		g_hash_table_remove_all(top);
+
 	}
 
 	cap_segment_get_top();

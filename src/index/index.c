@@ -1,8 +1,8 @@
 #include "index.h"
+#include "../jcr.h"
 
 /* g_mutex_init() is unnecessary if in static storage. */
 static GMutex mutex;
-static GCond not_empty_cond; // buffer is not empty
 static GCond not_full_cond; // buffer is not full
 
 GHashTable* (*featuring)(fingerprint *fp, int success);
@@ -11,7 +11,6 @@ GHashTable* (*featuring)(fingerprint *fp, int success);
  * Used by Extreme Binning and Silo.
  */
 static GHashTable* index_feature_min(fingerprint *fp, int success) {
-	static GHashTable* features = NULL;
 	static int count = 0;
 	static fingerprint candidate;
 
@@ -21,52 +20,53 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 	/* Init */
 	if (count == 0)
 		memset(&candidate, 0xff, sizeof(fingerprint));
-	if (features == NULL)
-		features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-				free, NULL);
+	if (index_buffer.buffered_features == NULL)
+		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
+				g_fingerprint_equal, free, NULL);
 
 	/* New fingerprint */
 	if (fp) {
-		if (memcmp(fp, &candidate, sizeof(fingerprint)) < 0) {
+		if (memcmp(fp, &candidate, sizeof(fingerprint)) < 0)
 			memcpy(&candidate, fp, sizeof(fingerprint));
-		}
+
 		count++;
 		if (count == destor.index_feature_method[1]) {
 			/*
 			 * Select a feature per destor.index_feature_method[1]
 			 * */
-			if (!g_hash_table_contains(features, &candidate)) {
+			if (!g_hash_table_contains(index_buffer.buffered_features,
+					&candidate)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
 				memcpy(new_feature, &candidate, sizeof(fingerprint));
-				g_hash_table_insert(features, new_feature, new_feature);
+				g_hash_table_insert(index_buffer.buffered_features, new_feature,
+						new_feature);
 			}
-			memset(&candidate, 0xff, sizeof(fingerprint));
 			count = 0;
-
 		}
 	}
 
 	if (success) {
 		/* a segment/container boundary. */
-		if (g_hash_table_size(features) == 0
+		if (g_hash_table_size(index_buffer.buffered_features) == 0
 				|| count * 2 > destor.index_feature_method[1]) {
 			/*
 			 * Already considering the case of destor.index_feature_method[1] being zero.
 			 */
-			if (!g_hash_table_contains(features, &candidate)) {
+			if (!g_hash_table_contains(index_buffer.buffered_features,
+					&candidate)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
 				memcpy(new_feature, &candidate, sizeof(fingerprint));
-				g_hash_table_insert(features, new_feature, new_feature);
+				g_hash_table_insert(index_buffer.buffered_features, new_feature,
+						new_feature);
 			}
 		}
 
-		GHashTable *f = features;
-		features = NULL;
-		memset(&candidate, 0xff, sizeof(fingerprint));
 		count = 0;
-		return f;
+		GHashTable* ret = index_buffer.buffered_features;
+		index_buffer.buffered_features = NULL;
+		return ret;
 	}
 
 	return NULL;
@@ -112,7 +112,9 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 			g_hash_table_insert(index_buffer.buffered_features, new_feature,
 					new_feature);
 		}
-		return index_buffer.buffered_features;
+		GHashTable* ret = index_buffer.buffered_features;
+		index_buffer.buffered_features = NULL;
+		return ret;
 	}
 
 	return NULL;
@@ -156,7 +158,9 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 			g_hash_table_insert(index_buffer.buffered_features, new_feature,
 					new_feature);
 		}
-		return index_buffer.buffered_features;
+		GHashTable* ret = index_buffer.buffered_features;
+		index_buffer.buffered_features = NULL;
+		return ret;
 	}
 
 	return NULL;
@@ -164,11 +168,12 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 
 void init_index() {
 	index_buffer.segment_queue = g_queue_new();
-	index_buffer.table = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp,
-	NULL, g_queue_free);
+	index_buffer.table = g_hash_table_new_full(g_int64_hash,
+			g_fingerprint_equal,
+			NULL, NULL);
+	index_buffer.num = 0;
 
-	index_buffer.buffered_features = g_hash_table_new(g_int64_hash,
-			g_fingerprint_cmp);
+	index_buffer.buffered_features = NULL;
 	index_buffer.cid = TEMPORARY_ID;
 
 	switch (destor.index_feature_method[0]) {
@@ -235,10 +240,12 @@ void close_index() {
 void index_lookup(struct segment* s) {
 	g_mutex_lock(&mutex);
 
-	int len = g_queue_get_length(index_buffer.segment_queue);
 	/* Ensure the next phase not be blocked. */
-	if (len > 2 * destor.rewrite_algorithm[1])
+	if (index_buffer.num > 2 * destor.rewrite_algorithm[1])
 		g_cond_wait(&not_full_cond, &mutex);
+
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 
 	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
@@ -257,7 +264,7 @@ void index_lookup(struct segment* s) {
 		exit(1);
 	}
 
-	g_cond_broadcast(&not_empty_cond);
+	TIMER_END(1, jcr.dedup_time);
 
 	g_mutex_unlock(&mutex);
 }
@@ -280,15 +287,12 @@ void index_lookup(struct segment* s) {
  *
  * Return CONTAINER_TMP_ID if to is the final id, otherwise return e->id.
  */
-int index_update(fingerprint fp, containerid from, containerid to) {
+int index_update(fingerprint *fp, containerid from, containerid to) {
 
 	g_mutex_lock(&mutex);
 
-	if (g_queue_get_length(index_buffer.segment_queue) == 0) {
-		g_cond_wait(&not_empty_cond, &mutex);
-	}
-
-	int len1 = g_queue_get_length(index_buffer.segment_queue);
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 
 	containerid final_id;
 
@@ -309,10 +313,10 @@ int index_update(fingerprint fp, containerid from, containerid to) {
 		exit(1);
 	}
 
-	int len2 = g_queue_get_length(index_buffer.segment_queue);
-
-	if (len1 > len2)
+	if (index_buffer.num <= 2 * destor.rewrite_algorithm[1])
 		g_cond_broadcast(&not_full_cond);
+
+	TIMER_END(1, jcr.filter_time);
 
 	g_mutex_unlock(&mutex);
 
@@ -323,10 +327,10 @@ struct segmentRecipe* new_segment_recipe() {
 	struct segmentRecipe* sr = (struct segmentRecipe*) malloc(
 			sizeof(struct segmentRecipe));
 	sr->id = TEMPORARY_ID;
-	sr->table = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp, NULL,
+	sr->table = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, NULL,
 			free);
-	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_cmp, free,
-	NULL);
+	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
+			free, NULL);
 	return sr;
 }
 
@@ -350,7 +354,7 @@ struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 
 	dup->id = sr->id;
 	GHashTableIter iter;
-	fingerprint *key, *value;
+	gpointer key, value;
 	g_hash_table_iter_init(&iter, sr->features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
@@ -358,9 +362,9 @@ struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 		g_hash_table_insert(dup->features, feature, feature);
 	}
 
-	struct indexElem* ie;
 	g_hash_table_iter_init(&iter, sr->table);
-	while (g_hash_table_iter_next(&iter, &key, &ie)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct indexElem* ie = (struct indexElem*) value;
 		struct indexElem* elem = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
 		memcpy(elem, ie, sizeof(struct indexElem));

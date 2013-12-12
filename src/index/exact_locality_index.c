@@ -96,7 +96,7 @@ void exact_locality_index_lookup(struct segment* s) {
 	g_queue_push_tail(index_buffer.segment_queue, bs);
 }
 
-containerid exact_locality_index_update(fingerprint fp, containerid from,
+containerid exact_locality_index_update(fingerprint *fp, containerid from,
 		containerid to) {
 	static int n = 0;
 
@@ -108,10 +108,7 @@ containerid exact_locality_index_update(fingerprint fp, containerid from,
 
 	assert(from >= to);
 	assert(e->id >= from);
-	assert(g_fingerprint_equal(&fp, &e->fp));
-	assert(
-			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
-					== e);
+	assert(g_fingerprint_equal(fp, &e->fp));
 
 	if (from < e->id) {
 		/* to is meaningless. */
@@ -121,7 +118,7 @@ containerid exact_locality_index_update(fingerprint fp, containerid from,
 		if (from != to) {
 
 			/* Actually, it doesn't run. */
-			featuring(&fp, 0);
+			featuring(fp, 0);
 
 			/*
 			 * We can select features from the container here
@@ -129,7 +126,7 @@ containerid exact_locality_index_update(fingerprint fp, containerid from,
 			 * but it makes no sense because we are forced
 			 * to update each fingerprint in the container for exact.
 			 * */
-			db_insert_fingerprint(&fp, to);
+			db_insert_fingerprint(fp, to);
 
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
@@ -165,6 +162,7 @@ containerid exact_locality_index_update(fingerprint fp, containerid from,
 		} while ((ee = g_queue_pop_head(bs->chunks)));
 
 		free_segment(bs, free);
+		n = 0;
 	}
 
 	return final_id;

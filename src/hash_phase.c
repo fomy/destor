@@ -18,13 +18,16 @@ static void* sha1_thread(void* arg) {
 			continue;
 		}
 
-		TIMER_DECLARE(b, e);
-		TIMER_BEGIN(b);
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
 		SHA_CTX ctx;
 		SHA_Init(&ctx);
 		SHA_Update(&ctx, c->data, c->size);
 		SHA_Final(c->fp, &ctx);
-		TIMER_END(jcr.hash_time, b, e);
+		TIMER_END(1, jcr.hash_time);
+
+		jcr.chunk_num++;
+		jcr.data_size += c->size;
 
 		sync_queue_push(hash_queue, c);
 	}

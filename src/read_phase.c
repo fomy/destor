@@ -21,23 +21,24 @@ static void read_file(sds path) {
 
 	struct chunk *c = new_chunk(sdslen(filename) + 1);
 	strcpy(c->data, filename);
+	destor_log(DESTOR_NOTICE, filename);
 	SET_CHUNK(c, CHUNK_FILE_START);
 
 	sync_queue_push(read_queue, c);
 
-	TIMER_DECLARE(b, e);
-	TIMER_BEGIN(b);
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 	int size = 0;
 
-	while ((size = fread(buf, DEFAULT_BLOCK_SIZE, 1, fp)) == 0) {
-		TIMER_END(jcr.read_time, b, e);
+	while ((size = fread(buf, 1, DEFAULT_BLOCK_SIZE, fp)) != 0) {
+		TIMER_END(1, jcr.read_time);
 
 		c = new_chunk(size);
 		memcpy(c->data, buf, size);
 
 		sync_queue_push(read_queue, c);
 
-		TIMER_BEGIN(b);
+		TIMER_BEGIN(1);
 	}
 
 	c = new_chunk(0);

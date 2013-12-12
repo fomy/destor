@@ -29,19 +29,17 @@ void send_segment(struct segment* s) {
  */
 int segment_fixed(struct segment* s, struct chunk * c) {
 
-	if (c == NULL) {
+	if (c == NULL)
 		/* STREAM_END */
 		return 1;
-	}
 
-	if (CHECK_CHUNK(c,
-			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
-		/* FILE_END */
-		g_queue_push_tail(s->chunks, c);
-		return 0;
-	}
-	/* a chunk */
 	g_queue_push_tail(s->chunks, c);
+	if (CHECK_CHUNK(c,
+			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+		/* FILE_END */
+		return 0;
+
+	/* a normal chunk */
 	s->chunk_num++;
 
 	if (s->chunk_num == destor.index_segment_algorithm[1])
@@ -103,6 +101,8 @@ void *dedup_thread(void *arg) {
 		else
 			c = sync_queue_pop(trace_queue);
 
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
 		/* Add the chunk to the segment. */
 		int success = segmenting(s, c);
 
@@ -111,7 +111,11 @@ void *dedup_thread(void *arg) {
 			s->features = featuring(
 					(!c || CHECK_CHUNK(c, CHUNK_FILE_START)
 							|| CHECK_CHUNK(c, CHUNK_FILE_END)) ?
-					NULL : &c->fp, success);
+					NULL :
+																	&c->fp,
+					success);
+
+		TIMER_END(1, jcr.dedup_time);
 
 		if (success) {
 			/* Each redundant chunk will be marked. */
@@ -121,6 +125,7 @@ void *dedup_thread(void *arg) {
 			 * The segment will be cleared. */
 			send_segment(s);
 		}
+
 
 		if (c == NULL)
 			break;

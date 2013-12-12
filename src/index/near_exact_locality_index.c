@@ -12,7 +12,6 @@
 #include "../storage/containerstore.h"
 
 static struct lruCache* container_meta_cache = NULL;
-static containerid cid = TEMPORARY_ID;
 
 void init_near_exact_locality_index() {
 
@@ -31,14 +30,14 @@ void init_near_exact_locality_index() {
 }
 
 void close_near_exact_locality_index() {
-	if (cid != TEMPORARY_ID) {
+	if (index_buffer.cid != TEMPORARY_ID) {
 		GHashTable *features = featuring(NULL, 1);
 
 		GHashTableIter iter;
-		fingerprint *feature, *value;
+		gpointer feature, value;
 		g_hash_table_iter_init(&iter, features);
 		while (g_hash_table_iter_next(&iter, &feature, &value))
-			feature_index_update(feature, cid);
+			feature_index_update((fingerprint*) feature, index_buffer.cid);
 
 		g_hash_table_destroy(features);
 	}
@@ -69,15 +68,26 @@ void near_exact_locality_index_lookup(struct segment* s) {
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
+		/* Examine the buffered features that have not been updated to index. */
+		if (index_buffer.buffered_features
+				&& g_hash_table_contains(index_buffer.buffered_features,
+						&c->fp)) {
+			assert(index_buffer.cid != TEMPORARY_ID);
+			c->id = index_buffer.cid;
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+		}
+
+		/* Examine the buffered fingerprints */
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
-		if (tq) {
+		if (!tq) {
+			tq = g_queue_new();
+		} else if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			struct indexElem *be = g_queue_peek_head(tq);
 			c->id = be->id;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
-		} else {
-			tq = g_queue_new();
 		}
 
+		/* Examnine the cached fingerprints */
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) && container_meta_cache) {
 			struct containerMeta* cm = lru_cache_lookup(container_meta_cache,
 					c->fp);
@@ -88,6 +98,7 @@ void near_exact_locality_index_lookup(struct segment* s) {
 			}
 		}
 
+		/* Examine the feature index */
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			GQueue *ids = feature_index_lookup(&c->fp);
 
@@ -116,12 +127,13 @@ void near_exact_locality_index_lookup(struct segment* s) {
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
+		index_buffer.num++;
 	}
 
 	g_queue_push_tail(index_buffer.segment_queue, bs);
 }
 
-containerid near_exact_locality_index_update(fingerprint fp, containerid from,
+containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 		containerid to) {
 	static int n = 0;
 
@@ -133,10 +145,7 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 
 	assert(to >= from);
 	assert(e->id >= from);
-	assert(g_fingerprint_equal(&fp, &e->fp));
-	assert(
-			g_queue_peek_head(g_hash_table_lookup(index_buffer.table, &fp))
-					== e);
+	assert(g_fingerprint_equal(fp, &e->fp));
 
 	if (from < e->id) {
 		/* to is meaningless.
@@ -147,21 +156,21 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 		if (from != to) {
 			/* It is written. */
 
-			if (cid != TEMPORARY_ID && cid != to) {
+			if (index_buffer.cid != TEMPORARY_ID && index_buffer.cid != to) {
 				/* Another container */
 				GHashTable *features = featuring(NULL, 1);
 
 				GHashTableIter iter;
-				fingerprint *feature, *value;
+				gpointer key, value;
 				g_hash_table_iter_init(&iter, features);
-				while (g_hash_table_iter_next(&iter, &feature, &value))
-					feature_index_update(feature, cid);
+				while (g_hash_table_iter_next(&iter, &key, &value))
+					feature_index_update((fingerprint*) key, index_buffer.cid);
 
 				g_hash_table_destroy(features);
 			}
 
-			cid = to;
-			featuring(&fp, 0);
+			index_buffer.cid = to;
+			featuring(fp, 0);
 
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
@@ -191,11 +200,14 @@ containerid near_exact_locality_index_update(fingerprint fp, containerid from,
 			if (g_queue_get_length(tq) == 0) {
 				/* tp is freed by hash table automatically. */
 				g_hash_table_remove(index_buffer.table, &ee->fp);
+				g_queue_free(tq);
 			}
 			free(ee);
+			index_buffer.num--;
 		} while ((ee = g_queue_pop_head(bs->chunks)));
 
 		free_segment(bs, free);
+		n = 0;
 	}
 
 	return final_id;

@@ -13,8 +13,8 @@ void do_backup(char *path) {
 	puts("==== backup begin ====");
 	puts("==== transfering begin ====");
 
-	struct timeval begin, end;
-	gettimeofday(&begin, 0);
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 
 	if (destor.simulation_level == SIMULATION_ALL) {
 		start_read_trace_phase();
@@ -40,7 +40,7 @@ void do_backup(char *path) {
 	stop_filter_phase();
 	stop_append_phase();
 
-	gettimeofday(&end, 0);
+	TIMER_END(1, jcr.total_time);
 
 	close_index();
 
@@ -48,8 +48,6 @@ void do_backup(char *path) {
 
 	free_backup_version(jcr.bv);
 
-	jcr.total_time = end.tv_sec - begin.tv_sec
-			+ (double) (end.tv_usec - begin.tv_usec) / (1000 * 1000);
 	puts("==== transferring end ====");
 
 	printf("job id: %d\n", jcr.id);
@@ -64,9 +62,9 @@ void do_backup(char *path) {
 					(jcr.data_size - jcr.unique_data_size)
 							/ (double) (jcr.data_size) :
 					0, jcr.data_size / (double) (jcr.unique_data_size));
-	printf("total time: %.3fs\n", jcr.total_time);
+	printf("total time: %.3fs\n", jcr.total_time / 1000000);
 	printf("throughput: %.2fMB/s\n",
-			(double) jcr.data_size / (1024 * 1024 * jcr.total_time));
+			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 	printf("zero chunk num: %d\n", jcr.zero_chunk_num);
 	printf("zero_chunk_size: %ld\n", jcr.zero_chunk_size);
 	printf("rewritten_chunk_num: %d\n", jcr.rewritten_chunk_num);
@@ -91,6 +89,10 @@ void do_backup(char *path) {
 	printf("hash_time : %.3fs, %.2fMB/s\n", jcr.hash_time / 1000000,
 			jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024);
 	printf("dedup_time : %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
+			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
+	printf("rewrite_time : %.3fs, %.2fMB/s\n", jcr.rewrite_time / 1000000,
+			jcr.data_size * 1000000 / jcr.rewrite_time / 1024 / 1024);
+	printf("filter_time : %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
 			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);

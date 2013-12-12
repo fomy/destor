@@ -31,10 +31,10 @@
 
 #include "tools/sds.h"
 
-#define TIMER_DECLARE(b,e) struct timeval b,e;
-#define TIMER_BEGIN(b) gettimeofday(&b, NULL);
-#define TIMER_END(t,b,e) gettimeofday(&e, NULL); \
-    (t)+=e.tv_usec-b.tv_usec+1000000*(e.tv_sec-b.tv_sec);
+#define TIMER_DECLARE(n) struct timeval b##n,e##n
+#define TIMER_BEGIN(n) gettimeofday(&b##n, NULL)
+#define TIMER_END(n,t) gettimeofday(&e##n, NULL); \
+    (t)+=e##n.tv_usec-b##n.tv_usec+1000000*(e##n.tv_sec-b##n.tv_sec)
 
 #define DESTOR_CONFIGLINE_MAX 1024
 
@@ -266,8 +266,8 @@ void free_chunk(struct chunk*);
 struct segment* new_segment();
 void free_segment(struct segment* s, void (*free_data)(void *));
 
-gboolean g_fingerprint_equal(gconstpointer fp1, gconstpointer fp2);
-gboolean g_fingerprint_cmp(gconstpointer fp1, gconstpointer fp2,
+gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2);
+gboolean g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2,
 		gpointer user_data);
 
 #endif /* DESTOR_H_ */

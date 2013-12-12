@@ -137,7 +137,7 @@ void make_trace(char* path) {
 		free_chunk(c);
 	}
 
-	fprintf(fp, "END");
+	fprintf(fp, "stream end");
 	fclose(fp);
 
 }
@@ -149,30 +149,27 @@ static void* read_trace_thread(void *argv) {
 	FILE *trace_file = fopen(jcr.path, "r");
 	char line[128];
 
-	while (TRUE) {
+	while (1) {
 		fgets(line, 128, trace_file);
 
-		if (strcmp(line, "END") == 0) {
+		if (strcmp(line, "stream end") == 0) {
 			sync_queue_term(trace_queue);
 			break;
 		}
 
 		struct chunk* c;
 
-		if (strncmp(line, "file start ", 11) == 0) {
-			char fileindex[10];
-			strcpy(fileindex, line + 11);
+		assert(strncmp(line, "file start ", 11) == 0);
+		char fileindex[10];
+		strcpy(fileindex, line + 11);
 
-			c = new_chunk(strlen(fileindex) + 1);
-			strcpy(c->data, fileindex);
-			SET_CHUNK(c, CHUNK_FILE_START);
+		c = new_chunk(strlen(fileindex) + 1);
+		strcpy(c->data, fileindex);
+		SET_CHUNK(c, CHUNK_FILE_START);
+		sync_queue_push(trace_queue, c);
 
-			jcr.file_num++;
-
-		} else if (strncmp(line, "file end ", 9) == 0) {
-			c = new_chunk(0);
-			SET_CHUNK(c, CHUNK_FILE_END);
-		} else {
+		fgets(line, 128, trace_file);
+		while (strncmp(line, "file end ", 9) != 0) {
 			c = new_chunk(0);
 
 			char code[41];
@@ -180,9 +177,16 @@ static void* read_trace_thread(void *argv) {
 			code2hash(code, c->fp);
 
 			c->size = atoi(line + 41);
+			sync_queue_push(trace_queue, c);
+
+			fgets(line, 128, trace_file);
 		}
 
+		c = new_chunk(0);
+		SET_CHUNK(c, CHUNK_FILE_END);
 		sync_queue_push(trace_queue, c);
+
+		jcr.file_num++;
 	}
 
 	fclose(trace_file);

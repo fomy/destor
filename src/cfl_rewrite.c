@@ -22,11 +22,11 @@ static int cfl_push(struct chunk *c) {
 	rewrite_buffer_push(wait);
 	buffer_size += wait->size;
 
-	if (c == NULL || wait->id != c->id || c->id == TEMPORARY_ID) {
-		wait = c;
-		return 1;
-	}
 	wait = c;
+	if (c == NULL || wait->id != c->id || c->id == TEMPORARY_ID
+			|| rewrite_buffer.num >= destor.rewrite_algorithm[1])
+		return 1;
+
 	return 0;
 }
 
@@ -59,8 +59,12 @@ void *cfl_rewrite(void* arg) {
 			break;
 		}
 
-		if (!cfl_push(c))
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+		if (!cfl_push(c)) {
+			TIMER_END(1, jcr.rewrite_time);
 			continue;
+		}
 
 		/* The size of bufferred chunks is too small */
 		if (buffer_size < destor.rewrite_cfl_usage_threshold * CONTAINER_SIZE)
@@ -72,12 +76,17 @@ void *cfl_rewrite(void* arg) {
 							|| CHECK_CHUNK(c, CHUNK_FILE_END))
 					&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
 				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, c);
+			TIMER_BEGIN(1);
 		}
 
 		out_of_order = 0;
+
 	}
 
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 	if (buffer_size < destor.rewrite_cfl_usage_threshold * CONTAINER_SIZE)
 		out_of_order = 1;
 
@@ -88,7 +97,9 @@ void *cfl_rewrite(void* arg) {
 						|| CHECK_CHUNK(c, CHUNK_FILE_END))
 				&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
 			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+		TIMER_BEGIN(1);
 		sync_queue_push(rewrite_queue, c);
+		TIMER_BEGIN(1);
 	}
 
 	sync_queue_term(rewrite_queue);

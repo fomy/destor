@@ -25,6 +25,8 @@ struct {
 	/* map a fingerprint to a queue of indexElem */
 	/* Index all fingerprints in the segment_queue. */
 	GHashTable *table;
+	/* The number of buffered chunks */
+	int num;
 
 	/* Buffer selected features in the current open container/segment. */
 	GHashTable* buffered_features;
@@ -47,7 +49,7 @@ void index_lookup(struct segment*);
 /*
  * Insert fingerprint into Index for new fingerprint or new ContainerId.
  */
-int index_update(fingerprint fp, containerid from, containerid to);
+int index_update(fingerprint *fp, containerid from, containerid to);
 
 void index_delete(fingerprint *);
 

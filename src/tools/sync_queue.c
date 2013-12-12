@@ -58,12 +58,11 @@ void* sync_queue_pop(SyncQueue* s_queue) {
 		return NULL;
 	}
 
-	if (s_queue->term == 1 && queue_size(s_queue->queue) == 0) {
-		pthread_mutex_unlock(&s_queue->mutex);
-		return NULL;
-	}
-
 	while (queue_size(s_queue->queue) == 0) {
+		if (s_queue->term == 1) {
+			pthread_mutex_unlock(&s_queue->mutex);
+			return NULL;
+		}
 		pthread_cond_wait(&s_queue->min_work, &s_queue->mutex);
 	}
 
@@ -85,6 +84,8 @@ void sync_queue_term(SyncQueue* s_queue) {
 	}
 
 	s_queue->term = 1;
+
+	pthread_cond_broadcast(&s_queue->min_work);
 
 	pthread_mutex_unlock(&s_queue->mutex);
 }

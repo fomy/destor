@@ -8,11 +8,11 @@ static pthread_t chunk_t;
 static void* chunk_thread(void *arg) {
 	int leftlen = 0;
 	int leftoff = 0;
-	unsigned char leftbuf[DEFAULT_BLOCK_SIZE + destor.chunk_max_size];
+	unsigned char *leftbuf = malloc(DEFAULT_BLOCK_SIZE + destor.chunk_max_size);
 
-	char zeros[destor.chunk_max_size];
+	unsigned char *zeros = malloc(destor.chunk_max_size);
 	bzero(zeros, destor.chunk_max_size);
-	unsigned char data[destor.chunk_max_size];
+	unsigned char *data = malloc(destor.chunk_max_size);
 
 	struct chunk* c = NULL;
 
@@ -57,8 +57,8 @@ static void* chunk_thread(void *arg) {
 				break;
 			}
 
-			TIMER_DECLARE(b, e);
-			TIMER_BEGIN(b);
+			TIMER_DECLARE(1);
+			TIMER_BEGIN(1);
 
 			int chunk_size = 0;
 			if (destor.chunk_algorithm == CHUNK_RABIN
@@ -69,7 +69,7 @@ static void* chunk_thread(void *arg) {
 						destor.chunk_avg_size > leftlen ?
 								leftlen : destor.chunk_avg_size;
 
-			TIMER_END(jcr.chunk_time, b, e);
+			TIMER_END(1, jcr.chunk_time);
 
 			struct chunk *nc = new_chunk(chunk_size);
 			memcpy(nc->data, leftbuf + leftoff, chunk_size);
@@ -90,6 +90,9 @@ static void* chunk_thread(void *arg) {
 		c = NULL;
 	}
 
+	free(leftbuf);
+	free(zeros);
+	free(data);
 	return NULL;
 }
 
