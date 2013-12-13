@@ -43,10 +43,12 @@ struct {
 	double rewrite_time;
 	double filter_time;
 	double write_time;
-	/*	double test_time;*/
 
+	double read_recipe_time;
 	double read_chunk_time;
-	double write_file_time;
+	double write_chunk_time;
+
+	int32_t read_container_num;
 } jcr;
 
 void init_backup_jcr(char *path);

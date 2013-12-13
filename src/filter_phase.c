@@ -80,7 +80,9 @@ static void* filter_thread(void *arg) {
 					c->id = ret;
 			} else {
 				TIMER_END(1, jcr.filter_time);
-				index_update(c->fp, c->id, c->id);
+				containerid ret = index_update(c->fp, c->id, c->id);
+				if (ret != TEMPORARY_ID)
+					c->id = ret;
 				TIMER_BEGIN(1);
 			}
 			struct chunkPointer* cp = (struct chunkPointer*) malloc(

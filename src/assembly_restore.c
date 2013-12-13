@@ -12,8 +12,8 @@
 
 struct {
 	GQueue *area;
-	int area_size;
-	int size;
+	int64_t area_size;
+	int64_t size;
 } assembly_area;
 
 static void init_assembly_area() {
@@ -34,7 +34,7 @@ static GQueue* assemble_area() {
 
 	GQueue *q = g_queue_new();
 
-	struct chunk *c;
+	struct chunk *c = NULL;
 	while (g_queue_get_length(assembly_area.area) > 0) {
 		c = g_queue_peek_head(assembly_area.area);
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
@@ -50,7 +50,9 @@ static GQueue* assemble_area() {
 		return q;
 
 	containerid id = c->id;
+
 	struct container *con = NULL;
+	jcr.read_container_num++;
 	if (destor.simulation_level == SIMULATION_NO)
 		con = retrieve_container_by_id(id);
 
@@ -61,10 +63,12 @@ static GQueue* assemble_area() {
 				&& id == c->id) {
 			if (destor.simulation_level == SIMULATION_NO) {
 				struct chunk *buf = get_chunk_in_container(con, &c->fp);
-				c->data = malloc(sizeof(c->size));
+				assert(c->size == buf->size);
+				c->data = malloc(c->size);
 				memcpy(c->data, buf->data, c->size);
 				free_chunk(buf);
 			}
+			assembly_area.size -= c->size;
 			SET_CHUNK(c, CHUNK_READY);
 		}
 	}
@@ -106,26 +110,37 @@ void* assembly_restore_thread(void *arg) {
 	struct chunk* c;
 	while ((c = sync_queue_pop(restore_recipe_queue))) {
 
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+
 		if (assembly_area_push(c)) {
 			/* Full */
 			GQueue *q = assemble_area();
+
+			TIMER_END(1, jcr.read_chunk_time);
 
 			struct chunk* rc;
 			while ((rc = g_queue_pop_head(q)))
 				sync_queue_push(restore_chunk_queue, rc);
 
 			g_queue_free(q);
+		} else {
+			TIMER_END(1, jcr.read_chunk_time);
 		}
+
 	}
 
 	assembly_area_push(NULL);
 
 	GQueue *q;
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 	while ((q = assemble_area())) {
+		TIMER_END(1, jcr.read_chunk_time);
 		struct chunk* rc;
 		while ((rc = g_queue_pop_head(q)))
 			sync_queue_push(restore_chunk_queue, rc);
-
+		TIMER_BEGIN(1);
 		g_queue_free(q);
 	}
 

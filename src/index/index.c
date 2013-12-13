@@ -77,6 +77,8 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
  */
 static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 
+	assert(destor.index_feature_method[1] != 0);
+
 	if (!fp && !success)
 		return NULL;
 
@@ -121,6 +123,8 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 }
 
 static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
+	assert(destor.index_feature_method[1] != 0);
+
 	static int count;
 
 	if (!fp && !success)
@@ -285,7 +289,7 @@ void index_lookup(struct segment* s) {
  * 			assert(to == CONTAINER_TMP_ID)
  * 		2.2 if from != CONTAINER_TMP_ID, it has been rewritten recently.
  *
- * Return CONTAINER_TMP_ID if to is the final id, otherwise return e->id.
+ * Return TEMPORARY_ID if to is the final id, otherwise return e->id.
  */
 int index_update(fingerprint *fp, containerid from, containerid to) {
 

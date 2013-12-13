@@ -30,7 +30,7 @@ void init_jcr(char *path) {
 
 	jcr.total_time = 0;
 	/*
-	 * the time consuming of six dedup phase
+	 * the time consuming of seven backup phase
 	 */
 	jcr.read_time = 0;
 	jcr.chunk_time = 0;
@@ -39,10 +39,15 @@ void init_jcr(char *path) {
 	jcr.rewrite_time = 0;
 	jcr.filter_time = 0;
 	jcr.write_time = 0;
-	/*	double test_time;*/
 
+	/*
+	 * the time consuming of three restore phase
+	 */
+	jcr.read_recipe_time = 0;
 	jcr.read_chunk_time = 0;
-	jcr.write_file_time = 0;
+	jcr.write_chunk_time = 0;
+
+	jcr.read_container_num = 0;
 }
 
 void init_backup_jcr(char *path) {

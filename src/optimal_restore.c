@@ -236,6 +236,7 @@ static void optimal_cache_insert(containerid id) {
 		g_sequence_remove(iter);
 	}
 
+	jcr.read_container_num++;
 	if (destor.simulation_level == SIMULATION_NO) {
 		struct container* con = retrieve_container_by_id(id);
 		lru_cache_insert(optimal_cache.lru_queue, con, NULL, NULL);
@@ -263,12 +264,18 @@ void* optimal_restore_thread(void *arg) {
 			continue;
 		}
 
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+
 		if (!optimal_cache_hits(c->id))
 			optimal_cache_insert(c->id);
 
 		if (destor.simulation_level == SIMULATION_NO) {
 			struct chunk* rc = optimal_cache_lookup(&c->fp);
+			TIMER_END(1, jcr.read_chunk_time);
 			sync_queue_push(restore_chunk_queue, rc);
+		} else {
+			TIMER_END(1, jcr.read_chunk_time);
 		}
 
 		free_chunk(c);

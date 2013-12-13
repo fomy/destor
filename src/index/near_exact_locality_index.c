@@ -182,6 +182,7 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 			}
 		} else {
 			/* a normal redundant chunk */
+			assert(to!=TEMPORARY_ID);
 		}
 	}
 

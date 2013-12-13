@@ -248,6 +248,7 @@ void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
 		if (seed_id != TEMPORARY_ID && seed_id != cp[i].id)
 			fprintf(b->seed_fp, "%ld\n", seed_id);
 		seed_id = cp[i].id;
+		assert(cp[i].id != TEMPORARY_ID);
 		fwrite(&cp[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
 		fwrite(&cp[i].id, sizeof(containerid), 1, b->recipe_fp);
 		fwrite(&cp[i].size, sizeof(int32_t), 1, b->recipe_fp);

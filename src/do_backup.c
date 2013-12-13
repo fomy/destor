@@ -11,7 +11,6 @@ void do_backup(char *path) {
 	init_index();
 
 	puts("==== backup begin ====");
-	puts("==== transfering begin ====");
 
 	TIMER_DECLARE(1);
 	TIMER_BEGIN(1);
@@ -50,7 +49,7 @@ void do_backup(char *path) {
 
 	free_backup_version(jcr.bv);
 
-	puts("==== transferring end ====");
+	puts("==== backup end ====");
 
 	printf("job id: %d\n", jcr.id);
 	printf("backup path: %s\n", jcr.path);
@@ -99,8 +98,6 @@ void do_backup(char *path) {
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
 
-	puts("==== backup end ====");
-
 	double seek_time = 0.005; //5ms
 	double bandwidth = 120 * 1024 * 1024; //120MB/s
 
@@ -139,7 +136,7 @@ void do_backup(char *path) {
 	 * index lookups,
 	 * index updates,
 	 */
-	fprintf(fp, "%d %d %ld %.4f %.4f %d %d %d %.2f\n", jcr.id, jcr.chunk_num,
+	fprintf(fp, "%d %ld %.4f %.4f %d %d %d %.2f\n", jcr.id,
 			destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.unique_data_size)
@@ -150,7 +147,7 @@ void do_backup(char *path) {
 							/ (double) (jcr.data_size) :
 					0, jcr.total_container_num, jcr.sparse_container_num,
 			jcr.inherited_sparse_num,
-			(double) jcr.data_size / (1024 * 1024 * jcr.total_time));
+			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
 
