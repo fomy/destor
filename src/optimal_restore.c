@@ -66,6 +66,32 @@ struct {
 
 } optimal_cache;
 
+static void optimal_cache_window_fill() {
+	int n = destor.restore_opt_window_size - optimal_cache.win_size, k;
+	containerid *ids = read_next_n_seeds(jcr.bv, n, &k);
+	if (ids) {
+		g_queue_push_tail(optimal_cache.window, ids);
+		optimal_cache.win_size += k;
+
+		/* update distance_seq */
+		int i;
+		for (i = 1; i <= k; i++) {
+
+			struct accessRecord* r = g_hash_table_lookup(
+					optimal_cache.seed_table, &ids[i]);
+			if (!r) {
+				r = new_access_record(ids[i]);
+				g_hash_table_insert(optimal_cache.seed_table, &r->cid, r);
+			}
+
+			int *d = (int*) malloc(sizeof(int));
+			*d = optimal_cache.seed_count++;
+			g_queue_push_tail(r->distance_queue, d);
+
+		}
+	}
+}
+
 void init_optimal_cache() {
 	optimal_cache.seed_count = 0;
 
@@ -82,37 +108,16 @@ void init_optimal_cache() {
 	else
 		optimal_cache.lru_queue = new_lru_cache(destor.restore_cache[1],
 				free_container_meta, lookup_fingerprint_in_container_meta);
+
+	optimal_cache_window_fill();
 }
 
 static containerid optimal_cache_window_slides() {
 	/* The position of the current seed */
 	static int cur = 1;
 
-	if (optimal_cache.win_size * 2 <= destor.restore_opt_window_size) {
-		int n = destor.restore_opt_window_size - optimal_cache.win_size, k;
-		containerid *ids = read_next_n_seeds(jcr.bv, n, &k);
-		if (ids) {
-			g_queue_push_tail(optimal_cache.window, ids);
-			optimal_cache.win_size += k;
-
-			/* update distance_seq */
-			int i;
-			for (i = 0; i < k; i++) {
-
-				struct accessRecord* r = g_hash_table_lookup(
-						optimal_cache.seed_table, &ids[i]);
-				if (!r) {
-					r = new_access_record(ids[i]);
-					g_hash_table_insert(optimal_cache.seed_table, &r->cid, r);
-				}
-
-				int *d = (int*) malloc(sizeof(int));
-				*d = optimal_cache.seed_count++;
-				g_queue_push_tail(r->distance_queue, d);
-
-			}
-		}
-	}
+	if (optimal_cache.win_size * 2 <= destor.restore_opt_window_size)
+		optimal_cache_window_fill();
 
 	containerid *ids = g_queue_peek_head(optimal_cache.window);
 	containerid id = ids[cur++];
@@ -246,6 +251,8 @@ static void optimal_cache_insert(containerid id) {
 	}
 
 	struct accessRecord* r = g_hash_table_lookup(optimal_cache.seed_table, &id);
+	if (!r)
+		printf("#################################  %ld\n", id);
 	assert(r);
 
 	g_sequence_insert_sorted(optimal_cache.distance_seq, r,

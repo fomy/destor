@@ -23,6 +23,18 @@ void init_exact_locality_index() {
 
 void close_exact_locality_index() {
 
+	if (index_buffer.cid != TEMPORARY_ID) {
+		GHashTable *features = featuring(NULL, 1);
+
+		GHashTableIter iter;
+		gpointer feature, value;
+		g_hash_table_iter_init(&iter, features);
+		while (g_hash_table_iter_next(&iter, &feature, &value))
+			db_insert_fingerprint((fingerprint*) feature, index_buffer.cid);
+
+		g_hash_table_destroy(features);
+	}
+
 	db_close();
 
 	if (container_meta_cache)
@@ -46,13 +58,21 @@ void exact_locality_index_lookup(struct segment* s) {
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
+		if (index_buffer.buffered_features
+				&& g_hash_table_contains(index_buffer.buffered_features,
+						&c->fp)) {
+			assert(index_buffer.cid != TEMPORARY_ID);
+			c->id = index_buffer.cid;
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+		}
+
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
-		if (tq) {
+		if (!tq) {
+			tq = g_queue_new();
+		} else if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			struct indexElem *be = g_queue_peek_head(tq);
 			c->id = be->id;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
-		} else {
-			tq = g_queue_new();
 		}
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) && container_meta_cache) {
@@ -74,7 +94,12 @@ void exact_locality_index_lookup(struct segment* s) {
 				if (container_meta_cache) {
 					struct containerMeta * cm = retrieve_container_meta_by_id(
 							c->id);
-					lru_cache_insert(container_meta_cache, cm, NULL, NULL);
+					if (cm)
+						lru_cache_insert(container_meta_cache, cm, NULL, NULL);
+					else
+						destor_log(DESTOR_NOTICE,
+								"The container %lld has not been written!",
+								c->id);
 				}
 			}
 		}
@@ -106,7 +131,7 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 
 	struct indexElem* e = g_queue_peek_nth(bs->chunks, n++); // current chunk
 
-	assert(from >= to);
+	assert(to >= from);
 	assert(e->id >= from);
 	assert(g_fingerprint_equal(fp, &e->fp));
 
@@ -117,16 +142,21 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 
 		if (from != to) {
 
-			/* Actually, it doesn't run. */
-			featuring(fp, 0);
+			if (index_buffer.cid != TEMPORARY_ID && index_buffer.cid != to) {
+				/* Another container */
+				GHashTable *features = featuring(NULL, 1);
 
-			/*
-			 * We can select features from the container here
-			 * as we do in near-exact index,
-			 * but it makes no sense because we are forced
-			 * to update each fingerprint in the container for exact.
-			 * */
-			db_insert_fingerprint(fp, to);
+				GHashTableIter iter;
+				gpointer key, value;
+				g_hash_table_iter_init(&iter, features);
+				while (g_hash_table_iter_next(&iter, &key, &value))
+					db_insert_fingerprint((fingerprint*) key, index_buffer.cid);
+
+				g_hash_table_destroy(features);
+			}
+
+			index_buffer.cid = to;
+			featuring(fp, 0);
 
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);

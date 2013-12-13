@@ -56,15 +56,15 @@ void do_backup(char *path) {
 	printf("number of files: %d\n", jcr.file_num);
 	printf("number of chunks: %d\n", jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
-	printf("total size: %ld\n", jcr.data_size);
-	printf("stored data size: %ld\n", jcr.unique_data_size);
+	printf("total size(B): %ld\n", jcr.data_size);
+	printf("stored data size(B): %ld\n", jcr.unique_data_size);
 	printf("dedup efficiency: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.unique_data_size)
 							/ (double) (jcr.data_size) :
 					0, jcr.data_size / (double) (jcr.unique_data_size));
-	printf("total time: %.3fs\n", jcr.total_time / 1000000);
-	printf("throughput: %.2fMB/s\n",
+	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
+	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 	printf("zero chunk num: %d\n", jcr.zero_chunk_num);
 	printf("zero_chunk_size: %ld\n", jcr.zero_chunk_size);

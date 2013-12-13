@@ -325,7 +325,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 
 	struct indexElem* e = g_queue_peek_nth(bs->chunks, n++); // current chunk
 
-	assert(from >= to);
+	assert(to >= from);
 	assert(e->id >= from);
 	assert(g_fingerprint_equal(fp, &e->fp));
 

@@ -180,6 +180,25 @@ void init_index() {
 	index_buffer.buffered_features = NULL;
 	index_buffer.cid = TEMPORARY_ID;
 
+	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY) {
+		destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
+		destor.index_feature_method[1] = 1;
+		init_exact_locality_index();
+	} else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
+		init_near_exact_locality_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		init_exact_similarity_index();
+	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+		init_near_exact_similarity_index();
+	else {
+		fprintf(stderr, "Invalid fingerprint category");
+		exit(1);
+	}
+
 	switch (destor.index_feature_method[0]) {
 	case INDEX_FEATURE_SAMPLE:
 	case INDEX_FEATURE_NO:
@@ -195,24 +214,6 @@ void init_index() {
 		fprintf(stderr, "Invalid feature method!\n");
 		exit(1);
 	}
-
-	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
-		init_exact_locality_index();
-	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
-		init_near_exact_locality_index();
-	else if (destor.index_category[0] == INDEX_CATEGORY_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
-		init_exact_similarity_index();
-	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
-		init_near_exact_similarity_index();
-	else {
-		fprintf(stderr, "Invalid fingerprint category");
-		exit(1);
-	}
-
 }
 
 void close_index() {

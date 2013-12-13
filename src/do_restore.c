@@ -223,9 +223,9 @@ void do_restore(int revision, char *path) {
 	printf("restore path: %s\n", jcr.path);
 	printf("number of files: %d\n", jcr.file_num);
 	printf("number of chunks: %d\n", jcr.chunk_num);
-	printf("total size: %ld\n", jcr.data_size);
-	printf("total time: %.3fs\n", jcr.total_time / 1000000);
-	printf("throughput: %.2fMB/s\n",
+	printf("total size(B): %ld\n", jcr.data_size);
+	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
+	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 	printf("speed factor: %.2f\n",
 			(double) jcr.data_size / (1024 * 1024 * jcr.read_container_num));
