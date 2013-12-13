@@ -108,9 +108,9 @@ void write_restore_data() {
 	while ((c = sync_queue_pop(restore_chunk_queue))) {
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
-			destor_log(DESTOR_NOTICE, "start restoring %s\n", c->data);
+			destor_log(DESTOR_NOTICE, "%s", c->data);
 
-			sds filepath = strdup(jcr.path);
+			sds filepath = sdsdup(jcr.path);
 			filepath = sdscat(filepath, c->data);
 
 			int len = sdslen(jcr.path);
@@ -152,11 +152,9 @@ void do_restore(int revision, char *path) {
 
 	init_restore_jcr(revision, path);
 
-	printf("job id: %d\n", jcr.id);
-	printf("backup path: %s\n", jcr.bv->path);
-
-	if (!path)
-		jcr.path = sdscpy(jcr.path, jcr.bv->path);
+	destor_log(DESTOR_NOTICE, "job id: %d\n", jcr.id);
+	destor_log(DESTOR_NOTICE, "backup path: %s\n", jcr.bv->path);
+	destor_log(DESTOR_NOTICE, "restore to: %s\n", jcr.path);
 
 	restore_chunk_queue = sync_queue_new(100);
 	restore_recipe_queue = sync_queue_new(100);

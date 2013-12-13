@@ -58,6 +58,9 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	b->number = get_next_version_number();
 	b->path = sdsnew(path);
+	b->deleted = 1;
+	b->number_of_chunks = 0;
+	b->number_of_files = 0;
 
 	b->fname_prefix = sdsdup(recipepath);
 	b->fname_prefix = sdscat(b->fname_prefix, "bv");
@@ -136,12 +139,10 @@ struct backupVersion* open_backup_version(int number) {
 	struct backupVersion *b = (struct backupVersion *) malloc(
 			sizeof(struct backupVersion));
 
-	b->number = number;
-
 	b->fname_prefix = sdsdup(recipepath);
 	b->fname_prefix = sdscat(b->fname_prefix, "bv");
 	char s[20];
-	sprintf(s, "%d", b->number);
+	sprintf(s, "%d", number);
 	b->fname_prefix = sdscat(b->fname_prefix, s);
 
 	sds fname = sdsdup(b->fname_prefix);
@@ -153,6 +154,7 @@ struct backupVersion* open_backup_version(int number) {
 
 	fseek(b->metadata_fp, 0, SEEK_SET);
 	fread(&b->number, sizeof(b->number), 1, b->metadata_fp);
+	assert(b->number == number);
 	fread(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
 
 	if (b->deleted) {
@@ -166,7 +168,7 @@ struct backupVersion* open_backup_version(int number) {
 	int pathlen;
 	fread(&pathlen, sizeof(int), 1, b->metadata_fp);
 	char path[pathlen + 1];
-	fread(path, sizeof(pathlen), 1, b->metadata_fp);
+	fread(path, pathlen, 1, b->metadata_fp);
 	path[pathlen] = 0;
 	b->path = sdsnew(path);
 
@@ -184,11 +186,6 @@ struct backupVersion* open_backup_version(int number) {
 		exit(1);
 	}
 
-	/*set deleted until backup is completed.*/
-	b->deleted = 1;
-	b->number_of_chunks = 0;
-	b->number_of_files = 0;
-
 	return b;
 }
 
@@ -196,6 +193,8 @@ struct backupVersion* open_backup_version(int number) {
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
+	b->deleted = 0;
+
 	fseek(b->metadata_fp, 0, SEEK_SET);
 	fwrite(&b->number, sizeof(b->number), 1, b->metadata_fp);
 	fwrite(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
@@ -231,6 +230,7 @@ void free_backup_version(struct backupVersion *b) {
 }
 
 void append_recipe_meta(struct backupVersion* b, struct recipe* r) {
+
 	int len = sdslen(r->filename);
 	fwrite(&len, sizeof(len), 1, b->metadata_fp);
 	fwrite(r->filename, len, 1, b->metadata_fp);
@@ -294,19 +294,24 @@ struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		return NULL;
 	}
 
+	int num =
+			(b->number_of_chunks - read_chunk_num) > n ?
+					n : (b->number_of_chunks - read_chunk_num);
+
 	struct chunkPointer *cp = (struct chunkPointer *) malloc(
-			sizeof(struct chunkPointer) * n);
+			sizeof(struct chunkPointer) * num);
 
 	int i;
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < num; i++) {
 		fread(&(cp[i].fp), sizeof(fingerprint), 1, b->recipe_fp);
 		fread(&(cp[i].id), sizeof(containerid), 1, b->recipe_fp);
 		fread(&(cp[i].size), sizeof(int32_t), 1, b->recipe_fp);
+
 	}
 
-	*k = i;
+	*k = num;
 
-	read_chunk_num += (*k);
+	read_chunk_num += num;
 	assert(read_chunk_num <= b->number_of_chunks);
 
 	return cp;
@@ -338,6 +343,8 @@ containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k) {
 struct recipe* new_recipe(char* name) {
 	struct recipe* r = (struct recipe*) malloc(sizeof(struct recipe));
 	r->filename = sdsnew(name);
+	r->chunknum = 0;
+	r->filesize = 0;
 	return r;
 }
 

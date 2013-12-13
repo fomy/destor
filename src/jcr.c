@@ -66,11 +66,13 @@ void init_restore_jcr(int revision, char *path) {
 
 	init_jcr(path);
 
+	jcr.bv = open_backup_version(revision);
+
+	if (!path)
+		jcr.path = sdscpy(jcr.path, jcr.bv->path);
+
 	if (jcr.path[sdslen(jcr.path) - 1] != '/')
 		jcr.path = sdscat(jcr.path, "/");
 
-	jcr.bv = open_backup_version(revision);
-
 	jcr.id = revision;
-
 }

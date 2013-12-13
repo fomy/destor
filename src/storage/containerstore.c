@@ -103,7 +103,7 @@ struct container* retrieve_container_by_id(containerid id) {
 		unser_bytes(&me->fp, sizeof(fingerprint));
 		unser_bytes(&me->len, sizeof(int32_t));
 		unser_bytes(&me->off, sizeof(int32_t));
-		g_hash_table_insert(c->meta.map, &me->fp, &me);
+		g_hash_table_insert(c->meta.map, &me->fp, me);
 	}
 
 	unser_end(cur, CONTAINER_META_SIZE);

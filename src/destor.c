@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
 			usage();
 		}
 		if (argc > optind) {
-			sdscpy(path, argv[optind]);
+			path = sdscpy(path, argv[optind]);
 		} else {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();
