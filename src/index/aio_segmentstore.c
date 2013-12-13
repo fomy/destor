@@ -227,7 +227,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, sr->features);
-	while (!g_hash_table_iter_next(&iter, &key, &value)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		ser_bytes(key, sizeof(fingerprint));
 	}
 

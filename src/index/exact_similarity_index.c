@@ -10,6 +10,7 @@
 #include "segmentstore.h"
 #include "aio_segmentstore.h"
 #include "../tools/lru_cache.h"
+#include "exact_similarity_index.h"
 
 static struct lruCache* segment_recipe_cache;
 
@@ -57,7 +58,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 	for (i = 0; i < len; ++i) {
 		struct chunk* c = g_queue_peek_nth(s->chunks, i);
 
-		if (c->size < 0)
+		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
@@ -98,6 +99,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
 
 				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);
+				assert(e);
 				c->id = e->id;
 				SET_CHUNK(c, CHUNK_DUPLICATE);
 			}
@@ -149,8 +151,7 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
 
-			int len = g_queue_get_length(tq);
-			int i;
+			int len = g_queue_get_length(tq), i;
 			for (i = 0; i < len; i++) {
 				struct indexElem* ue = g_queue_peek_nth(tq, i);
 				ue->id = to;
@@ -163,12 +164,14 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 			}
 		} else {
 			/* a normal redundant chunk */
+			assert(to!=TEMPORARY_ID);
 		}
 	}
 
+	/* Add the elem into the segmentRecipe buffer */
 	struct indexElem * be = (struct indexElem*) malloc(
 			sizeof(struct indexElem));
-	be->id = final_id == TEMPORARY_ID ? to : final_id;
+	be->id = (final_id == TEMPORARY_ID) ? to : final_id;
 	memcpy(&be->fp, fp, sizeof(fingerprint));
 	g_hash_table_replace(srbuf->table, &be->fp, be);
 
@@ -179,6 +182,7 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 		 * */
 		bs = g_queue_pop_head(index_buffer.segment_queue);
 
+		/* Clear the segment */
 		struct indexElem* ee = g_queue_pop_head(bs->chunks);
 		do {
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &ee->fp);
@@ -212,10 +216,8 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, srbuf->features);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			struct indexElem* e = (struct indexElem*) value;
-			db_insert_fingerprint(&e->fp, srbuf->id);
-		}
+		while (g_hash_table_iter_next(&iter, &key, &value))
+			db_insert_fingerprint((fingerprint*) value, srbuf->id);
 
 		free_segment_recipe(srbuf);
 		srbuf = NULL;

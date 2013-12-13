@@ -25,12 +25,10 @@ static inline int64_t id_to_length(segmentid id) {
 }
 
 static inline segmentid make_segment_id(int64_t offset, int64_t length) {
-	return offset << 32 + length;
+	return (offset << 32) + length;
 }
 
 void init_segment_management() {
-	segment_volume.segment_num = 0;
-	segment_volume.current_length = 0;
 
 	sds fname = sdsnew(destor.working_directory);
 	fname = sdscat(fname, "index/segment.volume");
@@ -56,6 +54,9 @@ void init_segment_management() {
 		perror("Can not create index/segment.volume because");
 		exit(1);
 	}
+
+	segment_volume.current_length = 4 + 8 + 8;
+	segment_volume.segment_num = 0;
 
 	flag = 0xff00ff00;
 	fwrite(&flag, sizeof(flag), 1, segment_volume.fp);
@@ -86,11 +87,14 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	int64_t offset = id_to_offset(id);
 	int64_t length = id_to_length(id);
 
-	struct segmentRecipe* sr = new_segment_recipe();
-
 	char buf[length];
 	fseek(segment_volume.fp, offset, SEEK_SET);
-	fread(buf, length, 1, segment_volume.fp);
+	if (fread(buf, length, 1, segment_volume.fp) != 1) {
+		printf("NOT Ready!\n");
+		return NULL;
+	}
+
+	struct segmentRecipe* sr = new_segment_recipe();
 
 	unser_declare;
 	unser_begin(buf, length);
@@ -110,7 +114,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 		struct indexElem* e = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
 		unser_int64(e->id);
-		unser_bytes(e->fp, sizeof(fingerprint));
+		unser_bytes(&e->fp, sizeof(fingerprint));
 		g_hash_table_insert(sr->table, &e->fp, e);
 	}
 
@@ -121,8 +125,10 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 
 struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	int64_t offset = segment_volume.current_length;
-	int64_t length = 8 + 4 + g_hash_table_size(sr->features) + 4
-			+ g_hash_table_size(sr->table);
+	int64_t length = 8 + 4
+			+ g_hash_table_size(sr->features) * sizeof(fingerprint) + 4
+			+ g_hash_table_size(sr->table)
+					* (sizeof(fingerprint) + sizeof(containerid));
 	sr->id = make_segment_id(offset, length);
 
 	char buf[length];
@@ -136,7 +142,7 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, sr->features);
-	while (!g_hash_table_iter_next(&iter, &key, &value)) {
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		ser_bytes(key, sizeof(fingerprint));
 	}
 

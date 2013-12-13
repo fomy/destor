@@ -1,5 +1,9 @@
 #include "index.h"
 #include "../jcr.h"
+#include "exact_locality_index.h"
+#include "exact_similarity_index.h"
+#include "near_exact_locality_index.h"
+#include "near_exact_similarity_index.h"
 
 /* g_mutex_init() is unnecessary if in static storage. */
 static GMutex mutex;
