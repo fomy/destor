@@ -53,8 +53,12 @@ int segment_fixed(struct segment* s, struct chunk * c) {
  * Used by Extreme Binning.
  */
 int segment_file_defined(struct segment* s, struct chunk *c) {
+	/*
+	 * For file-defined segmenting,
+	 * the end is not a new segment.
+	 */
 	if (c == NULL)
-		return 1;
+		return 0;
 
 	g_queue_push_tail(s->chunks, c);
 	if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
@@ -125,7 +129,6 @@ void *dedup_thread(void *arg) {
 			 * The segment will be cleared. */
 			send_segment(s);
 		}
-
 
 		if (c == NULL)
 			break;

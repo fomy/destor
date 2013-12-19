@@ -180,38 +180,6 @@ static void top_segment_select(GHashTable* features) {
 	g_hash_table_destroy(table);
 }
 
-static struct segmentRecipe* segment_absorb(struct segmentRecipe* base,
-		struct segmentRecipe* delta) {
-	base->id = TEMPORARY_ID;
-
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, delta->features);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		assert(!g_hash_table_contains(base->features, key));
-		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
-		memcpy(feature, key, sizeof(fingerprint));
-		g_hash_table_insert(base->features, feature, feature);
-	}
-
-	g_hash_table_iter_init(&iter, delta->table);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		struct indexElem* base_elem = g_hash_table_lookup(base->table, key);
-		if (!base_elem) {
-			struct indexElem* ne = (struct indexElem*) malloc(
-					sizeof(struct indexElem));
-			memcpy(ne, value, sizeof(struct indexElem));
-			g_hash_table_insert(base->table, &ne->fp, ne);
-		} else {
-			/* Select the newer id. More discussions are required. */
-			struct indexElem* ie = (struct indexElem*) value;
-			base_elem->id = base_elem->id > ie->id ? base_elem->id : ie->id;
-		}
-	}
-
-	return base;
-}
-
 static void all_segment_select(GHashTable* features) {
 	GHashTable *segments = g_hash_table_new_full(g_int64_hash, g_int64_equal,
 	NULL, free_segment_recipe);
@@ -220,22 +188,29 @@ static void all_segment_select(GHashTable* features) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		fingerprint *feature = (fingerprint*) key;
-		segmentid id = feature_index_lookup_for_latest(feature);
-		if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
-			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
-			g_hash_table_insert(segments, &sr->id, sr);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
+			if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
+				struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
+				g_hash_table_insert(segments, &sr->id, sr);
+			}
 		}
 	}
 
-	struct segmentRecipe* selected = new_segment_recipe();
+	struct segmentRecipe* selected = NULL;
 	if (g_hash_table_size(segments) > 0) {
 
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, segments);
-		while (g_hash_table_iter_next(&iter, &key, &value))
-			selected = segment_absorb(selected, (struct segmentRecipe *) value);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			if (selected) {
+				selected = segment_recipe_merge(selected,
+						(struct segmentRecipe *) value);
+			} else {
+				selected = (struct segmentRecipe *) value;
+			}
+		}
 
 		lru_cache_insert(segment_recipe_cache, segment_recipe_dup(selected),
 		NULL, NULL);
@@ -247,7 +222,7 @@ static void all_segment_select(GHashTable* features) {
 }
 
 void near_exact_similarity_index_lookup(struct segment* s) {
-	/* Load similar segments */
+	/* Load similar segments into segment cache. */
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		all_segment_select(s->features);
 	} else if (destor.index_segment_selection_method[0]
@@ -269,7 +244,8 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 	for (i = 0; i < len; ++i) {
 		struct chunk* c = g_queue_peek_nth(s->chunks, i);
 
-		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+		if (CHECK_CHUNK(c,
+				CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
@@ -393,7 +369,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 		if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 			struct segmentRecipe* base = g_queue_pop_head(segment_buffer);
 			/* New fingerprints coverwrite old ones. */
-			base = segment_absorb(base, srbuf);
+			base = segment_recipe_merge(base, srbuf);
 			free_segment_recipe(srbuf);
 			srbuf = base;
 			srbuf = update_segment_all_in_one(srbuf);

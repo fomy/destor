@@ -90,7 +90,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	char buf[length];
 	fseek(segment_volume.fp, offset, SEEK_SET);
 	if (fread(buf, length, 1, segment_volume.fp) != 1) {
-		printf("NOT Ready!\n");
+		destor_log(DESTOR_NOTICE, "segment is NOT Ready!");
 		return NULL;
 	}
 

@@ -18,7 +18,7 @@ void close_aio_segment_management();
  * Each segment calls the function.
  * If id is TEMPORARY_ID, no similar segment is found.
  */
-struct segmentRecipe* retrieve_segment_all_in_one(segmentid id);
+struct segmentRecipe* retrieve_segment_all_in_one(segmentid);
 
 /*
  * Return the joint segment recipe.

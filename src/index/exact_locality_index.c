@@ -15,6 +15,10 @@ static struct lruCache* container_meta_cache = NULL;
 
 void init_exact_locality_index() {
 
+	if(destor.index_feature_method[0] != INDEX_FEATURE_NO){
+		destor_log(DESTOR_NOTICE, "Change feature method to NO!");
+		destor.index_feature_method[0] = INDEX_FEATURE_NO;
+	}
 	db_init();
 
 	container_meta_cache = new_lru_cache(destor.index_container_cache_size,

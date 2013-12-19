@@ -18,14 +18,11 @@ void init_exact_similarity_index() {
 
 	db_init();
 
-	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
-		init_aio_segment_management();
-	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_LATEST
-			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_TOP) {
-		init_segment_management();
+	if (destor.index_segment_selection_method[0] != INDEX_SEGMENT_SELECT_LATEST) {
+		destor_log(DESTOR_NOTICE, "Change selection method to LATEST!");
+		destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_LATEST;
 	}
+	init_segment_management();
 
 	segment_recipe_cache = new_lru_cache(destor.index_segment_cache_size,
 			free_segment_recipe, lookup_fingerprint_in_segment_recipe);
@@ -36,14 +33,7 @@ void close_exact_similarity_index() {
 
 	db_close();
 
-	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
-		close_aio_segment_management();
-	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_LATEST
-			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_TOP) {
-		close_segment_management();
-	}
+	close_segment_management();
 
 	free_lru_cache(segment_recipe_cache);
 }
@@ -86,16 +76,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 			segmentid id = db_lookup_fingerprint(&c->fp);
 			if (id != TEMPORARY_ID) {
 				/* Find it in database. */
-				struct segmentRecipe* sr;
-				if (destor.index_segment_selection_method[0]
-						== INDEX_SEGMENT_SELECT_ALL) {
-					sr = retrieve_segment_all_in_one(id);
-				} else if (destor.index_segment_selection_method[0]
-						== INDEX_SEGMENT_SELECT_LATEST
-						|| destor.index_segment_selection_method[0]
-								== INDEX_SEGMENT_SELECT_TOP) {
-					sr = retrieve_segment(id);
-				}
+				struct segmentRecipe* sr = retrieve_segment(id);
 				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
 
 				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);

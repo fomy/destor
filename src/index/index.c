@@ -9,6 +9,12 @@
 static GMutex mutex;
 static GCond not_full_cond; // buffer is not full
 
+/*
+ * Inputs: a fingerprint,
+ * 		   a success flag that indicates whether a segment is terminated.
+ * If success is true,
+ * a segment is terminated and thus we return the features.
+ */
 GHashTable* (*featuring)(fingerprint *fp, int success);
 
 /*
@@ -380,4 +386,36 @@ struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 		g_hash_table_insert(dup->table, &elem->fp, elem);
 	}
 	return dup;
+}
+
+struct segmentRecipe* segment_recipe_merge(struct segmentRecipe* base,
+		struct segmentRecipe* delta) {
+	base->id = TEMPORARY_ID;
+
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, delta->features);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		assert(!g_hash_table_contains(base->features, key));
+		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
+		memcpy(feature, key, sizeof(fingerprint));
+		g_hash_table_insert(base->features, feature, feature);
+	}
+
+	g_hash_table_iter_init(&iter, delta->table);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct indexElem* base_elem = g_hash_table_lookup(base->table, key);
+		if (!base_elem) {
+			struct indexElem* ne = (struct indexElem*) malloc(
+					sizeof(struct indexElem));
+			memcpy(ne, value, sizeof(struct indexElem));
+			g_hash_table_insert(base->table, &ne->fp, ne);
+		} else {
+			/* Select the newer id. More discussions are required. */
+			struct indexElem* ie = (struct indexElem*) value;
+			base_elem->id = base_elem->id > ie->id ? base_elem->id : ie->id;
+		}
+	}
+
+	return base;
 }

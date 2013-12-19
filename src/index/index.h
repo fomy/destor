@@ -17,7 +17,7 @@ struct indexElem {
 };
 
 /* The buffer size > 2 * destor.rewrite_buffer_size */
-/* All fingerprint that have been looked up in the index
+/* All fingerprints that have been looked up in the index
  * but not been updated. */
 struct {
 	/* Queue of buffered segments and their features. */
@@ -55,7 +55,10 @@ void index_delete(fingerprint *);
 
 GHashTable* (*featuring)(fingerprint *fp, int success);
 
-/* Each prefetched segment is organized as a hash table for optimizing lookup. */
+/*
+ * Each prefetched segment is organized as a hash table for optimizing lookup.
+ * It is the basic unit of segment store.
+ * */
 struct segmentRecipe {
 	segmentid id;
 	GHashTable* features;
@@ -67,5 +70,7 @@ void free_segment_recipe(struct segmentRecipe*);
 int lookup_fingerprint_in_segment_recipe(struct segmentRecipe*, fingerprint *);
 int segment_recipe_check_id(struct segmentRecipe*, segmentid *id);
 struct segmentRecipe* segment_recipe_dup(struct segmentRecipe*);
+struct segmentRecipe* segment_recipe_merge(struct segmentRecipe*,
+		struct segmentRecipe*);
 
 #endif
