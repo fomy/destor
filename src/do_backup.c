@@ -98,8 +98,8 @@ void do_backup(char *path) {
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
 
-	double seek_time = 0.005; //5ms
-	double bandwidth = 120 * 1024 * 1024; //120MB/s
+	//double seek_time = 0.005; //5ms
+	//double bandwidth = 120 * 1024 * 1024; //120MB/s
 
 	/*	double index_lookup_throughput = jcr.data_size
 	 / (index_read_times * seek_time

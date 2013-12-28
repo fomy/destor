@@ -66,7 +66,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 			if (sr) {
 				/* Find it */
 				SET_CHUNK(c, CHUNK_DUPLICATE);
-				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);
+				struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
 				assert(e);
 				c->id = e->id;
 			}
@@ -79,7 +79,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 				struct segmentRecipe* sr = retrieve_segment(id);
 				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
 
-				struct indexElem* e = g_hash_table_lookup(sr->table, &c->fp);
+				struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
 				assert(e);
 				c->id = e->id;
 				SET_CHUNK(c, CHUNK_DUPLICATE);
@@ -154,7 +154,7 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 			sizeof(struct indexElem));
 	be->id = (final_id == TEMPORARY_ID) ? to : final_id;
 	memcpy(&be->fp, fp, sizeof(fingerprint));
-	g_hash_table_replace(srbuf->table, &be->fp, be);
+	g_hash_table_replace(srbuf->index, &be->fp, be);
 
 	if (n == g_queue_get_length(bs->chunks)) {
 		/*

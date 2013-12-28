@@ -1,4 +1,5 @@
 #include "sync_queue.h"
+#include <stdio.h>
 
 SyncQueue* sync_queue_new(int size) {
 	SyncQueue *s_queue = (SyncQueue*) malloc(sizeof(SyncQueue));

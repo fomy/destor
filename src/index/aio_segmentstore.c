@@ -33,6 +33,7 @@ static struct segmentVolume* init_segment_volume(int32_t level) {
 	sv->level = level;
 	sv->current_segment_num = 0;
 	sv->current_volume_length = VOLUME_HEAD_SIZE;
+	sv->fp = NULL;
 
 	sv->fname = sdsnew(destor.working_directory);
 	sv->fname = sdscat(sv->fname, "index/segment.volume");
@@ -53,7 +54,7 @@ static struct segmentVolume* init_segment_volume(int32_t level) {
 		return sv;
 	}
 
-	destor_log(DESTOR_NOTICE, "Create segment volume %d.\n", level);
+	destor_log(DESTOR_NOTICE, "Create segment volume %d.", level);
 	if (!(fp = fopen(sv->fname, "w"))) {
 		perror("Can not create index/segment.volume because");
 		exit(1);
@@ -95,7 +96,7 @@ static void close_segment_volume(struct segmentVolume *sv) {
 
 static int32_t no_to_level(int32_t feature_num, int32_t chunk_num) {
 	/* segment id + feature num + features + chunk num + chunks */
-	int32_t size = 8 + 4 + 20 * feature_num + 4 + chunk_num * 24;
+	int32_t size = 8 + 4 + 20 * feature_num + 4 + chunk_num * 28;
 	size /= LEVEL_FACTOR;
 	int level = 0;
 	while (size) {
@@ -139,7 +140,7 @@ static inline int64_t id_to_offset(segmentid id) {
 }
 
 static inline segmentid make_segment_id(int64_t level, int64_t offset) {
-	return level << 56 + offset;
+	return (level << 56) + offset;
 }
 
 struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
@@ -181,8 +182,10 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 				sizeof(struct indexElem));
 		unser_int64(ie->id);
 		unser_bytes(&ie->fp, sizeof(fingerprint));
-		g_hash_table_insert(sr->table, &ie->fp, ie);
+		g_hash_table_insert(sr->index, &ie->fp, ie);
 	}
+
+	unser_end(buf, size);
 
 	return sr;
 }
@@ -190,7 +193,7 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 
 	int level = no_to_level(g_hash_table_size(sr->features),
-			g_hash_table_size(sr->table));
+			g_hash_table_size(sr->index));
 	struct segmentVolume* sv = segment_volume_array[level];
 	int64_t offset;
 
@@ -202,6 +205,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 		sv->current_segment_num++;
 		sv->current_volume_length += level_to_max_size(level);
 	} else if (id_to_level(sr->id) != level) {
+		assert(id_to_level(sr->id) > level);
 		/* Migrate the segment */
 		offset = sv->current_volume_length;
 		sr->id = make_segment_id(level, offset);
@@ -221,7 +225,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	ser_begin(buf, level_to_max_size(level));
 
 	ser_int64(sr->id);
-	int32_t num = g_hash_table_size(sr->features), i;
+	int32_t num = g_hash_table_size(sr->features);
 	ser_int32(num);
 
 	GHashTableIter iter;
@@ -231,15 +235,17 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 		ser_bytes(key, sizeof(fingerprint));
 	}
 
-	num = g_hash_table_size(sr->table);
+	num = g_hash_table_size(sr->index);
 	ser_int32(num);
 
-	g_hash_table_iter_init(&iter, sr->table);
+	g_hash_table_iter_init(&iter, sr->index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct indexElem* e = (struct indexElem*) value;
 		ser_int64(e->id);
 		ser_bytes(&e->fp, sizeof(fingerprint));
 	}
+
+	ser_end(buf, level_to_max_size(level));
 
 	if (!sv->fp)
 		sv->fp = fopen(sv->fname, "r+");

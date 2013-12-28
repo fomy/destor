@@ -270,4 +270,6 @@ gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2);
 gboolean g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2,
 		gpointer user_data);
 
+void destor_log(int level, const char *fmt, ...);
+
 #endif /* DESTOR_H_ */

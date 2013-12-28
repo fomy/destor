@@ -184,7 +184,7 @@ void init_index() {
 	index_buffer.segment_queue = g_queue_new();
 	index_buffer.table = g_hash_table_new_full(g_int64_hash,
 			g_fingerprint_equal,
-			NULL, NULL);
+			NULL, g_queue_free);
 	index_buffer.num = 0;
 
 	index_buffer.buffered_features = NULL;
@@ -342,7 +342,7 @@ struct segmentRecipe* new_segment_recipe() {
 	struct segmentRecipe* sr = (struct segmentRecipe*) malloc(
 			sizeof(struct segmentRecipe));
 	sr->id = TEMPORARY_ID;
-	sr->table = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, NULL,
+	sr->index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, NULL,
 			free);
 	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
 			free, NULL);
@@ -350,20 +350,23 @@ struct segmentRecipe* new_segment_recipe() {
 }
 
 void free_segment_recipe(struct segmentRecipe* sr) {
-	g_hash_table_destroy(sr->table);
+	g_hash_table_destroy(sr->index);
 	g_hash_table_destroy(sr->features);
 	free(sr);
 }
 
 int lookup_fingerprint_in_segment_recipe(struct segmentRecipe* sr,
 		fingerprint *fp) {
-	return g_hash_table_lookup(sr->table, fp) == NULL ? 0 : 1;
+	return g_hash_table_lookup(sr->index, fp) == NULL ? 0 : 1;
 }
 
 int segment_recipe_check_id(struct segmentRecipe* sr, segmentid *id) {
 	return sr->id == *id;
 }
 
+/*
+ * Duplicate a segmentRecipe.
+ */
 struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 	struct segmentRecipe* dup = new_segment_recipe();
 
@@ -377,21 +380,29 @@ struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 		g_hash_table_insert(dup->features, feature, feature);
 	}
 
-	g_hash_table_iter_init(&iter, sr->table);
+	g_hash_table_iter_init(&iter, sr->index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		struct indexElem* ie = (struct indexElem*) value;
 		struct indexElem* elem = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
-		memcpy(elem, ie, sizeof(struct indexElem));
-		g_hash_table_insert(dup->table, &elem->fp, elem);
+		memcpy(elem, value, sizeof(struct indexElem));
+		g_hash_table_insert(dup->index, &elem->fp, elem);
 	}
 	return dup;
 }
 
+/*
+ * Merge a segmentRecipe into a base segmentRecipe.
+ * Only AIO will call the function.
+ */
 struct segmentRecipe* segment_recipe_merge(struct segmentRecipe* base,
 		struct segmentRecipe* delta) {
-	base->id = TEMPORARY_ID;
+	/*
+	 * Select the larger id,
+	 * which indicating a later or larger segment.
+	 */
+	base->id = base->id > delta->id ? base->id : delta->id;
 
+	/* Iterate features in delta */
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, delta->features);
@@ -402,18 +413,18 @@ struct segmentRecipe* segment_recipe_merge(struct segmentRecipe* base,
 		g_hash_table_insert(base->features, feature, feature);
 	}
 
-	g_hash_table_iter_init(&iter, delta->table);
+	/* Iterate fingerprints in delta */
+	g_hash_table_iter_init(&iter, delta->index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		struct indexElem* base_elem = g_hash_table_lookup(base->table, key);
+		struct indexElem* base_elem = g_hash_table_lookup(base->index, key);
 		if (!base_elem) {
-			struct indexElem* ne = (struct indexElem*) malloc(
-					sizeof(struct indexElem));
-			memcpy(ne, value, sizeof(struct indexElem));
-			g_hash_table_insert(base->table, &ne->fp, ne);
+			base_elem = (struct indexElem*) malloc(sizeof(struct indexElem));
+			memcpy(base_elem, value, sizeof(struct indexElem));
+			g_hash_table_insert(base->index, &base_elem->fp, base_elem);
 		} else {
 			/* Select the newer id. More discussions are required. */
 			struct indexElem* ie = (struct indexElem*) value;
-			base_elem->id = base_elem->id > ie->id ? base_elem->id : ie->id;
+			base_elem->id = base_elem->id >= ie->id ? base_elem->id : ie->id;
 		}
 	}
 

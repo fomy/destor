@@ -97,7 +97,7 @@ void *cfl_rewrite(void* arg) {
 						|| CHECK_CHUNK(c, CHUNK_FILE_END))
 				&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
 			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
-		TIMER_BEGIN(1);
+		TIMER_END(1, jcr.rewrite_time);
 		sync_queue_push(rewrite_queue, c);
 		TIMER_BEGIN(1);
 	}

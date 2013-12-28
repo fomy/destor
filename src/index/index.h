@@ -62,7 +62,8 @@ GHashTable* (*featuring)(fingerprint *fp, int success);
 struct segmentRecipe {
 	segmentid id;
 	GHashTable* features;
-	GHashTable *table;
+	/* Map fingerprints in the segment to their container IDs.*/
+	GHashTable *index;
 };
 
 struct segmentRecipe* new_segment_recipe();

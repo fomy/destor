@@ -2,6 +2,7 @@
 #define SYNC_QUEUE_H_
 
 #include <stdlib.h>
+#include <pthread.h>
 #include "queue.h"
 
 typedef struct {

@@ -188,29 +188,23 @@ static void all_segment_select(GHashTable* features) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-			if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
-				struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
-				g_hash_table_insert(segments, &sr->id, sr);
-			}
+		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
+		if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
+			printf("Find a similar segment %lld\n", id);
+			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
+			g_hash_table_insert(segments, &sr->id, sr);
 		}
 	}
 
-	struct segmentRecipe* selected = NULL;
+	struct segmentRecipe* selected = new_segment_recipe();
 	if (g_hash_table_size(segments) > 0) {
 
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, segments);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			if (selected) {
-				selected = segment_recipe_merge(selected,
-						(struct segmentRecipe *) value);
-			} else {
-				selected = (struct segmentRecipe *) value;
-			}
-		}
+		while (g_hash_table_iter_next(&iter, &key, &value))
+			selected = segment_recipe_merge(selected,
+					(struct segmentRecipe *) value);
 
 		lru_cache_insert(segment_recipe_cache, segment_recipe_dup(selected),
 		NULL, NULL);
@@ -262,7 +256,7 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 					&c->fp);
 			if (si) {
 				/* Find it */
-				struct indexElem *ie = g_hash_table_lookup(si->table, c->fp);
+				struct indexElem *ie = g_hash_table_lookup(si->index, c->fp);
 				assert(ie);
 				SET_CHUNK(c, CHUNK_DUPLICATE);
 				c->id = ie->id;
@@ -306,7 +300,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 	assert(g_fingerprint_equal(fp, &e->fp));
 
 	if (from < e->id) {
-		/* to is meaningless. */
+		/* 'to' is meaningless. */
 		final_id = e->id;
 	} else {
 
@@ -315,14 +309,15 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
 
-			int len = g_queue_get_length(tq);
-			int i;
+			int len = g_queue_get_length(tq), i;
 			for (i = 0; i < len; i++) {
 				struct indexElem* ue = g_queue_peek_nth(tq, i);
+				printf("i=%d, to=%lld\n", i, to);
 				ue->id = to;
 			}
 		} else {
 			/* a normal redundant chunk */
+			assert(to!=TEMPORARY_ID);
 		}
 	}
 
@@ -330,7 +325,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 			sizeof(struct indexElem));
 	be->id = final_id == TEMPORARY_ID ? to : final_id;
 	memcpy(&be->fp, fp, sizeof(fingerprint));
-	g_hash_table_replace(srbuf->table, &be->fp, be);
+	g_hash_table_replace(srbuf->index, &be->fp, be);
 
 	if (n == g_queue_get_length(bs->chunks)) {
 		/*
@@ -368,7 +363,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 
 		if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 			struct segmentRecipe* base = g_queue_pop_head(segment_buffer);
-			/* New fingerprints coverwrite old ones. */
+			/* over-write old addresses. */
 			base = segment_recipe_merge(base, srbuf);
 			free_segment_recipe(srbuf);
 			srbuf = base;
@@ -387,10 +382,8 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, srbuf->features);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			struct indexElem* e = (struct indexElem*) value;
-			feature_index_update(&e->fp, srbuf->id);
-		}
+		while (g_hash_table_iter_next(&iter, &key, &value))
+			feature_index_update((fingerprint*) key, srbuf->id);
 
 		free_segment_recipe(srbuf);
 		srbuf = NULL;

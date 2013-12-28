@@ -115,7 +115,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 				sizeof(struct indexElem));
 		unser_int64(e->id);
 		unser_bytes(&e->fp, sizeof(fingerprint));
-		g_hash_table_insert(sr->table, &e->fp, e);
+		g_hash_table_insert(sr->index, &e->fp, e);
 	}
 
 	unser_end(buf, length);
@@ -127,7 +127,7 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	int64_t offset = segment_volume.current_length;
 	int64_t length = 8 + 4
 			+ g_hash_table_size(sr->features) * sizeof(fingerprint) + 4
-			+ g_hash_table_size(sr->table)
+			+ g_hash_table_size(sr->index)
 					* (sizeof(fingerprint) + sizeof(containerid));
 	sr->id = make_segment_id(offset, length);
 
@@ -146,10 +146,10 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 		ser_bytes(key, sizeof(fingerprint));
 	}
 
-	num = g_hash_table_size(sr->table);
+	num = g_hash_table_size(sr->index);
 	ser_int32(num);
 
-	g_hash_table_iter_init(&iter, sr->table);
+	g_hash_table_iter_init(&iter, sr->index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct indexElem* e = (struct indexElem*) value;
 		ser_int64(e->id);

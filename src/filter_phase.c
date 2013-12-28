@@ -83,6 +83,8 @@ static void* filter_thread(void *arg) {
 				containerid ret = index_update(c->fp, c->id, c->id);
 				if (ret != TEMPORARY_ID)
 					c->id = ret;
+				else
+					destor_log(DESTOR_WARNING, "Happen!!!!!!!!!");
 				TIMER_BEGIN(1);
 			}
 			struct chunkPointer* cp = (struct chunkPointer*) malloc(

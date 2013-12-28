@@ -13,6 +13,7 @@
 /*  serial_int16  --  Serialise a signed 16 bit integer.  */
 #include "serial.h"
 #include <string.h>
+#include <arpa/inet.h>
 
 void serial_int16(uint8_t * * const ptr, const int16_t v)
 {

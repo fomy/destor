@@ -7,6 +7,7 @@
 
 #include "destor.h"
 #include "jcr.h"
+#include "storage/containerstore.h"
 
 extern void do_backup(char *path);
 extern void do_delete(int revision);
@@ -141,23 +142,15 @@ void destor_start() {
 	destor.index_segment_prefech = 0;
 	destor.index_segment_cache_size = 0;
 
-	int rewrite_algorithm;
-	int rewrite_buffer_size;
-	/* for CFL-based selective deduplication */
-	double rewrite_cfl_require;
-	double rewrite_cfl_usage_threshold;
-	/* for Context-Based Rewriting (CBR) */
-	int rewrite_cbr_limit;
-	int rewrite_cbr_minimal_utility;
-	/* for capping */
-	int rewrite_capping_level;
+	destor.rewrite_algorithm[0] = REWRITE_NO;
+	destor.rewrite_algorithm[1] = 1024;
 
 	/* for History-Aware Rewriting (HAR) */
-	int rewrite_enable_har;
-	int rewrite_har_utilization_threshold;
+	destor.rewrite_enable_har = 0;
+	destor.rewrite_har_utilization_threshold = 0.5;
 
 	/* for Cache-Aware Filter */
-	int rewrite_enable_cache_aware;
+	destor.rewrite_enable_cache_aware = 0;
 
 	load_config();
 
