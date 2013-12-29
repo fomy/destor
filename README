@@ -1,41 +1,34 @@
 General Information
 ===================
 This is a prototype of a deduplication system, named destor.
-The destor is an experimental tool that may help implementing great ideas.
 
 Features
 ========
-1. Context-based chunking by rabin hash, and fixed-sized chunking.
+1. Container-based storage;
 2. Chunk-level pipeline;
-3. Container-based storage;
-4. in-memory index and DDFS index;
-5. LRU cache and Nearly-Optimal cache;
-6. CFL monitor,  selective deduplication, and CFL-assisted HBR;
-7. Context-based rewriting algorithm (CBR).
-8. Extreme Binning index without file-level dedup;
-9. SiLo index;
-10. History-based rewriting algorithm (HBR), and CBR-assisted HBR.
-11. Capping rewriting algorithm, rolling forward assembly area algorithm, and capping-assisted HBR.
-12. Add a cache filter to improve rewriting algorithms.
-13. Sparse Index.
-14. Sample Index.
-15. Segment Binning.
-16. Garbage collection scheme of Cumulus.
-17. Block Locality Caching index.
+3. Fixed-sized chunking and Content-Defined Chunking (CDC);
+4. A variety of fingerprint indexes, including DDFS, Extreme Binning, Sparse Index, SiLo, etc.
+5. A variety of rewriting algorithms, including CFL, CBR, CAP, etc.
+6. A variety of restore algorithms, including LRU, optimal replacement algorithm, rolling forward assembly.
 
 Related papers
 ==============
-1. Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
-2. Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
-3. SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
-4. Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
-5. Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
-6. Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
-7. Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
-8. Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
-9. Building a High-Performance Deduplication System, @USENIX ATC'11.
-10. Cumulus: Filesystem Backup to the Cloud, @FAST'09
-11. Block Locality Caching for Data Deduplication, @SYSTOR'13.
+1. The design of the fingerprint index.
+    a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
+    b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
+    c) Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
+    d) SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
+    e) Block Locality Caching for Data Deduplication, @SYSTOR'13.
+
+2. The fragmentation.
+    a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
+    b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
+    c) Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
+    d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+
+3. Garbage collection.
+    a) Building a High-Performance Deduplication System, @USENIX ATC'11.
+    b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
 
 Environment
 ===========
@@ -85,26 +78,19 @@ destor has provided four types of services:
 There are several options for destor.
 1.backup options
     --index=[RAM|DDFS|EXBIN|SILO|SPARSE|SAMPLE]
-    --rewrite=[NO|CFL|CBR|CAP|HBR]
+    --rewrite=[NO|CFL|CBR|CAP|HAR]
 2.restore options
     --cache=[LRU|ASM|OPT]
 
 Configure
 =========
-The configure file of destor, destor.config, is a little complicated.
-Actually it offers several parameters of deduplication system, such as index type(RAM, DDFS, etc.), cache type(LRU, OPT and ASM), rewriting algorithms(CFL, CBR, etc.) and so on.
-1.INDEX_TYPE : indicates the type of the fingerprint index. Destor supports RAM, DDFS, EXBIN, SILO, SPARSE, SAMPLE currently;
-2.READ_CACHE_TYPE : the cache for recovery, and destor now supports LRU, OPT and ASM;
-3.REWRITE : indicates whether using rewriting algorithm, and destor supports NO, CFL, CBR, CAP, HBR etc.
-4.There are many parameters for these algorithms, be careful.
+A sample configuration is shown in destor.conf
 
 Bugs
 ====
-1. The path of the backup/restore directory cannot exceed 200 bytes. 
-2. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
-3. Does NOT backup extremely large dataset with a huger number of chunk than 2^31.
-4. Does NOT support concurrent backup/restore.
-5. If working path in destor.config is modified, the rebuild script in scripts folder must be modified too.
+1. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
+2. Does NOT support concurrent backup/restore.
+3. If working path in destor.config is modified, the rebuild script in scripts folder must be modified too.
 
 Author
 ======

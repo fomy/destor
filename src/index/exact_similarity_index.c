@@ -96,6 +96,7 @@ void exact_similarity_index_lookup(struct segment* s) {
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
+		index_buffer.num++;
 	}
 
 	bs->features = s->features;
@@ -170,10 +171,11 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
-				/* tp is freed by hash table automatically. */
 				g_hash_table_remove(index_buffer.table, &ee->fp);
+				g_queue_free(tq);
 			}
 			free(ee);
+			index_buffer.num--;
 		} while ((ee = g_queue_pop_head(bs->chunks)));
 
 		if (bs->features) {

@@ -204,7 +204,6 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
-				/* tp is freed by hash table automatically. */
 				g_hash_table_remove(index_buffer.table, &ee->fp);
 				g_queue_free(tq);
 			}

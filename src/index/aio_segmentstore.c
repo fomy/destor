@@ -205,7 +205,7 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 		sv->current_segment_num++;
 		sv->current_volume_length += level_to_max_size(level);
 	} else if (id_to_level(sr->id) != level) {
-		assert(id_to_level(sr->id) > level);
+		assert(id_to_level(sr->id) < level);
 		/* Migrate the segment */
 		offset = sv->current_volume_length;
 		sr->id = make_segment_id(level, offset);

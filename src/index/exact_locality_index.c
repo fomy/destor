@@ -120,6 +120,8 @@ void exact_locality_index_lookup(struct segment* s) {
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
 		assert(s->features == NULL);
+
+		index_buffer.num++;
 	}
 
 	g_queue_push_tail(index_buffer.segment_queue, bs);
@@ -165,8 +167,7 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
 
-			int len = g_queue_get_length(tq);
-			int i;
+			int len = g_queue_get_length(tq), i;
 			for (i = 0; i < len; i++) {
 				struct indexElem* ue = g_queue_peek_nth(tq, i);
 				ue->id = to;
@@ -189,10 +190,11 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
-				/* tp is freed by hash table automatically. */
 				g_hash_table_remove(index_buffer.table, &ee->fp);
+				g_queue_free(tq);
 			}
 			free(ee);
+			index_buffer.num--;
 		} while ((ee = g_queue_pop_head(bs->chunks)));
 
 		free_segment(bs, free);

@@ -173,7 +173,11 @@ int container_overflow(struct container* c, int32_t size) {
 
 void add_chunk_to_container(struct container* c, struct chunk* ck) {
 	assert(!container_overflow(c, ck->size));
-	assert(!g_hash_table_contains(c->meta.map, &ck->fp));
+	if (g_hash_table_contains(c->meta.map, &ck->fp)) {
+		assert(destor.index_category[0]!=INDEX_CATEGORY_EXACT);
+		ck->id = c->meta.id;
+		return;
+	}
 
 	struct metaEntry* me = (struct metaEntry*) malloc(sizeof(struct metaEntry));
 	memcpy(&me->fp, &ck->fp, sizeof(fingerprint));

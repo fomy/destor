@@ -182,9 +182,10 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 
 void init_index() {
 	index_buffer.segment_queue = g_queue_new();
+	/* Do NOT assign a free function for value. */
 	index_buffer.table = g_hash_table_new_full(g_int64_hash,
 			g_fingerprint_equal,
-			NULL, g_queue_free);
+			NULL, NULL);
 	index_buffer.num = 0;
 
 	index_buffer.buffered_features = NULL;
@@ -407,10 +408,11 @@ struct segmentRecipe* segment_recipe_merge(struct segmentRecipe* base,
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, delta->features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		assert(!g_hash_table_contains(base->features, key));
-		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
-		memcpy(feature, key, sizeof(fingerprint));
-		g_hash_table_insert(base->features, feature, feature);
+		if (!g_hash_table_contains(base->features, key)) {
+			fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
+			memcpy(feature, key, sizeof(fingerprint));
+			g_hash_table_insert(base->features, feature, feature);
+		}
 	}
 
 	/* Iterate fingerprints in delta */

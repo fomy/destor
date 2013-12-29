@@ -189,8 +189,7 @@ static void all_segment_select(GHashTable* features) {
 	g_hash_table_iter_init(&iter, features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-		if (id != TEMPORARY_ID && g_hash_table_contains(segments, &id)) {
-			printf("Find a similar segment %lld\n", id);
+		if (id != TEMPORARY_ID && !g_hash_table_contains(segments, &id)) {
 			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
 			g_hash_table_insert(segments, &sr->id, sr);
 		}
@@ -274,6 +273,7 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
 
+		index_buffer.num++;
 	}
 
 	bs->features = s->features;
@@ -312,7 +312,6 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 			int len = g_queue_get_length(tq), i;
 			for (i = 0; i < len; i++) {
 				struct indexElem* ue = g_queue_peek_nth(tq, i);
-				printf("i=%d, to=%lld\n", i, to);
 				ue->id = to;
 			}
 		} else {
@@ -340,10 +339,12 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 			assert(g_queue_peek_head(tq) == ee);
 			g_queue_pop_head(tq);
 			if (g_queue_get_length(tq) == 0) {
-				/* tp is freed by hash table automatically. */
 				g_hash_table_remove(index_buffer.table, &ee->fp);
+				g_queue_free(tq);
 			}
+
 			free(ee);
+			index_buffer.num--;
 		} while ((ee = g_queue_pop_head(bs->chunks)));
 
 		if (bs->features) {

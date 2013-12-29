@@ -79,12 +79,14 @@ static void* filter_thread(void *arg) {
 				else
 					c->id = ret;
 			} else {
+				/* This is a duplicate and not fragmented chunk.  */
 				TIMER_END(1, jcr.filter_time);
+
 				containerid ret = index_update(c->fp, c->id, c->id);
 				if (ret != TEMPORARY_ID)
+					/* An identical chunk has been rewritten earlier. */
 					c->id = ret;
-				else
-					destor_log(DESTOR_WARNING, "Happen!!!!!!!!!");
+
 				TIMER_BEGIN(1);
 			}
 			struct chunkPointer* cp = (struct chunkPointer*) malloc(
