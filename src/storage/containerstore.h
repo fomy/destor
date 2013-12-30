@@ -11,7 +11,7 @@
 #include "../destor.h"
 
 #define CONTAINER_SIZE (4194304ll) //4MB
-#define CONTAINER_META_SIZE (32768) //32KB
+#define CONTAINER_META_SIZE (32768ll) //32KB
 #define CONTAINER_HEAD 16
 #define CONTAINER_META_ENTRY 28
 
@@ -26,7 +26,8 @@ struct containerMeta {
 
 struct container {
 	struct containerMeta meta;
-	unsigned char data[CONTAINER_SIZE];
+	//unsigned char data[CONTAINER_SIZE];
+	unsigned char *data;
 };
 
 void init_container_store();

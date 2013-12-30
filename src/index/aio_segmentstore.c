@@ -54,7 +54,7 @@ static struct segmentVolume* init_segment_volume(int32_t level) {
 		return sv;
 	}
 
-	destor_log(DESTOR_NOTICE, "Create segment volume %d.", level);
+	destor_log(DESTOR_NOTICE, "Create segment volume %d", level);
 	if (!(fp = fopen(sv->fname, "w"))) {
 		perror("Can not create index/segment.volume because");
 		exit(1);

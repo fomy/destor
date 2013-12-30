@@ -299,8 +299,8 @@ void load_config() {
 
 	FILE *fp;
 	if ((fp = fopen("destor.config", "r")) == 0) {
-		destor_log(DESTOR_WARNING, "Fatal error, can not open destor.config!");
-		exit(1);
+		destor_log(DESTOR_WARNING, "No destor.config file!");
+		return;
 	}
 
 	while (fgets(buf, DESTOR_CONFIGLINE_MAX + 1, fp) != NULL)

@@ -41,8 +41,16 @@ static void init_container_meta(struct containerMeta *meta) {
 			free);
 }
 
+/*
+ * For backup.
+ */
 struct container* create_container() {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
+	if (destor.simulation_level < SIMULATION_APPEND)
+		c->data = malloc(CONTAINER_SIZE);
+	else
+		c->data = 0;
+
 	init_container_meta(&c->meta);
 	c->meta.id = container_count++;
 	return c;
@@ -56,37 +64,85 @@ void write_container(struct container* c) {
 
 	assert(c->meta.chunk_num == g_hash_table_size(c->meta.map));
 
-	unsigned char * cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
-	ser_declare;
-	ser_begin(cur, CONTAINER_META_SIZE);
-	ser_int64(c->meta.id);
-	ser_int32(c->meta.chunk_num);
-	ser_int32(c->meta.data_size);
+	if (destor.simulation_level < SIMULATION_APPEND) {
 
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, c->meta.map);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		struct metaEntry *me = (struct metaEntry *) value;
-		ser_bytes(&me->fp, sizeof(fingerprint));
-		ser_bytes(&me->len, sizeof(int32_t));
-		ser_bytes(&me->off, sizeof(int32_t));
+		unsigned char * cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
+		ser_declare;
+		ser_begin(cur, CONTAINER_META_SIZE);
+		ser_int64(c->meta.id);
+		ser_int32(c->meta.chunk_num);
+		ser_int32(c->meta.data_size);
+
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, c->meta.map);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			struct metaEntry *me = (struct metaEntry *) value;
+			ser_bytes(&me->fp, sizeof(fingerprint));
+			ser_bytes(&me->len, sizeof(int32_t));
+			ser_bytes(&me->off, sizeof(int32_t));
+		}
+
+		ser_end(cur, CONTAINER_META_SIZE);
+
+		fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
+		fwrite(c->data, CONTAINER_SIZE, 1, fp);
+	} else {
+		char buf[CONTAINER_META_SIZE];
+
+		ser_declare;
+		ser_begin(buf, CONTAINER_META_SIZE);
+		ser_int64(c->meta.id);
+		ser_int32(c->meta.chunk_num);
+		ser_int32(c->meta.data_size);
+
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, c->meta.map);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			struct metaEntry *me = (struct metaEntry *) value;
+			ser_bytes(&me->fp, sizeof(fingerprint));
+			ser_bytes(&me->len, sizeof(int32_t));
+			ser_bytes(&me->off, sizeof(int32_t));
+		}
+
+		ser_end(buf, CONTAINER_META_SIZE);
+
+		fseek(fp, c->meta.id * CONTAINER_META_SIZE + 8, SEEK_SET);
+		fwrite(buf, CONTAINER_META_SIZE, 1, fp);
+
 	}
 
-	ser_end(cur, CONTAINER_META_SIZE);
-
-	fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
-	fwrite(c->data, CONTAINER_SIZE, 1, fp);
 }
 
 struct container* retrieve_container_by_id(containerid id) {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
+
 	init_container_meta(&c->meta);
 
-	fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
-	fread(c->data, CONTAINER_SIZE, 1, fp);
+	char *cur = 0;
+	if (destor.simulation_level >= SIMULATION_RESTORE) {
+		c->data = malloc(CONTAINER_META_SIZE);
 
-	unsigned char * cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
+		if (destor.simulation_level >= SIMULATION_APPEND)
+			fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
+		else
+			fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8,
+			SEEK_SET);
+
+		fread(c->data, CONTAINER_META_SIZE, 1, fp);
+
+		cur = c->data;
+	} else {
+		c->data = malloc(CONTAINER_SIZE);
+
+		fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
+
+		fread(c->data, CONTAINER_SIZE, 1, fp);
+
+		cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
+	}
+
 	unser_declare;
 	unser_begin(cur, CONTAINER_META_SIZE);
 
@@ -108,6 +164,11 @@ struct container* retrieve_container_by_id(containerid id) {
 
 	unser_end(cur, CONTAINER_META_SIZE);
 
+	if (destor.simulation_level >= SIMULATION_RESTORE) {
+		free(c->data);
+		c->data = 0;
+	}
+
 	return c;
 }
 
@@ -117,7 +178,13 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 	init_container_meta(cm);
 
 	unsigned char buf[CONTAINER_META_SIZE];
-	fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8, SEEK_SET);
+
+	if (destor.simulation_level >= SIMULATION_APPEND)
+		fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
+	else
+		fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8,
+		SEEK_SET);
+
 	fread(buf, CONTAINER_META_SIZE, 1, fp);
 
 	unser_declare;
@@ -152,7 +219,9 @@ struct chunk* get_chunk_in_container(struct container* c, fingerprint *fp) {
 
 	struct chunk* ck = new_chunk(me->len);
 
-	memcpy(ck->data, c->data + me->off, me->len);
+	if (destor.simulation_level < SIMULATION_RESTORE)
+		memcpy(ck->data, c->data + me->off, me->len);
+
 	ck->size = me->len;
 	ck->id = c->meta.id;
 	memcpy(&ck->fp, &fp, sizeof(fingerprint));
@@ -171,6 +240,9 @@ int container_overflow(struct container* c, int32_t size) {
 	return 0;
 }
 
+/*
+ * For backup.
+ */
 void add_chunk_to_container(struct container* c, struct chunk* ck) {
 	assert(!container_overflow(c, ck->size));
 	if (g_hash_table_contains(c->meta.map, &ck->fp)) {
@@ -187,7 +259,9 @@ void add_chunk_to_container(struct container* c, struct chunk* ck) {
 	g_hash_table_insert(c->meta.map, &me->fp, me);
 	c->meta.chunk_num++;
 
-	memcpy(c->data + c->meta.data_size, ck->data, ck->size);
+	if (destor.simulation_level < SIMULATION_APPEND)
+		memcpy(c->data + c->meta.data_size, ck->data, ck->size);
+
 	c->meta.data_size += ck->size;
 
 	ck->id = c->meta.id;
@@ -200,6 +274,8 @@ void free_container_meta(struct containerMeta* cm) {
 
 void free_container(struct container* c) {
 	g_hash_table_destroy(c->meta.map);
+	if (c->data)
+		free(c->data);
 	free(c);
 }
 

@@ -10,7 +10,7 @@
 #include "storage/containerstore.h"
 
 extern void do_backup(char *path);
-extern void do_delete(int revision);
+//extern void do_delete(int revision);
 extern void do_restore(int revision, char *path);
 extern void make_trace(char *raw_files);
 
@@ -106,7 +106,7 @@ void check_simulation_level(int last_level, int current_level) {
 	if ((last_level <= SIMULATION_RESTORE && current_level >= SIMULATION_APPEND)
 			|| (last_level >= SIMULATION_APPEND
 					&& current_level <= SIMULATION_RESTORE)) {
-		fprintf(stderr, "Conflicting simualtion level!\n");
+		fprintf(stderr, "FATAL ERROR: Conflicting simualtion level!\n");
 		exit(1);
 	}
 }
@@ -220,7 +220,7 @@ void destor_shutdown() {
 }
 
 void destor_stat() {
-	printf("=== destor stat ===");
+	printf("=== destor stat ===\n");
 
 	printf("the number of chunks: %ld\n", destor.chunk_num);
 	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);
@@ -345,7 +345,7 @@ int main(int argc, char **argv) {
 		break;
 	case DESTOR_MAKE_TRACE: {
 		if (argc > optind) {
-			sdscpy(path, argv[optind]);
+			path = sdscpy(path, argv[optind]);
 		} else {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();

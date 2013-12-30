@@ -251,8 +251,6 @@ static void optimal_cache_insert(containerid id) {
 	}
 
 	struct accessRecord* r = g_hash_table_lookup(optimal_cache.seed_table, &id);
-	if (!r)
-		printf("#################################  %ld\n", id);
 	assert(r);
 
 	g_sequence_insert_sorted(optimal_cache.distance_seq, r,
