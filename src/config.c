@@ -168,6 +168,9 @@ void load_config_from_string(sds config) {
 				assert(destor.index_feature_method == INDEX_FEATURE_NO);
 				destor.index_feature_method[1] = 0;
 			}
+		} else if (strcasecmp(argv[0],
+				"fingerprint-index-feature-segment-number") == 0 && argc == 2) {
+			destor.index_feature_segment_num = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-algorithm")
 				== 0 && argc >= 2) {
 			if (strcasecmp(argv[1], "fixed") == 0)

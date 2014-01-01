@@ -105,14 +105,13 @@ void make_trace(char* path) {
 	sdsupdatelen(trace_file);
 
 	trace_file = sdscat(trace_file, ".trace");
-	printf("output to %s\n", trace_file);
+	NOTICE("output to %s", trace_file);
 
 	start_read_phase();
 	start_chunk_phase();
 	start_hash_phase();
 
 	unsigned char code[41];
-	int32_t file_index = 0;
 
 	FILE *fp = fopen(trace_file, "w");
 	while (1) {
@@ -124,11 +123,11 @@ void make_trace(char* path) {
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
 			destor_log(DESTOR_NOTICE, c->data);
-			fprintf(fp, "file start %d\n", file_index);
+			fprintf(fp, "file start %d\n", strlen(c->data));
+			fprintf(fp, "%s\n", c->data);
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
-			fprintf(fp, "file end %d\n", file_index);
-			file_index++;
+			fprintf(fp, "file end\n");
 		} else {
 			hash2code(c->fp, code);
 			code[40] = 0;
@@ -160,16 +159,22 @@ static void* read_trace_thread(void *argv) {
 		struct chunk* c;
 
 		assert(strncmp(line, "file start ", 11) == 0);
-		char fileindex[10];
-		strcpy(fileindex, line + 11);
+		int filenamelen;
+		sscanf(line, "file start %d", &filenamelen);
 
-		c = new_chunk(strlen(fileindex) + 1);
-		strcpy(c->data, fileindex);
+		jcr.file_num++;
+
+		/* An additional '\n' is read */
+		c = new_chunk(filenamelen + 2);
+		fgets(c->data, filenamelen + 2, trace_file);
+		c->data[filenamelen] = 0;
+		VERBOSE("Reading: %s", c->data);
+
 		SET_CHUNK(c, CHUNK_FILE_START);
 		sync_queue_push(trace_queue, c);
 
 		fgets(line, 128, trace_file);
-		while (strncmp(line, "file end ", 9) != 0) {
+		while (strncmp(line, "file end", 8) != 0) {
 			c = new_chunk(0);
 
 			char code[41];
@@ -177,6 +182,9 @@ static void* read_trace_thread(void *argv) {
 			code2hash(code, c->fp);
 
 			c->size = atoi(line + 41);
+			jcr.chunk_num++;
+			jcr.data_size += c->size;
+
 			sync_queue_push(trace_queue, c);
 
 			fgets(line, 128, trace_file);

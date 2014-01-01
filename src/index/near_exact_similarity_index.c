@@ -64,8 +64,12 @@ static void latest_segment_select(GHashTable* features) {
 	g_hash_table_iter_init(&iter, features);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-		if (id > latest)
+		if (id > latest) {
+			destor_log(DESTOR_DEBUG, "%lld -> %lld\n", id, latest);
 			latest = id;
+		} else if (id != TEMPORARY_ID) {
+			destor_log(DESTOR_DEBUG, "%lld -> %lld failed\n", id, latest);
+		}
 	}
 
 	if (latest != TEMPORARY_ID) {
@@ -83,7 +87,7 @@ static void latest_segment_select(GHashTable* features) {
  * Larger one comes before smaller one.
  * Descending order.
  */
-static gint g_segment_feature_size_cmp(struct segmentRecipe* a,
+static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
 		struct segmentRecipe* b, gpointer user_data) {
 	return g_hash_table_size(b->features) - g_hash_table_size(a->features);
 }
@@ -101,23 +105,32 @@ static void features_trim(struct segmentRecipe *target,
 	}
 }
 
+/*
+ * Select the top segments that are most similar with features.
+ */
 static void top_segment_select(GHashTable* features) {
+	/*
+	 * Mapping segment IDs to similar segments that hold at least one of features.
+	 */
 	GHashTable *table = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL,
 			free_segment_recipe);
 
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
+	/* Iterate the features of the segment. */
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		GQueue *ids = feature_index_lookup((fingerprint*) key);
+		/* Each feature is mapped to several segment IDs. */
+		segmentid *ids = feature_index_lookup((fingerprint*) key);
 		if (ids) {
-			int num = g_queue_get_length(ids), i;
-			for (i = 0; i < num; i++) {
-				segmentid *sid = g_queue_peek_nth(ids, i);
-				struct segmentRecipe* sr = g_hash_table_lookup(table, sid);
+			int i;
+			for (i = 0; i < destor.index_feature_segment_num; i++) {
+				if (ids[i] == TEMPORARY_ID)
+					break;
+				struct segmentRecipe* sr = g_hash_table_lookup(table, &ids[i]);
 				if (!sr) {
 					sr = new_segment_recipe();
-					sr->id = *sid;
+					sr->id = ids[i];
 					g_hash_table_insert(table, &sr->id, sr);
 				}
 				fingerprint *feature = (fingerprint*) malloc(
@@ -130,33 +143,44 @@ static void top_segment_select(GHashTable* features) {
 	}
 
 	if (g_hash_table_size(table) != 0) {
-		GQueue *segments = g_queue_new();
 
-		/* Sort */
+		/* Sorting similar segments in order of their number of hit features. */
 		GSequence *seq = g_sequence_new(NULL);
-
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, table);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			/* Insert similar segments into GSequence. */
 			g_sequence_insert_sorted(seq, (struct segmentRecipe*) value,
-					g_segment_feature_size_cmp,
+					g_segment_cmp_feature_num,
 					NULL);
 		}
 
+		/* The number of selected similar segments */
 		int num =
 				g_sequence_get_length(seq)
 						> destor.index_segment_selection_method[1] ?
 						destor.index_segment_selection_method[1] :
 						g_sequence_get_length(seq), i;
+
+		destor_log(DESTOR_DEBUG, "select Top-%d in %d segments\n", num,
+				g_sequence_get_length(seq));
+
+		/* Prefetched top similar segments are pushed into the queue. */
+		GQueue *segments = g_queue_new();
 		for (i = 0; i < num; i++) {
 			/* Get the top segment */
 			struct segmentRecipe *top = g_sequence_get(
 					g_sequence_get_begin_iter(seq));
 
+			/*
+			 * If it doesn't exist in the cache,
+			 * we need to insert it into the cache.
+			 * A segment of higher rank is inserted later.
+			 *  */
 			if (!lru_cache_hits(segment_recipe_cache, &top->id,
 					segment_recipe_check_id)) {
-				/* If it doesn't exist in the cahce. */
+
 				struct segmentRecipe* sr = retrieve_segment(top->id);
 
 				g_queue_push_tail(segments, sr);
@@ -165,14 +189,15 @@ static void top_segment_select(GHashTable* features) {
 
 			g_sequence_remove(g_sequence_get_begin_iter(seq));
 			g_sequence_foreach(seq, features_trim, top);
-			g_sequence_sort(seq, g_segment_feature_size_cmp, NULL);
+			g_sequence_sort(seq, g_segment_cmp_feature_num, NULL);
 		}
 		g_sequence_free(seq);
 
-		struct segmentRecipe* sr = g_queue_pop_tail(segments);
-		do {
+		struct segmentRecipe* sr;
+		while ((sr = g_queue_pop_tail(segments))) {
+			assert(sr);
 			lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
-		} while ((sr = g_queue_pop_tail(segments)));
+		}
 
 		g_queue_free(segments);
 	}

@@ -3,6 +3,7 @@
 
 static int64_t container_count = 0;
 static FILE* fp;
+static pthread_mutex_t mutex;
 
 struct metaEntry {
 	int32_t off;
@@ -24,13 +25,18 @@ void init_container_store() {
 	}
 
 	sdsfree(containerfile);
+
+	pthread_mutex_init(&mutex, NULL);
 }
 
 void close_container_store() {
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&container_count, sizeof(container_count), 1, fp);
+
 	fclose(fp);
 	fp = NULL;
+
+	pthread_mutex_destroy(&mutex);
 }
 
 static void init_container_meta(struct containerMeta *meta) {
@@ -85,8 +91,12 @@ void write_container(struct container* c) {
 
 		ser_end(cur, CONTAINER_META_SIZE);
 
+		pthread_mutex_lock(&mutex);
+
 		fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
 		fwrite(c->data, CONTAINER_SIZE, 1, fp);
+
+		pthread_mutex_unlock(&mutex);
 	} else {
 		char buf[CONTAINER_META_SIZE];
 
@@ -108,9 +118,12 @@ void write_container(struct container* c) {
 
 		ser_end(buf, CONTAINER_META_SIZE);
 
+		pthread_mutex_lock(&mutex);
+
 		fseek(fp, c->meta.id * CONTAINER_META_SIZE + 8, SEEK_SET);
 		fwrite(buf, CONTAINER_META_SIZE, 1, fp);
 
+		pthread_mutex_unlock(&mutex);
 	}
 
 }
@@ -120,9 +133,11 @@ struct container* retrieve_container_by_id(containerid id) {
 
 	init_container_meta(&c->meta);
 
-	char *cur = 0;
+	unsigned char *cur = 0;
 	if (destor.simulation_level >= SIMULATION_RESTORE) {
 		c->data = malloc(CONTAINER_META_SIZE);
+
+		pthread_mutex_lock(&mutex);
 
 		if (destor.simulation_level >= SIMULATION_APPEND)
 			fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
@@ -132,13 +147,18 @@ struct container* retrieve_container_by_id(containerid id) {
 
 		fread(c->data, CONTAINER_META_SIZE, 1, fp);
 
+		pthread_mutex_unlock(&mutex);
+
 		cur = c->data;
 	} else {
 		c->data = malloc(CONTAINER_SIZE);
 
-		fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
+		pthread_mutex_lock(&mutex);
 
+		fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
 		fread(c->data, CONTAINER_SIZE, 1, fp);
+
+		pthread_mutex_unlock(&mutex);
 
 		cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
 	}
@@ -179,6 +199,8 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 
 	unsigned char buf[CONTAINER_META_SIZE];
 
+	pthread_mutex_lock(&mutex);
+
 	if (destor.simulation_level >= SIMULATION_APPEND)
 		fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
 	else
@@ -186,6 +208,8 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 		SEEK_SET);
 
 	fread(buf, CONTAINER_META_SIZE, 1, fp);
+
+	pthread_mutex_unlock(&mutex);
 
 	unser_declare;
 	unser_begin(buf, CONTAINER_META_SIZE);

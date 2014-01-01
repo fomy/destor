@@ -14,7 +14,10 @@
 /* job control record */
 struct {
 	int32_t id;
-	sds path; //backup/restore path
+	/*
+	 * The path of backup or restore.
+	 */
+	sds path;
 
 	int32_t file_num;
 	int64_t data_size;

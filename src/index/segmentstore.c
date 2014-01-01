@@ -47,7 +47,7 @@ void init_segment_management() {
 		return;
 	}
 
-	destor_log(DESTOR_NOTICE, "Create index/segment.volume.\n");
+	destor_log(DESTOR_NOTICE, "Create index/segment.volume.");
 
 	if (!(segment_volume.fp = fopen(fname, "w+"))) {
 

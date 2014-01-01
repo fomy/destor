@@ -12,8 +12,8 @@
 
 void init_feature_index();
 void close_feature_index();
-GQueue* feature_index_lookup(fingerprint *feature);
-segmentid feature_index_lookup_for_latest(fingerprint *feature);
+int64_t* feature_index_lookup(fingerprint *feature);
+int64_t feature_index_lookup_for_latest(fingerprint *feature);
 void feature_index_update(fingerprint *feature, int64_t id);
 
 #endif /* FEATURE_INDEX_H_ */

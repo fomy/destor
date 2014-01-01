@@ -36,6 +36,9 @@ static void* filter_thread(void *arg) {
 			r->filesize += c->size;
 			r->chunknum++;
 
+			if (destor.rewrite_enable_har)
+				har_check(c);
+
 			if (destor.rewrite_enable_cache_aware
 					&& restore_aware_contains(c->id))
 				SET_CHUNK(c, CHUNK_IN_CACHE);

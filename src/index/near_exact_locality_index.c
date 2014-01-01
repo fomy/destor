@@ -98,15 +98,14 @@ void near_exact_locality_index_lookup(struct segment* s) {
 			}
 		}
 
-		/* Examine the feature index */
+		/* Lookup the feature index */
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
-			GQueue *ids = feature_index_lookup(&c->fp);
+			containerid id = feature_index_lookup_for_latest(&c->fp);
 
-			if (ids) {
-				containerid *id = g_queue_peek_tail(ids);
+			if (id != TEMPORARY_ID) {
 				/* Find it */
 				SET_CHUNK(c, CHUNK_DUPLICATE);
-				c->id = *id;
+				c->id = id;
 
 				if (container_meta_cache) {
 					struct containerMeta * cm = retrieve_container_meta_by_id(

@@ -109,13 +109,12 @@ int64_t db_lookup_fingerprint(fingerprint *fp) {
 	param[0].length = &hashlen;
 
 	if (mysql_stmt_bind_param(search_stmt, param) != 0) {
-		printf("%s, %d: %s\n", __FILE__, __LINE__,
-				mysql_stmt_error(search_stmt));
+		WARNING("%s, %d: %s", __FILE__, __LINE__, mysql_stmt_error(search_stmt));
 		return TEMPORARY_ID;
 	}
 	if (mysql_stmt_execute(search_stmt) != 0) {
-		printf("%s, %d: failed to search index! %s\n", __FILE__,
-		__LINE__, mysql_stmt_error(search_stmt));
+		WARNING("%s, %d: failed to search index! %s", __FILE__, __LINE__,
+				mysql_stmt_error(search_stmt));
 		return TEMPORARY_ID;
 	}
 
@@ -130,13 +129,11 @@ int64_t db_lookup_fingerprint(fingerprint *fp) {
 	result[0].is_null = &is_null;
 
 	if (mysql_stmt_bind_result(search_stmt, result)) {
-		printf("%s, %d: %s\n", __FILE__, __LINE__,
-				mysql_stmt_error(search_stmt));
+		WARNING("%s, %d: %s", __FILE__, __LINE__, mysql_stmt_error(search_stmt));
 		return TEMPORARY_ID;
 	}
 	if (mysql_stmt_store_result(search_stmt)) {
-		printf("%s, %d: %s\n", __FILE__, __LINE__,
-				mysql_stmt_error(search_stmt));
+		WARNING("%s, %d: %s", __FILE__, __LINE__, mysql_stmt_error(search_stmt));
 		return TEMPORARY_ID;
 	}
 	int ret = mysql_stmt_fetch(search_stmt);
@@ -144,8 +141,7 @@ int64_t db_lookup_fingerprint(fingerprint *fp) {
 		/*printf("%s, %d: no such line.\n",__FILE__,__LINE__);*/
 		return TEMPORARY_ID;
 	} else if (ret == 1) {
-		printf("%s, %d: %s\n", __FILE__, __LINE__,
-				mysql_stmt_error(search_stmt));
+		WARNING("%s, %d: %s", __FILE__, __LINE__, mysql_stmt_error(search_stmt));
 		return TEMPORARY_ID;
 	}
 	mysql_stmt_free_result(search_stmt);
@@ -166,12 +162,12 @@ void db_insert_fingerprint(fingerprint* fp, int64_t id) {
 	param[2].buffer = &id;
 
 	if (mysql_stmt_bind_param(insert_stmt, param)) {
-		printf("%s, %d: failed to update index! %s\n", __FILE__,
-		__LINE__, mysql_stmt_error(insert_stmt));
+		WARNING("%s, %d: failed to update index! %s", __FILE__, __LINE__,
+				mysql_stmt_error(insert_stmt));
 	}
 	if (mysql_stmt_execute(insert_stmt) != 0) {
-		printf("%s, %d: failed to update index! %s\n", __FILE__,
-		__LINE__, mysql_stmt_error(insert_stmt));
+		WARNING("%s, %d: failed to update index! %s", __FILE__, __LINE__,
+				mysql_stmt_error(insert_stmt));
 	}
 
 	insert_word(filter, (char*) fp, sizeof(fingerprint));

@@ -9,7 +9,7 @@ static void read_file(sds path) {
 
 	sds filename = sdsdup(path);
 	if (sdslen(jcr.path) != sdslen(path))
-		sdsrange(filename, sdslen(jcr.path) - 1, -1);
+		sdsrange(filename, sdslen(jcr.path), -1);
 
 	FILE *fp;
 	if ((fp = fopen(path, "r")) == NULL) {
@@ -21,7 +21,9 @@ static void read_file(sds path) {
 
 	struct chunk *c = new_chunk(sdslen(filename) + 1);
 	strcpy(c->data, filename);
-	destor_log(DESTOR_NOTICE, filename);
+
+	VERBOSE("Reading: %s", filename);
+
 	SET_CHUNK(c, CHUNK_FILE_START);
 
 	sync_queue_push(read_queue, c);
@@ -51,16 +53,8 @@ static void read_file(sds path) {
 }
 
 static void find_one_file(sds path) {
-	struct stat state;
-	if (stat(path, &state) != 0) {
-		puts("file does not exist! ignored!");
-		return;
-	}
-	if (S_ISDIR(state.st_mode)) {
 
-		if (strcmp(path + sdslen(path) - 1, "/")) {
-			path = sdscat(path, "/");
-		}
+	if (strcmp(path + sdslen(path) - 1, "/") == 0) {
 
 		DIR *dir = opendir(path);
 		struct dirent *entry;
@@ -72,16 +66,25 @@ static void find_one_file(sds path) {
 			sds newpath = sdsdup(path);
 			newpath = sdscat(newpath, entry->d_name);
 
+			struct stat state;
+			if (stat(newpath, &state) != 0) {
+				WARNING("The file %s does not exist! ignored!", newpath);
+				return;
+			}
+
+			if (S_ISDIR(state.st_mode)) {
+				assert(strcmp(newpath + sdslen(newpath) - 1, "/") != 0);
+				newpath = sdscat(newpath, "/");
+			}
+
 			find_one_file(newpath);
 
 			sdsfree(newpath);
 		}
 
 		closedir(dir);
-	} else if (S_ISREG(state.st_mode)) {
-		read_file(path);
 	} else {
-		puts("illegal file type! ignored!");
+		read_file(path);
 	}
 }
 

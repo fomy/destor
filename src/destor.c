@@ -137,6 +137,7 @@ void destor_start() {
 	destor.index_segment_algorithm[1] = 128;
 	destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
 	destor.index_feature_method[1] = 1;
+	destor.index_feature_segment_num = 1;
 	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
 	destor.index_segment_selection_method[1] = 1;
 	destor.index_segment_prefech = 0;
@@ -255,7 +256,7 @@ void destor_stat() {
 		printf("Invalid simulation level.\n");
 	}
 
-	printf("=== destor stat ===");
+	printf("=== destor stat ===\n");
 	exit(0);
 }
 

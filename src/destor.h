@@ -197,6 +197,7 @@ struct destor {
 	 * and we select one feature every [1].
 	 */
 	int index_feature_method[2];
+	int index_feature_segment_num;
 
 	/*
 	 * [0] specifies the algorithm,
@@ -269,6 +270,13 @@ void free_segment(struct segment* s, void (*free_data)(void *));
 gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2);
 gboolean g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2,
 		gpointer user_data);
+
+void hash2code(unsigned char hash[20], char code[40]);
+
+#define DEBUG(fmt, arg...) destor_log(DESTOR_DEBUG, fmt, ##arg);
+#define VERBOSE(fmt, arg...) destor_log(DESTOR_VERBOSE, fmt, ##arg);
+#define NOTICE(fmt, arg...) destor_log(DESTOR_NOTICE, fmt, ##arg);
+#define WARNING(fmt, arg...) destor_log(DESTOR_WARNING, fmt, ##arg);
 
 void destor_log(int level, const char *fmt, ...);
 

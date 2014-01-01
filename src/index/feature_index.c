@@ -9,70 +9,73 @@
 
 struct featureIndexElem {
 	fingerprint feature;
-	GQueue* ids;
+	/* segmentid or containerid */
+	int64_t ids[0];
 };
 
-static GHashTable *feature_index;
-static int max_id_num_per_feature;
-
 static struct featureIndexElem* new_feature_index_elem() {
-	struct featureIndexElem* e = (struct featureIndexElem*) malloc(
-			sizeof(struct featureIndexElem));
+	struct featureIndexElem* elem = (struct featureIndexElem*) malloc(
+			sizeof(struct featureIndexElem)
+					+ destor.index_feature_segment_num * sizeof(int64_t));
 
-	e->ids = g_queue_new();
-
-	return e;
-}
-
-static void free_feature_index_elem(struct featureIndexElem* e) {
-	g_queue_free_full(e->ids, free);
-	free(e);
-}
-
-static void feature_index_elem_add_id(struct featureIndexElem* ie, int64_t id) {
-	int64_t* new_id = (int64_t*) malloc(sizeof(int64_t));
-	*new_id = id;
-	g_queue_push_tail(ie->ids, new_id);
-	if (g_queue_get_length(ie->ids) > max_id_num_per_feature) {
-		int64_t* old_id = g_queue_pop_head(ie->ids);
-		free(old_id);
+	int i;
+	for (i = 0; i < destor.index_feature_segment_num; i++) {
+		elem->ids[i] = TEMPORARY_ID;
 	}
+
+	return elem;
 }
+
+static void feature_index_elem_add_id(struct featureIndexElem* e, int64_t id) {
+	assert(id != TEMPORARY_ID);
+	memmove(e->ids, &e->ids[1],
+			(destor.index_feature_segment_num - 1) * sizeof(int64_t));
+	e->ids[0] = id;
+}
+
+static GHashTable *feature_index;
 
 void init_feature_index() {
+
+	if (destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY
+			|| destor.index_segment_selection_method[0]
+					== INDEX_SEGMENT_SELECT_ALL
+			|| destor.index_segment_selection_method[0]
+					== INDEX_SEGMENT_SELECT_LATEST)
+		destor.index_feature_segment_num = 1;
+
 	feature_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-	NULL, free_feature_index_elem);
+	NULL, free);
 
 	sds indexpath = sdsdup(destor.working_directory);
 	indexpath = sdscat(indexpath, "index/feature.index");
 
+	/* Initialize the feature index from the dump file. */
 	FILE *fp;
 	if ((fp = fopen(indexpath, "r"))) {
+		/* The number of features */
 		int feature_num;
 		fread(&feature_num, sizeof(int), 1, fp);
 		for (; feature_num > 0; feature_num--) {
+			/* Read a feature */
 			struct featureIndexElem * ie = new_feature_index_elem();
 			fread(&ie->feature, sizeof(fingerprint), 1, fp);
-			int id_num;
+
+			/* The number of segments/containers the feature refers to. */
+			int id_num, i;
 			fread(&id_num, sizeof(int), 1, fp);
-			for (; id_num > 0; id_num--) {
-				int64_t *id = (int64_t*) malloc(sizeof(int64_t));
-				fread(id, sizeof(int64_t), 1, fp);
-				g_queue_push_tail(ie->ids, id);
-			}
+			assert(id_num <= destor.index_feature_segment_num);
+
+			for (i = 0; i < id_num; i++)
+				/* Read an ID */
+				fread(&ie->ids[i], sizeof(int64_t), 1, fp);
+
 			g_hash_table_insert(feature_index, &ie->feature, ie);
 		}
 		fclose(fp);
 	}
 
 	sdsfree(indexpath);
-
-	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL
-			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_LATEST)
-		max_id_num_per_feature = 1;
-	else
-		max_id_num_per_feature = 5;
 }
 
 void close_feature_index() {
@@ -92,14 +95,17 @@ void close_feature_index() {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, feature_index);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
+
+		/* Write a feature. */
 		struct featureIndexElem* ie = (struct featureIndexElem*) value;
 		fwrite(&ie->feature, sizeof(fingerprint), 1, fp);
-		int id_num = g_queue_get_length(ie->ids);
-		fwrite(&id_num, sizeof(int), 1, fp);
+
+		/* Write the number of segments/containers */
+		fwrite(&destor.index_feature_segment_num, sizeof(int), 1, fp);
 		int i;
-		for (i = 0; i < id_num; i++) {
-			fwrite(g_queue_peek_nth(ie->ids, i), sizeof(int64_t), 1, fp);
-		}
+		for (i = 0; i < destor.index_feature_segment_num; i++)
+			fwrite(&ie->ids[i], sizeof(int64_t), 1, fp);
+
 	}
 
 	fclose(fp);
@@ -112,7 +118,7 @@ void close_feature_index() {
 /*
  * For top-k selection method.
  */
-GQueue* feature_index_lookup(fingerprint *feature) {
+int64_t* feature_index_lookup(fingerprint *feature) {
 	struct featureIndexElem* ie = g_hash_table_lookup(feature_index, feature);
 	return ie ? ie->ids : NULL;
 }
@@ -121,12 +127,11 @@ GQueue* feature_index_lookup(fingerprint *feature) {
  * For all and latest selection method,
  * earlier segments make no sense for them.
  */
-segmentid feature_index_lookup_for_latest(fingerprint *feature) {
+int64_t feature_index_lookup_for_latest(fingerprint *feature) {
 	struct featureIndexElem* ie = g_hash_table_lookup(feature_index, feature);
-	if (ie) {
-		segmentid *id = g_queue_peek_tail(ie->ids);
-		return *id;
-	} else
+	if (ie)
+		return ie->ids[0];
+	else
 		return TEMPORARY_ID;
 }
 

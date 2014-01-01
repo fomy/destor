@@ -34,30 +34,37 @@ void init_har() {
 			g_int64_equal, NULL, free);
 
 	/* The first backup doesn't have inherited sparse containers. */
-	if (jcr.id == 0)
-		return;
+	if (jcr.id > 0) {
 
-	sds fname = sdsdup(destor.working_directory);
-	fname = sdscat(fname, "recipe/sparse");
-	char s[20];
-	sprintf(s, "%d", jcr.id - 1);
-	fname = sdscat(fname, s);
+		sds fname = sdsdup(destor.working_directory);
+		fname = sdscat(fname, "recipes/bv");
+		char s[20];
+		sprintf(s, "%d", jcr.id - 1);
+		fname = sdscat(fname, s);
+		fname = sdscat(fname, ".sparse");
 
-	FILE* sparse_file = fopen(fname, "r");
+		FILE* sparse_file = fopen(fname, "r");
 
-	if (sparse_file) {
-		struct containerRecord tmp;
-		while (fscanf(sparse_file, "%ld %d", &tmp.cid, &tmp.size) != EOF) {
-			struct containerRecord *record = (struct containerRecord*) malloc(
-					sizeof(struct containerRecord));
-			memcpy(record, &tmp, sizeof(struct containerRecord));
-			g_hash_table_insert(inherited_sparse_containers, &record->cid,
-					record);
+		if (sparse_file) {
+			char buf[128];
+			while (fgets(buf, 128, sparse_file) != NULL) {
+				struct containerRecord *record =
+						(struct containerRecord*) malloc(
+								sizeof(struct containerRecord));
+				sscanf(buf, "%ld %d", &record->cid, &record->size);
+
+				g_hash_table_insert(inherited_sparse_containers, &record->cid,
+						record);
+			}
+			fclose(sparse_file);
 		}
-		fclose(sparse_file);
+
+		sdsfree(fname);
 	}
 
-	sdsfree(fname);
+	NOTICE("Read %d inherited sparse containers",
+			g_hash_table_size(inherited_sparse_containers));
+
 }
 
 void har_monitor_update(containerid id, int32_t size) {
@@ -92,10 +99,11 @@ void har_monitor_update(containerid id, int32_t size) {
 
 void close_har() {
 	sds fname = sdsdup(destor.working_directory);
-	fname = sdscat(fname, "recipes/sparse");
+	fname = sdscat(fname, "recipes/bv");
 	char s[20];
 	sprintf(s, "%d", jcr.id);
 	fname = sdscat(fname, s);
+	fname = sdscat(fname, ".sparse");
 
 	FILE* fp = fopen(fname, "w");
 	if (!fp) {
@@ -112,12 +120,15 @@ void close_har() {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct containerRecord* cr = (struct containerRecord*) value;
 		if (inherited_sparse_containers
-				&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid)) {
+				&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid))
 			inherited_sparse_num++;
-		}
-		fprintf(fp, "%lld %d\n", cr->cid, cr->size);
+
+		fprintf(fp, "%ld %d\n", cr->cid, cr->size);
 	}
 	fclose(fp);
+
+	NOTICE("Write %d emerging sparse containers",
+			g_hash_table_size(container_utilization_monitor.sparse_map));
 
 	sdsfree(fname);
 }
@@ -125,6 +136,11 @@ void close_har() {
 void har_check(struct chunk* c) {
 	if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
 	&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
-		if (g_hash_table_lookup(inherited_sparse_containers, &c->id))
+		if (g_hash_table_lookup(inherited_sparse_containers, &c->id)) {
 			SET_CHUNK(c, CHUNK_SPARSE);
+			char code[41];
+			hash2code(c->fp, code);
+			code[40] = 0;
+			DEBUG("chunk %s in sparse container %ld", code, c->id);
+		}
 }

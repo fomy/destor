@@ -134,7 +134,7 @@ void write_restore_data() {
 		TIMER_BEGIN(1);
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
-			destor_log(DESTOR_NOTICE, "%s", c->data);
+			VERBOSE("Restoring: %s", c->data);
 
 			sds filepath = sdsdup(jcr.path);
 			filepath = sdscat(filepath, c->data);

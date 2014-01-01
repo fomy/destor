@@ -10,6 +10,14 @@
 void init_jcr(char *path) {
 	jcr.path = sdsnew(path);
 
+	struct stat s;
+	if (stat(path, &s) != 0) {
+		fprintf(stderr, "backup path does not exist!");
+		exit(1);
+	}
+	if (S_ISDIR(s.st_mode) && jcr.path[sdslen(jcr.path) - 1] != '/')
+		jcr.path = sdscat(jcr.path, "/");
+
 	jcr.bv = NULL;
 
 	jcr.id = TEMPORARY_ID;
@@ -54,14 +62,6 @@ void init_backup_jcr(char *path) {
 
 	init_jcr(path);
 
-	struct stat s;
-	if (stat(path, &s) != 0) {
-		fprintf(stderr, "backup path does not exist!");
-		exit(1);
-	}
-	if (S_ISDIR(s.st_mode) && jcr.path[sdslen(jcr.path) - 1] != '/')
-		jcr.path = sdscat(jcr.path, "/");
-
 	jcr.bv = create_backup_version(jcr.path);
 
 	jcr.id = jcr.bv->number;
@@ -72,12 +72,6 @@ void init_restore_jcr(int revision, char *path) {
 	init_jcr(path);
 
 	jcr.bv = open_backup_version(revision);
-
-	if (!path)
-		jcr.path = sdscpy(jcr.path, jcr.bv->path);
-
-	if (jcr.path[sdslen(jcr.path) - 1] != '/')
-		jcr.path = sdscat(jcr.path, "/");
 
 	jcr.id = revision;
 }

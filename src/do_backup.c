@@ -57,12 +57,14 @@ void do_backup(char *path) {
 	printf("number of chunks: %d\n", jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
 	printf("total size(B): %ld\n", jcr.data_size);
-	printf("stored data size(B): %ld\n", jcr.unique_data_size);
-	printf("dedup efficiency: %.4f, %.4f\n",
+	printf("stored data size(B): %ld\n",
+			jcr.unique_data_size + jcr.rewritten_chunk_size);
+	printf("deduplication ratio: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
-					(jcr.data_size - jcr.unique_data_size)
-							/ (double) (jcr.data_size) :
-					0, jcr.data_size / (double) (jcr.unique_data_size));
+					(jcr.data_size - jcr.unique_data_size
+							- jcr.rewritten_chunk_size)
+							/ (double) (jcr.data_size) : 0,
+			jcr.data_size / (double) (jcr.unique_data_size + jcr.rewritten_chunk_size));
 	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
 	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
@@ -74,10 +76,10 @@ void do_backup(char *path) {
 			jcr.rewritten_chunk_size / (double) jcr.data_size);
 
 	destor.data_size += jcr.data_size;
-	destor.stored_data_size += jcr.unique_data_size;
+	destor.stored_data_size += jcr.unique_data_size + jcr.rewritten_chunk_size;
 
 	destor.chunk_num += jcr.chunk_num;
-	destor.stored_chunk_num += jcr.unique_chunk_num;
+	destor.stored_chunk_num += jcr.unique_chunk_num + jcr.rewritten_chunk_num;
 	destor.zero_chunk_num += jcr.zero_chunk_num;
 	destor.zero_chunk_size += jcr.zero_chunk_size;
 	destor.rewritten_chunk_num += jcr.rewritten_chunk_num;
