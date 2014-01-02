@@ -127,7 +127,7 @@ void close_har() {
 	}
 	fclose(fp);
 
-	NOTICE("Write %d emerging sparse containers",
+	NOTICE("Record %d emerging sparse containers",
 			g_hash_table_size(container_utilization_monitor.sparse_map));
 
 	sdsfree(fname);
@@ -141,6 +141,6 @@ void har_check(struct chunk* c) {
 			char code[41];
 			hash2code(c->fp, code);
 			code[40] = 0;
-			DEBUG("chunk %s in sparse container %ld", code, c->id);
+			VERBOSE("chunk %s in sparse container %ld", code, c->id);
 		}
 }

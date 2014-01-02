@@ -4,6 +4,7 @@
 #include "backup.h"
 
 static pthread_t chunk_t;
+static int64_t chunk_num;
 
 static void* chunk_thread(void *arg) {
 	int leftlen = 0;
@@ -77,9 +78,13 @@ static void* chunk_thread(void *arg) {
 			leftoff += chunk_size;
 
 			if (memcmp(zeros, nc->data, chunk_size) == 0) {
+				VERBOSE("Chunk phase: %ldth chunk  of %d zero bytes",
+						chunk_num++, chunk_size);
 				jcr.zero_chunk_num++;
 				jcr.zero_chunk_size += chunk_size;
-			}
+			} else
+				VERBOSE("Chunk phase: %ldth chunk of %d bytes", chunk_num++,
+						chunk_size);
 
 			sync_queue_push(chunk_queue, nc);
 		}

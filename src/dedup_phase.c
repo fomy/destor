@@ -12,13 +12,31 @@
 #include "backup.h"
 
 static pthread_t dedup_t;
+static int64_t chunk_num;
 
 static int (*segmenting)(struct segment* s, struct chunk *c);
 
 void send_segment(struct segment* s) {
 	struct chunk* c;
-	while ((c = g_queue_pop_head(s->chunks)))
+	while ((c = g_queue_pop_head(s->chunks))) {
+		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+			if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+				if (c->id == TEMPORARY_ID) {
+					VERBOSE(
+							"Dedup phase: %ldth chunk is identical to a unique chunk",
+							chunk_num++);
+				} else {
+					VERBOSE(
+							"Dedup phase: %ldth chunk is duplicate in container %lld",
+							chunk_num++, c->id);
+				}
+			} else {
+				VERBOSE("Dedup phase: %ldth chunk is unique", chunk_num++);
+			}
+
+		}
 		sync_queue_push(dedup_queue, c);
+	}
 
 	s->chunk_num = 0;
 	assert(s->features == NULL);
@@ -122,6 +140,10 @@ void *dedup_thread(void *arg) {
 		TIMER_END(1, jcr.dedup_time);
 
 		if (success) {
+			VERBOSE(
+					"Dedup phase: a new segment of %lld chunks paired with %d features",
+					s->chunk_num,
+					s->features ? g_hash_table_size(s->features) : 0);
 			/* Each redundant chunk will be marked. */
 			index_lookup(s);
 

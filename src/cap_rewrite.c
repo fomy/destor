@@ -3,6 +3,8 @@
 #include "rewrite_phase.h"
 #include "backup.h"
 
+static int64_t chunk_num;
+
 static int cap_segment_push(struct chunk *c) {
 
 	rewrite_buffer_push(c);
@@ -40,6 +42,8 @@ static void cap_segment_get_top() {
 		iter = g_sequence_iter_next(iter);
 	}
 
+	VERBOSE("Rewrite phase: Select Top-%d in %d containers", num, length);
+
 	g_sequence_sort(rewrite_buffer.container_record_seq, g_record_cmp_by_id,
 	NULL);
 }
@@ -65,10 +69,14 @@ void *cap_rewrite(void* arg) {
 		while ((c = cap_segment_pop())) {
 			if (!CHECK_CHUNK(c,
 					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
-					&& CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
-				if (g_hash_table_lookup(top, &c->id) == NULL)
+					) {
+				if (CHECK_CHUNK(c,
+						CHUNK_OUT_OF_ORDER) && g_hash_table_lookup(top, &c->id) == NULL) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+					VERBOSE("Rewrite phase: %lldth chunk is out-of-order",
+							chunk_num);
+				}
 			}
 			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, c);

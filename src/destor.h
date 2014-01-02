@@ -149,7 +149,7 @@
 #define TEMPORARY_ID (-1L)
 
 /* the buffer size for read phase */
-#define DEFAULT_BLOCK_SIZE 1073741824 //1MB
+#define DEFAULT_BLOCK_SIZE 1048576 //1MB
 
 /* states of normal chunks. */
 #define CHUNK_UNIQUE (0x00)

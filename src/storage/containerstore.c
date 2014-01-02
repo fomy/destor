@@ -70,6 +70,8 @@ void write_container(struct container* c) {
 
 	assert(c->meta.chunk_num == g_hash_table_size(c->meta.map));
 
+	VERBOSE("Writing container %lld", c->meta.id);
+
 	if (destor.simulation_level < SIMULATION_APPEND) {
 
 		unsigned char * cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
@@ -93,7 +95,10 @@ void write_container(struct container* c) {
 
 		pthread_mutex_lock(&mutex);
 
-		fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET);
+		if (fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET) != 0) {
+			perror("Fail seek in container store.");
+			exit(1);
+		}
 		fwrite(c->data, CONTAINER_SIZE, 1, fp);
 
 		pthread_mutex_unlock(&mutex);

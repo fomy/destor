@@ -8,6 +8,7 @@
 /* g_mutex_init() is unnecessary if in static storage. */
 static GMutex mutex;
 static GCond not_full_cond; // buffer is not full
+static int wait_flag;
 
 /*
  * Inputs: a fingerprint,
@@ -193,8 +194,6 @@ void init_index() {
 
 	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY) {
-		destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
-		destor.index_feature_method[1] = 1;
 		init_exact_locality_index();
 	} else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
@@ -257,8 +256,12 @@ void index_lookup(struct segment* s) {
 	g_mutex_lock(&mutex);
 
 	/* Ensure the next phase not be blocked. */
-	if (index_buffer.num > 2 * destor.rewrite_algorithm[1])
+	if (index_buffer.num > 2 * destor.rewrite_algorithm[1]) {
+		DEBUG("The index buffer is full (%d chunks in buffer)",
+				index_buffer.num);
+		wait_flag = 1;
 		g_cond_wait(&not_full_cond, &mutex);
+	}
 
 	TIMER_DECLARE(1);
 	TIMER_BEGIN(1);
@@ -329,8 +332,12 @@ int index_update(fingerprint *fp, containerid from, containerid to) {
 		exit(1);
 	}
 
-	if (index_buffer.num <= 2 * destor.rewrite_algorithm[1])
+	if (wait_flag == 1 && index_buffer.num <= 2 * destor.rewrite_algorithm[1]) {
+		DEBUG("The index buffer is ready for more chunks (%d chunks in buffer)",
+				index_buffer.num);
+		wait_flag = 0;
 		g_cond_broadcast(&not_full_cond);
+	}
 
 	TIMER_END(1, jcr.filter_time);
 

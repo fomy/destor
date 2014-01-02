@@ -134,7 +134,7 @@ void destor_start() {
 	destor.index_container_cache_size = 4096;
 
 	destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
-	destor.index_segment_algorithm[1] = 128;
+	destor.index_segment_algorithm[1] = 1024;
 	destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
 	destor.index_feature_method[1] = 1;
 	destor.index_feature_segment_num = 1;

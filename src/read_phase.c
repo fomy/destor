@@ -22,7 +22,7 @@ static void read_file(sds path) {
 	struct chunk *c = new_chunk(sdslen(filename) + 1);
 	strcpy(c->data, filename);
 
-	VERBOSE("Reading: %s", filename);
+	VERBOSE("Read phase: %s", filename);
 
 	SET_CHUNK(c, CHUNK_FILE_START);
 
@@ -34,6 +34,8 @@ static void read_file(sds path) {
 
 	while ((size = fread(buf, 1, DEFAULT_BLOCK_SIZE, fp)) != 0) {
 		TIMER_END(1, jcr.read_time);
+
+		VERBOSE("Read phase: read %d bytes", size);
 
 		c = new_chunk(size);
 		memcpy(c->data, buf, size);

@@ -6,6 +6,7 @@
 #include "backup.h"
 
 static pthread_t filter_t;
+static int64_t chunk_num;
 
 /*
  * Handle containers in container_queue.
@@ -40,15 +41,29 @@ static void* filter_thread(void *arg) {
 				har_check(c);
 
 			if (destor.rewrite_enable_cache_aware
-					&& restore_aware_contains(c->id))
+					&& restore_aware_contains(c->id)) {
+				if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER))
+					VERBOSE(
+							"Filter phase: %lldth chunk in out-of-order container %lld is already cached",
+							chunk_num, c->id)
 				SET_CHUNK(c, CHUNK_IN_CACHE);
+			}
+			chunk_num++;
 
 			if (destor.rewrite_enable_cfl_switch) {
 				double cfl = restore_aware_get_cfl();
-				if (enable_rewrite && cfl > destor.rewrite_cfl_require)
+				if (enable_rewrite && cfl > destor.rewrite_cfl_require) {
+					VERBOSE(
+							"Filter phase: Turn OFF the (out-of-order) rewrite switch of %.3f",
+							cfl);
 					enable_rewrite = 0;
-				else if (!enable_rewrite && cfl < destor.rewrite_cfl_require)
+				} else if (!enable_rewrite
+						&& cfl < destor.rewrite_cfl_require) {
+					VERBOSE(
+							"Filter phase: Turn ON the (out-of-order) rewrite switch of %.3f",
+							cfl);
 					enable_rewrite = 1;
+				}
 			}
 
 			if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) || CHECK_CHUNK(c, CHUNK_SPARSE)

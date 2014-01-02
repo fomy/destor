@@ -3,8 +3,10 @@
 #include "backup.h"
 
 static pthread_t hash_t;
+static int64_t chunk_num;
 
 static void* sha1_thread(void* arg) {
+	char code[41];
 	while (1) {
 		struct chunk* c = sync_queue_pop(chunk_queue);
 
@@ -28,6 +30,10 @@ static void* sha1_thread(void* arg) {
 
 		jcr.chunk_num++;
 		jcr.data_size += c->size;
+
+		hash2code(c->fp, code);
+		code[40] = 0;
+		VERBOSE("Hash phase: %ldth chunk identified by %s", chunk_num++, code);
 
 		sync_queue_push(hash_queue, c);
 	}

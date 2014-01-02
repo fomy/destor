@@ -17,6 +17,12 @@ void init_near_exact_locality_index() {
 
 	init_feature_index();
 
+	if (destor.index_segment_algorithm[0] != INDEX_SEGMENT_FIXED) {
+		destor_log(DESTOR_NOTICE, "Change segment method to 1024-fixed!");
+		destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
+		destor.index_segment_algorithm[1] = 1024;
+	}
+
 	if (destor.index_feature_method[1] > 1) {
 		/*
 		 * If destor.index_feature_method[1] == 1,
