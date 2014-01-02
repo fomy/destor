@@ -70,13 +70,13 @@ void *cap_rewrite(void* arg) {
 			if (!CHECK_CHUNK(c,
 					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
 					) {
-				if (CHECK_CHUNK(c,
-						CHUNK_OUT_OF_ORDER) && g_hash_table_lookup(top, &c->id) == NULL) {
+				if (g_hash_table_lookup(top, &c->id) == NULL) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
 					VERBOSE("Rewrite phase: %lldth chunk is out-of-order",
 							chunk_num);
 				}
+				chunk_num++;
 			}
 			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, c);
