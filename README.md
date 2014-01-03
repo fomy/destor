@@ -75,10 +75,11 @@ and many scripts for experiment are also there.
 Run rebuild script to clean data.
 
 destor has provided four types of services:
-1. start a backup job,
+
+1. start a backup task,
    > destor /path/to/data
 
-2. start a recovery job,
+2. start a restore task,
    > destor -r<jobid> /path/to/restore
 
 3. start a delete job,
