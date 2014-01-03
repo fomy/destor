@@ -90,9 +90,12 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	char buf[length];
 	fseek(segment_volume.fp, offset, SEEK_SET);
 	if (fread(buf, length, 1, segment_volume.fp) != 1) {
-		destor_log(DESTOR_NOTICE, "segment is NOT Ready!");
-		return NULL;
+		WARNING("Dedup phase: Prefetch an unready segment of %lld offset",
+				offset);
+		exit(1);
 	}
+
+	VERBOSE("Dedup phase: Read similar segment of %lld offset", offset);
 
 	struct segmentRecipe* sr = new_segment_recipe();
 
@@ -121,6 +124,67 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	unser_end(buf, length);
 
 	return sr;
+}
+
+GQueue* prefetch_segments(segmentid id, int prefetch_num) {
+	if (id == TEMPORARY_ID)
+		return NULL;
+
+	/* All prefetched segment recipes */
+	GQueue *segments = g_queue_new();
+
+	int64_t offset = id_to_offset(id);
+	fseek(segment_volume.fp, offset, SEEK_SET);
+
+	VERBOSE("Dedup phase: Read similar segment of %lld offset", offset);
+
+	int j;
+	for (j = 0; j < prefetch_num; j++) {
+		segmentid rid;
+		if (fread(&rid, sizeof(rid), 1, segment_volume.fp) != 1) {
+			NOTICE("Dedup phase: no more segments can be prefetched");
+			return segments;
+		}
+		int64_t length = id_to_length(rid);
+		char buf[length];
+
+		if (fread(buf, length - sizeof(rid), 1, segment_volume.fp) != 1) {
+			WARNING("Dedup phase: Prefetch an unready segment of %lld offset",
+					id_to_offset(id));
+			exit(1);
+		}
+
+		struct segmentRecipe* sr = new_segment_recipe();
+
+		unser_declare;
+		unser_begin(buf, length);
+
+		int num, i;
+		unser_int32(num);
+		for (i = 0; i < num; i++) {
+			fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
+			unser_bytes(feature, sizeof(fingerprint));
+			g_hash_table_insert(sr->features, feature, feature);
+		}
+
+		unser_int32(num);
+		for (i = 0; i < num; i++) {
+			struct indexElem* e = (struct indexElem*) malloc(
+					sizeof(struct indexElem));
+			unser_int64(e->id);
+			unser_bytes(&e->fp, sizeof(fingerprint));
+			g_hash_table_insert(sr->index, &e->fp, e);
+		}
+
+		unser_end(buf, length);
+
+		VERBOSE("Dedup phase: Prefetch a segment of %lld offset",
+				id_to_offset(rid));
+
+		g_queue_push_tail(segments, sr);
+	}
+
+	return segments;
 }
 
 struct segmentRecipe* update_segment(struct segmentRecipe* sr) {

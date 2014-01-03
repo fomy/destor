@@ -151,6 +151,9 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 	assert(level < LEVEL_NUM);
 	int64_t offset = id_to_offset(id);
 
+	VERBOSE("Dedup phase: Read similar segment of level %lld and offset %lld",
+			level, offset);
+
 	struct segmentVolume* sv = segment_volume_array[level];
 
 	if (sv->fp == NULL)
@@ -204,6 +207,9 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 
 		sv->current_segment_num++;
 		sv->current_volume_length += level_to_max_size(level);
+
+		VERBOSE("Dedup phase: New segment of level %lld and offset %lld", level,
+				offset);
 	} else if (id_to_level(sr->id) != level) {
 		assert(id_to_level(sr->id) < level);
 		/* Migrate the segment */
@@ -213,11 +219,18 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 		struct segmentVolume* old_sv = segment_volume_array[id_to_level(sr->id)];
 		old_sv->current_segment_num--;
 
+		VERBOSE("Dedup phase: Migrate a segment of level %lld to level %lld",
+				old_sv->level, level);
+
 		sv->current_segment_num++;
 		sv->current_volume_length += level_to_max_size(level);
 	} else {
 		/* Update the segment in-place. */
 		offset = id_to_offset(sr->id);
+
+		VERBOSE(
+				"Dedup phase: In-place update segment of level %lld and offset %lld",
+				level, offset);
 	}
 
 	char buf[level_to_max_size(level)];
