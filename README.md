@@ -14,31 +14,31 @@ Features
 Related papers
 --------------
 1. The design of the fingerprint index:
-    > +Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
+    > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
     >
-    > +Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
+    > b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
     >
-    > +Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
+    > c) Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
     >
-    > +SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
+    > d) SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
     >
-    > +Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > e) Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
-    > +Block Locality Caching for Data Deduplication, @SYSTOR'13.
+    > f) Block Locality Caching for Data Deduplication, @SYSTOR'13.
 
 2. The fragmentation:
-    > +Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
+    > a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
     >
-    > +Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
+    > b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
     >
-    > +Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
+    > c) Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
     >
-    > +Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+    > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
 
 3. Garbage collection (to be continued):
-    > +Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > a) Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
-    > +Cumulus: Filesystem Backup to the Cloud, @FAST'09.
+    > b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
 
 Environment
 -----------
