@@ -66,11 +66,24 @@ containerid get_container_id(struct container* c) {
 	return c->meta.id;
 }
 
+/*
+ * Called by Append phase
+ */
 void write_container(struct container* c) {
 
 	assert(c->meta.chunk_num == g_hash_table_size(c->meta.map));
 
-	VERBOSE("Writing container %lld", c->meta.id);
+	if (container_empty(c)) {
+		/* An empty container
+		 * It possibly occurs in the end of backup */
+		container_count--;
+		VERBOSE("Append phase: Deny writing an empty container %lld",
+				c->meta.id);
+		return;
+	}
+
+	VERBOSE("Append phase: Writing container %lld of %d chunks", c->meta.id,
+			c->meta.chunk_num);
 
 	if (destor.simulation_level < SIMULATION_APPEND) {
 
@@ -306,6 +319,10 @@ void free_container(struct container* c) {
 	if (c->data)
 		free(c->data);
 	free(c);
+}
+
+int container_empty(struct container* c) {
+	return c->meta.chunk_num == 0 ? 1 : 0;
 }
 
 /*

@@ -28,6 +28,7 @@ static void* lru_restore_thread(void *arg) {
 		if (destor.simulation_level >= SIMULATION_RESTORE) {
 			struct containerMeta *cm = lru_cache_lookup(cache, &c->fp);
 			if (!cm) {
+				VERBOSE("Restore cache: container %lld is missed", c->id);
 				cm = retrieve_container_meta_by_id(c->id);
 				assert(lookup_fingerprint_in_container_meta(cm, &c->fp));
 				lru_cache_insert(cache, cm, NULL, NULL);
@@ -38,6 +39,7 @@ static void* lru_restore_thread(void *arg) {
 		} else {
 			struct container *con = lru_cache_lookup(cache, &c->fp);
 			if (!con) {
+				VERBOSE("Restore cache: container %lld is missed", c->id);
 				con = retrieve_container_by_id(c->id);
 				lru_cache_insert(cache, con, NULL, NULL);
 				jcr.read_container_num++;
@@ -166,6 +168,7 @@ void write_restore_data() {
 			fp = NULL;
 		} else {
 			assert(destor.simulation_level == SIMULATION_NO);
+			VERBOSE("Restoring %d bytes", c->size);
 			fwrite(c->data, c->size, 1, fp);
 		}
 

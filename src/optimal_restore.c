@@ -272,8 +272,10 @@ void* optimal_restore_thread(void *arg) {
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
 
-		if (!optimal_cache_hits(c->id))
+		if (!optimal_cache_hits(c->id)) {
+			VERBOSE("Restore cache: container %lld is missed", c->id);
 			optimal_cache_insert(c->id);
+		}
 
 		if (destor.simulation_level == SIMULATION_NO) {
 			struct chunk* rc = optimal_cache_lookup(&c->fp);

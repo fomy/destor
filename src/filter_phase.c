@@ -119,6 +119,7 @@ static void* filter_thread(void *arg) {
 			memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
 			cp->size = c->size;
 			append_n_chunk_pointers(jcr.bv, cp, 1);
+			free(cp);
 
 			TIMER_END(1, jcr.filter_time);
 
@@ -141,6 +142,7 @@ static void* filter_thread(void *arg) {
 
 	if (cbuf)
 		sync_queue_push(container_queue, cbuf);
+
 	sync_queue_term(container_queue);
 	return NULL;
 }

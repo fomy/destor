@@ -43,6 +43,7 @@ int container_overflow(struct container*, int32_t size);
 void free_container(struct container*);
 void free_container_meta(struct containerMeta*);
 containerid get_container_id(struct container* c);
+int container_empty(struct container* c);
 
 gint g_container_cmp_desc(struct container*, struct container*, gpointer);
 gint g_container_meta_cmp_desc(struct containerMeta*, struct containerMeta*,

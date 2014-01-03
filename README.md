@@ -13,20 +13,21 @@ Features
 
 Related papers
 ==============
-1. The design of the fingerprint index.
+1. The design of the fingerprint index:
     a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
     b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
     c) Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
     d) SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
-    e) Block Locality Caching for Data Deduplication, @SYSTOR'13.
+    e) Building a High-Performance Deduplication System, @USENIX ATC'11.
+    f) Block Locality Caching for Data Deduplication, @SYSTOR'13.
 
-2. The fragmentation.
+2. The fragmentation:
     a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
     b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
     c) Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
     d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
 
-3. Garbage collection.
+3. Garbage collection (to be continued):
     a) Building a High-Performance Deduplication System, @USENIX ATC'11.
     b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
 

@@ -53,6 +53,7 @@ static GQueue* assemble_area() {
 
 	struct container *con = NULL;
 	jcr.read_container_num++;
+	VERBOSE("Restore cache: container %lld is missed", id);
 	if (destor.simulation_level == SIMULATION_NO)
 		con = retrieve_container_by_id(id);
 
