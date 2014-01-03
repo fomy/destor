@@ -26,7 +26,6 @@ struct containerMeta {
 
 struct container {
 	struct containerMeta meta;
-	//unsigned char data[CONTAINER_SIZE];
 	unsigned char *data;
 };
 

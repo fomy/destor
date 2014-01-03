@@ -10,6 +10,7 @@
 #define INDEX_H_
 
 #include "../destor.h"
+#include "../jcr.h"
 
 struct indexElem {
 	containerid id;

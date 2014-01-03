@@ -3717,7 +3717,7 @@ else
 fi
 
 
-CFLAGS="-g -O2 -Wall"
+CFLAGS="-g -O0 -Wall"
 
 # Checks for libraries.
 

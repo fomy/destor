@@ -85,6 +85,11 @@ void load_config_from_string(sds config) {
 			}
 		} else if (strcasecmp(argv[0], "chunk-avg-size") == 0 && argc == 2) {
 			destor.chunk_avg_size = atoi(argv[1]);
+			int pwr;
+			for (pwr = 0; destor.chunk_avg_size; pwr++) {
+				destor.chunk_avg_size >>= 1;
+			}
+			destor.chunk_avg_size = 1 << pwr;
 		} else if (strcasecmp(argv[0], "chunk-max-size") == 0 && argc == 2) {
 			destor.chunk_max_size = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "chunk-min-size") == 0 && argc == 2) {

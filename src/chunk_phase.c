@@ -102,6 +102,9 @@ static void* chunk_thread(void *arg) {
 }
 
 void start_chunk_phase() {
+	assert(destor.chunk_avg_size > destor.chunk_min_size);
+	assert(destor.chunk_avg_size < destor.chunk_max_size);
+
 	chunkAlg_init();
 	chunk_queue = sync_queue_new(100);
 	pthread_create(&chunk_t, NULL, chunk_thread, NULL);

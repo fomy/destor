@@ -96,17 +96,20 @@ void exact_locality_index_lookup(struct segment* s) {
 		}
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+			jcr.index_lookup_io++;
 			containerid ret = db_lookup_fingerprint(&c->fp);
 			if (ret != TEMPORARY_ID) {
 				/* Find it in database. */
 				SET_CHUNK(c, CHUNK_DUPLICATE);
 				c->id = ret;
 				if (container_meta_cache) {
+
 					struct containerMeta * cm = retrieve_container_meta_by_id(
 							c->id);
-					if (cm)
+					if (cm) {
+						jcr.index_lookup_io++;
 						lru_cache_insert(container_meta_cache, cm, NULL, NULL);
-					else
+					} else
 						destor_log(DESTOR_NOTICE,
 								"The container %lld has not been written!",
 								c->id);
@@ -161,8 +164,10 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 				GHashTableIter iter;
 				gpointer key, value;
 				g_hash_table_iter_init(&iter, features);
-				while (g_hash_table_iter_next(&iter, &key, &value))
+				while (g_hash_table_iter_next(&iter, &key, &value)) {
+					jcr.index_update_io++;
 					db_insert_fingerprint((fingerprint*) key, index_buffer.cid);
+				}
 
 				g_hash_table_destroy(features);
 			}

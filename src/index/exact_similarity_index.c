@@ -73,11 +73,26 @@ void exact_similarity_index_lookup(struct segment* s) {
 		}
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+			jcr.index_lookup_io++;
 			segmentid id = db_lookup_fingerprint(&c->fp);
-			if (id != TEMPORARY_ID) {
-				/* Find it in database. */
-				struct segmentRecipe* sr = retrieve_segment(id);
-				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
+			if (id != TEMPORARY_ID
+					&& !lru_cache_hits(segment_recipe_cache, &id,
+							segment_recipe_check_id)) {
+				jcr.index_lookup_io++;
+				GQueue* segments = prefetch_segments(id,
+						destor.index_segment_prefech);
+				struct segmentRecipe* sr;
+				while ((sr = g_queue_pop_tail(segments))) {
+					/* From tail to head */
+					if (!lru_cache_hits(segment_recipe_cache, &sr->id,
+							segment_recipe_check_id)) {
+						lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
+					} else {
+						/* Already in cache */
+						free_segment_recipe(sr);
+					}
+				}
+				g_queue_free(segments);
 
 				struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
 				assert(e);
@@ -194,13 +209,16 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 
 		free_segment(bs, free);
 
+		jcr.index_update_io++;
 		srbuf = update_segment(srbuf);
 
 		GHashTableIter iter;
 		gpointer key, value;
 		g_hash_table_iter_init(&iter, srbuf->features);
-		while (g_hash_table_iter_next(&iter, &key, &value))
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			jcr.index_update_io++;
 			db_insert_fingerprint((fingerprint*) value, srbuf->id);
+		}
 
 		free_segment_recipe(srbuf);
 		srbuf = NULL;

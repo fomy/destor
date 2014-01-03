@@ -116,9 +116,10 @@ void near_exact_locality_index_lookup(struct segment* s) {
 				if (container_meta_cache) {
 					struct containerMeta * cm = retrieve_container_meta_by_id(
 							c->id);
-					if (cm)
+					if (cm) {
+						jcr.index_lookup_io++;
 						lru_cache_insert(container_meta_cache, cm, NULL, NULL);
-					else
+					} else
 						destor_log(DESTOR_NOTICE,
 								"The container %lld has not been written!",
 								c->id);

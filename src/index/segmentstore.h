@@ -15,6 +15,7 @@ void init_segment_management();
 void close_segment_management();
 
 struct segmentRecipe* retrieve_segment(segmentid);
+GQueue* prefetch_segments(segmentid id, int prefetch_num);
 
 struct segmentRecipe* update_segment(struct segmentRecipe*);
 

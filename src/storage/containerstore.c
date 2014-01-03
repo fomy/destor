@@ -53,7 +53,7 @@ static void init_container_meta(struct containerMeta *meta) {
 struct container* create_container() {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
 	if (destor.simulation_level < SIMULATION_APPEND)
-		c->data = malloc(CONTAINER_SIZE);
+		c->data = calloc(1, CONTAINER_SIZE);
 	else
 		c->data = 0;
 

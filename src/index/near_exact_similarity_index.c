@@ -65,20 +65,40 @@ static void latest_segment_select(GHashTable* features) {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
 		if (id > latest) {
-			destor_log(DESTOR_DEBUG, "%lld -> %lld\n", id, latest);
+			destor_log(DESTOR_DEBUG, "Latest segment: %lld -> %lld", latest,
+					id);
 			latest = id;
 		} else if (id != TEMPORARY_ID) {
-			destor_log(DESTOR_DEBUG, "%lld -> %lld failed\n", id, latest);
+			destor_log(DESTOR_DEBUG, "Latest segment: %lld -> %lld failed",
+					latest, id);
+		} else {
+			unsigned char code[41];
+			hash2code(key, code);
+			code[40] = 0;
+			DEBUG("Feature %s missed", code);
 		}
 	}
 
-	if (latest != TEMPORARY_ID) {
-		if (!lru_cache_hits(segment_recipe_cache, &latest,
-				segment_recipe_check_id)) {
-			struct segmentRecipe * sr = retrieve_segment(latest);
-			assert(sr);
-			lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
+	/* If latest has already been cached, we need not to read it. */
+	if (latest != TEMPORARY_ID
+			&& !lru_cache_hits(segment_recipe_cache, &latest,
+					segment_recipe_check_id)) {
+		jcr.index_lookup_io++;
+		GQueue* segments = prefetch_segments(latest,
+				destor.index_segment_prefech);
+		struct segmentRecipe* sr;
+		while ((sr = g_queue_pop_tail(segments))) {
+			/* From tail to head */
+			if (!lru_cache_hits(segment_recipe_cache, &sr->id,
+					segment_recipe_check_id)) {
+				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
+			} else {
+				/* Already in cache */
+				free_segment_recipe(sr);
+			}
 		}
+		g_queue_free(segments);
+
 	}
 
 }
@@ -181,6 +201,7 @@ static void top_segment_select(GHashTable* features) {
 			if (!lru_cache_hits(segment_recipe_cache, &top->id,
 					segment_recipe_check_id)) {
 
+				jcr.index_lookup_io++;
 				struct segmentRecipe* sr = retrieve_segment(top->id);
 
 				g_queue_push_tail(segments, sr);
@@ -206,15 +227,18 @@ static void top_segment_select(GHashTable* features) {
 }
 
 static void all_segment_select(GHashTable* features) {
+	/* Buffered all prefetched segments. */
 	GHashTable *segments = g_hash_table_new_full(g_int64_hash, g_int64_equal,
 	NULL, free_segment_recipe);
 
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
+	/* Iterate the features and retrieve each segment. */
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
 		if (id != TEMPORARY_ID && !g_hash_table_contains(segments, &id)) {
+			jcr.index_lookup_io++;
 			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
 			g_hash_table_insert(segments, &sr->id, sr);
 		}
@@ -387,6 +411,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 
 		free_segment(bs, free);
 
+		jcr.index_update_io++;
 		if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 			struct segmentRecipe* base = g_queue_pop_head(segment_buffer);
 			/* over-write old addresses. */

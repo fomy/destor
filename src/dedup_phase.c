@@ -13,6 +13,7 @@
 
 static pthread_t dedup_t;
 static int64_t chunk_num;
+static int64_t segment_num;
 
 static int (*segmenting)(struct segment* s, struct chunk *c);
 
@@ -141,8 +142,8 @@ void *dedup_thread(void *arg) {
 
 		if (success) {
 			VERBOSE(
-					"Dedup phase: a new segment of %lld chunks paired with %d features",
-					s->chunk_num,
+					"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
+					segment_num++, s->chunk_num,
 					s->features ? g_hash_table_size(s->features) : 0);
 			/* Each redundant chunk will be marked. */
 			index_lookup(s);
@@ -181,5 +182,7 @@ void start_dedup_phase() {
 }
 
 void stop_dedup_phase() {
+	NOTICE("Dedup phase concludes: %d segments of %d chunks on average", segment_num,
+			chunk_num / segment_num);
 	pthread_join(dedup_t, NULL);
 }

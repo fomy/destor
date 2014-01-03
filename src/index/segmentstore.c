@@ -101,7 +101,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 
 	unser_declare;
 	unser_begin(buf, length);
-	unser_int64(sr->id);
+	unser_bytes(&sr->id, sizeof(segmentid));
 	assert(sr->id == id);
 
 	int num, i;
@@ -146,8 +146,11 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 			return segments;
 		}
 		int64_t length = id_to_length(rid);
-		char buf[length];
+		VERBOSE(
+				"Dedup phase: Prefetch %dth segment of %lld offset and %lld length",
+				j, id_to_offset(rid), length);
 
+		char buf[length];
 		if (fread(buf, length - sizeof(rid), 1, segment_volume.fp) != 1) {
 			WARNING("Dedup phase: Prefetch an unready segment of %lld offset",
 					id_to_offset(id));
@@ -155,6 +158,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		}
 
 		struct segmentRecipe* sr = new_segment_recipe();
+		sr->id = rid;
 
 		unser_declare;
 		unser_begin(buf, length);
@@ -178,9 +182,6 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 		unser_end(buf, length);
 
-		VERBOSE("Dedup phase: Prefetch a segment of %lld offset",
-				id_to_offset(rid));
-
 		g_queue_push_tail(segments, sr);
 	}
 
@@ -199,7 +200,7 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	ser_declare;
 	ser_begin(buf, length);
 
-	ser_int64(sr->id);
+	ser_bytes(&sr->id, sizeof(segmentid));
 	int num = g_hash_table_size(sr->features);
 	ser_int32(num);
 
