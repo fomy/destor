@@ -14,31 +14,31 @@ Features
 Related papers
 --------------
 1. The design of the fingerprint index:
-    > Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
+    > +Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
     >
-    > Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
+    > +Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
     >
-    > Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
+    > +Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
     >
-    > SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
+    > +SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
     >
-    > Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > +Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
-    > Block Locality Caching for Data Deduplication, @SYSTOR'13.
+    > +Block Locality Caching for Data Deduplication, @SYSTOR'13.
 
 2. The fragmentation:
-    > Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
+    > +Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
     >
-    > Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
+    > +Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
     >
-    > Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
+    > +Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
     >
-    > Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+    > +Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
 
 3. Garbage collection (to be continued):
-    > Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > +Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
-    > Cumulus: Filesystem Backup to the Cloud, @FAST'09.
+    > +Cumulus: Filesystem Backup to the Cloud, @FAST'09.
 
 Environment
 -----------
@@ -76,17 +76,22 @@ Run rebuild script to clean data.
 
 destor has provided four types of services:
 1. start a backup job,
-   > destor <directory or file>
+   > destor /path/to/data
+
 2. start a recovery job,
-   > destor -r<jobid> <dest directory>
+   > destor -r<jobid> /path/to/restore
+
 3. start a delete job,
    > destor -d<jobid>
+
 4. lookup statistics of system,
    > destor -s
+
 5. help
    > destor -h
+
 6. make a trace
-   > destor -t <path of raw files>
+   > destor -t /path/to/data
 
 Configuration
 -------------
@@ -104,4 +109,4 @@ Min Fu,
 
 Email : fumin@hust.edu.cn
 
-blog : fumin.hustbackup.cn
+Blog : fumin.hustbackup.cn
