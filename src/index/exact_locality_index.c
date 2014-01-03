@@ -96,7 +96,6 @@ void exact_locality_index_lookup(struct segment* s) {
 		}
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
-			jcr.index_lookup_io++;
 			containerid ret = db_lookup_fingerprint(&c->fp);
 			if (ret != TEMPORARY_ID) {
 				/* Find it in database. */

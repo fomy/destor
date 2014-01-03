@@ -8,6 +8,7 @@
 #include <mysql/mysql.h>
 #include "global_fingerprint_index.h"
 #include "../tools/bloom_filter.h"
+#include "../jcr.h"
 
 static MYSQL *mdb = 0;
 
@@ -99,6 +100,8 @@ int64_t db_lookup_fingerprint(fingerprint *fp) {
 	if (!in_dict(filter, (char*) fp, sizeof(fingerprint))) {
 		return TEMPORARY_ID;
 	}
+
+	jcr.index_lookup_io++;
 
 	unsigned long hashlen = sizeof(fingerprint);
 	MYSQL_BIND param[1];

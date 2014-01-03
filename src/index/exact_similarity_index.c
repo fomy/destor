@@ -73,7 +73,6 @@ void exact_similarity_index_lookup(struct segment* s) {
 		}
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
-			jcr.index_lookup_io++;
 			segmentid id = db_lookup_fingerprint(&c->fp);
 			if (id != TEMPORARY_ID
 					&& !lru_cache_hits(segment_recipe_cache, &id,
