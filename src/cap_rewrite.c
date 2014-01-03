@@ -73,8 +73,9 @@ void *cap_rewrite(void* arg) {
 				if (g_hash_table_lookup(top, &c->id) == NULL) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
-					VERBOSE("Rewrite phase: %lldth chunk is out-of-order",
-							chunk_num);
+					VERBOSE(
+							"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+							chunk_num, c->id);
 				}
 				chunk_num++;
 			}
@@ -91,11 +92,15 @@ void *cap_rewrite(void* arg) {
 
 	struct chunk *c;
 	while ((c = cap_segment_pop())) {
-		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
-		&& CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
-			if (g_hash_table_lookup(top, &c->id) == NULL)
+		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+			if (g_hash_table_lookup(top, &c->id) == NULL) {
 				/* not in TOP */
 				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+				VERBOSE(
+						"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+						chunk_num, c->id);
+			}
+			chunk_num++;
 		}
 		sync_queue_push(rewrite_queue, c);
 	}

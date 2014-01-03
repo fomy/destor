@@ -4,35 +4,53 @@
 #include "storage/containerstore.h"
 #include "backup.h"
 
-/* First chunk with an ID that is different from the chunks in buffer. */
 static struct chunk *wait;
 static int buffer_size;
+static int64_t chunk_num;
 
+/*
+ * A chunk with an ID that is different from the chunks in buffer,
+ * or a NULL pointer,
+ * indicates a segment boundary (return 1).
+ */
 static int cfl_push(struct chunk *c) {
-	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
-		rewrite_buffer_push(c);
-		return 0;
-	}
 
+	/* wait == NULL indicates the beginning. */
 	if (!wait) {
 		wait = c;
+		return c == NULL ? 1 : 0;
+	}
+
+	if (c == NULL) {
+		/* The end */
+		assert(CHECK_CHUNK(wait, CHUNK_FILE_END));
+		rewrite_buffer_push(wait);
+		wait = 0;
 		return 1;
 	}
 
 	rewrite_buffer_push(wait);
-	buffer_size += wait->size;
+
+	if (!CHECK_CHUNK(wait,
+			CHUNK_FILE_START) && !CHECK_CHUNK(wait, CHUNK_FILE_END)) {
+		buffer_size += wait->size;
+		if (wait->id != c->id || c->id == TEMPORARY_ID
+				|| rewrite_buffer.num >= destor.rewrite_algorithm[1]) {
+			wait = c;
+			return 1;
+		}
+	}
 
 	wait = c;
-	if (c == NULL || wait->id != c->id || c->id == TEMPORARY_ID
-			|| rewrite_buffer.num >= destor.rewrite_algorithm[1])
-		return 1;
 
 	return 0;
 }
 
 static struct chunk* cfl_pop() {
 	struct chunk *c = rewrite_buffer_pop();
-	if (c->size > 0)
+	if (c
+			&& !CHECK_CHUNK(c,
+					CHUNK_FILE_START) && !CHECK_CHUNK(c,CHUNK_FILE_END))
 		buffer_size -= c->size;
 	return c;
 }
@@ -55,6 +73,7 @@ void *cfl_rewrite(void* arg) {
 		struct chunk* c = sync_queue_pop(dedup_queue);
 
 		if (c == NULL) {
+			/* push NULL is required.*/
 			cfl_push(NULL);
 			break;
 		}
@@ -71,11 +90,18 @@ void *cfl_rewrite(void* arg) {
 			out_of_order = 1;
 
 		while ((c = cfl_pop())) {
-			if (out_of_order
-					&& !(CHECK_CHUNK(c, CHUNK_FILE_START)
-							|| CHECK_CHUNK(c, CHUNK_FILE_END))
-					&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
-				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+			if (!CHECK_CHUNK(c,
+					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+				if (out_of_order
+						&& CHECK_CHUNK(c,
+								CHUNK_DUPLICATE) && c->id != TEMPORARY_ID) {
+					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+					VERBOSE(
+							"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+							chunk_num, c->id);
+				}
+				chunk_num++;
+			}
 			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, c);
 			TIMER_BEGIN(1);
@@ -92,11 +118,15 @@ void *cfl_rewrite(void* arg) {
 
 	struct chunk *c;
 	while ((c = cfl_pop())) {
-		if (out_of_order
-				&& !(CHECK_CHUNK(c, CHUNK_FILE_START)
-						|| CHECK_CHUNK(c, CHUNK_FILE_END))
-				&& CHECK_CHUNK(c, CHUNK_DUPLICATE))
-			SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+		if (!(CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))) {
+			if (out_of_order && CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
+				VERBOSE(
+						"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+						chunk_num, c->id);
+			}
+			chunk_num++;
+		}
 		TIMER_END(1, jcr.rewrite_time);
 		sync_queue_push(rewrite_queue, c);
 		TIMER_BEGIN(1);

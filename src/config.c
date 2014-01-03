@@ -225,7 +225,7 @@ void load_config_from_string(sds config) {
 					|| strcasecmp(argv[1], "cbr") == 0)
 				destor.rewrite_algorithm[0] = REWRITE_CONTEXT_BASED;
 			else if (strcasecmp(argv[1], "capping") == 0
-					&& strcasecmp(argv[1], "cap") == 0)
+					|| strcasecmp(argv[1], "cap") == 0)
 				destor.rewrite_algorithm[0] = REWRITE_CAPPING;
 			else {
 				err = "Invalid rewriting algorithm";

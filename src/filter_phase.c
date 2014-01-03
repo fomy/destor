@@ -48,7 +48,6 @@ static void* filter_thread(void *arg) {
 							chunk_num, c->id)
 				SET_CHUNK(c, CHUNK_IN_CACHE);
 			}
-			chunk_num++;
 
 			if (destor.rewrite_enable_cfl_switch) {
 				double cfl = restore_aware_get_cfl();
@@ -69,13 +68,6 @@ static void* filter_thread(void *arg) {
 			if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) || CHECK_CHUNK(c, CHUNK_SPARSE)
 					|| (enable_rewrite && CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)
 							&& !CHECK_CHUNK(c, CHUNK_IN_CACHE))) {
-				if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
-					jcr.unique_chunk_num++;
-					jcr.unique_data_size += c->size;
-				} else {
-					jcr.rewritten_chunk_num++;
-					jcr.rewritten_chunk_size += c->size;
-				}
 				/*
 				 * If the chunk is unique,
 				 * sparse, or out of order and not in cache,
@@ -92,10 +84,21 @@ static void* filter_thread(void *arg) {
 				}
 				containerid ret = index_update(&c->fp, c->id,
 						get_container_id(cbuf));
-				if (ret == TEMPORARY_ID)
+				if (ret == TEMPORARY_ID) {
+					if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+						jcr.unique_chunk_num++;
+						jcr.unique_data_size += c->size;
+					} else {
+						jcr.rewritten_chunk_num++;
+						jcr.rewritten_chunk_size += c->size;
+					}
 					add_chunk_to_container(cbuf, c);
-				else
+				} else {
+					VERBOSE(
+							"Filter phase: Deny the rewrite operation of %dth chunk",
+							chunk_num);
 					c->id = ret;
+				}
 			} else {
 				/* This is a duplicate and not fragmented chunk.  */
 				TIMER_END(1, jcr.filter_time);
@@ -107,6 +110,9 @@ static void* filter_thread(void *arg) {
 
 				TIMER_BEGIN(1);
 			}
+
+			chunk_num++;
+
 			struct chunkPointer* cp = (struct chunkPointer*) malloc(
 					sizeof(struct chunkPointer));
 			cp->id = c->id;
