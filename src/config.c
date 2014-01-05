@@ -89,7 +89,7 @@ void load_config_from_string(sds config) {
 			for (pwr = 0; destor.chunk_avg_size; pwr++) {
 				destor.chunk_avg_size >>= 1;
 			}
-			destor.chunk_avg_size = 1 << pwr;
+			destor.chunk_avg_size = 1 << (pwr - 1);
 		} else if (strcasecmp(argv[0], "chunk-max-size") == 0 && argc == 2) {
 			destor.chunk_max_size = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "chunk-min-size") == 0 && argc == 2) {
