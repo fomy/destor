@@ -101,6 +101,8 @@ struct backupVersion* create_backup_version(const char *path) {
 		exit(1);
 	}
 
+	sdsfree(fname);
+
 	/*set deleted until backup is completed.*/
 	b->deleted = 1;
 	b->number_of_chunks = 0;
@@ -120,9 +122,11 @@ int backup_version_exists(int number) {
 	fname = sdscat(fname, s);
 	fname = sdscat(fname, ".meta");
 
-	if (access(fname, 0) == 0)
+	if (access(fname, 0) == 0) {
+		sdsfree(fname);
 		return 1;
-
+	}
+	sdsfree(fname);
 	return 0;
 }
 
@@ -185,6 +189,8 @@ struct backupVersion* open_backup_version(int number) {
 		fprintf(stderr, "Can not open bv%d.seed!\n", b->number);
 		exit(1);
 	}
+
+	sdsfree(fname);
 
 	return b;
 }

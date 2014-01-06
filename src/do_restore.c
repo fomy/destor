@@ -55,6 +55,8 @@ static void* lru_restore_thread(void *arg) {
 
 	sync_queue_term(restore_chunk_queue);
 
+	free_lru_cache(cache);
+
 	return NULL;
 }
 
@@ -161,6 +163,8 @@ void write_restore_data() {
 				assert(fp == NULL);
 				fp = fopen(filepath, "w");
 			}
+
+			sdsfree(filepath);
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
 			if (fp)

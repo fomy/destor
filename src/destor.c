@@ -266,7 +266,6 @@ int main(int argc, char **argv) {
 
 	int job = DESTOR_BACKUP;
 	int revision = -1;
-	sds path = sdsempty();
 
 	int opt = 0;
 	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL))
@@ -309,10 +308,13 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	sds path;
+
 	switch (job) {
 	case DESTOR_BACKUP:
+
 		if (argc > optind) {
-			path = sdscpy(path, argv[optind]);
+			path = sdsnew(argv[optind]);
 		} else {
 			fprintf(stderr, "backup job needs a protected path!\n");
 			usage();
@@ -324,6 +326,9 @@ int main(int argc, char **argv) {
 
 		close_container_store();
 		close_recipe_store();
+
+		sdsfree(path);
+
 		break;
 	case DESTOR_RESTORE:
 		if (revision < 0) {
@@ -331,7 +336,7 @@ int main(int argc, char **argv) {
 			usage();
 		}
 		if (argc > optind) {
-			path = sdscpy(path, argv[optind]);
+			path = sdsnew(argv[optind]);
 		} else {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();
@@ -343,16 +348,19 @@ int main(int argc, char **argv) {
 
 		close_container_store();
 		close_recipe_store();
+
+		sdsfree(path);
 		break;
 	case DESTOR_MAKE_TRACE: {
 		if (argc > optind) {
-			path = sdscpy(path, argv[optind]);
+			path = sdsnew(argv[optind]);
 		} else {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();
 		}
 
 		make_trace(path);
+		sdsfree(path);
 		break;
 	}
 	case DESTOR_DELETE:
