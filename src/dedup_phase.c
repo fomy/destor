@@ -157,7 +157,8 @@ void *dedup_thread(void *arg) {
 				assert(s->features == NULL);
 			} else {
 				NOTICE("Dedup phase: an empty segment");
-				g_hash_table_destroy(s->features);
+				if (s->features)
+					g_hash_table_destroy(s->features);
 				s->features = NULL;
 			}
 			/* Send chunks in the segment to the next phase.
