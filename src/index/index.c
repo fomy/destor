@@ -15,6 +15,14 @@ static int wait_flag;
  * 		   a success flag that indicates whether a segment is terminated.
  * If success is true,
  * a segment is terminated and thus we return the features.
+ *
+ * featuring(fp, 0): a normal fingerprint, not a segment boundary,
+ * 	examine whether fp is a feature and return nothing;
+ * featuring(fp, 1): a normal fingerprint, a segment boundary,
+ * 	examine whether fp is a feature and return features;
+ * featuring(NULL, 0): a Flag, not a segment boundary, no operation and no return;
+ * featuring(NULL, 1): a flag, a segment boundary
+ * 	(maybe no selected features, select a predefined value as a feature).
  */
 GHashTable* (*featuring)(fingerprint *fp, int success);
 
@@ -35,7 +43,7 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
 
-	/* New fingerprint */
+	/* Examine whether fp is a feature */
 	if (fp) {
 		if (memcmp(fp, &candidate, sizeof(fingerprint)) < 0)
 			memcpy(&candidate, fp, sizeof(fingerprint));
@@ -100,6 +108,7 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
 
+	/* Examine whether fp is a feature */
 	assert(destor.index_feature_method[1] != 0);
 	if (fp) {
 		if ((*((int*) fp)) % destor.index_feature_method[1] == 0) {
@@ -113,6 +122,7 @@ static GHashTable* index_feature_sample(fingerprint *fp, int success) {
 		}
 	}
 
+	/* A segment boundary */
 	if (success) {
 		if (g_hash_table_size(index_buffer.buffered_features) == 0) {
 			/* No feature? */
@@ -148,6 +158,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
 
+	/* Examine whether fp is a feature */
 	assert(destor.index_feature_method[1] != 0);
 	if (fp) {
 		if (count % destor.index_feature_method[1] == 0) {
@@ -163,6 +174,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 		count++;
 	}
 
+	/* A segment boundary */
 	if (success) {
 		if (g_hash_table_size(index_buffer.buffered_features) == 0) {
 			/* No feature? Empty segment.*/

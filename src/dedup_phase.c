@@ -15,6 +15,12 @@ static pthread_t dedup_t;
 static int64_t chunk_num;
 static int64_t segment_num;
 
+/*
+ * c == NULL indicates the end.
+ * If a segment boundary is found, return 1;
+ * else return 0.
+ * If c == NULL, return 1.
+ */
 static int (*segmenting)(struct segment* s, struct chunk *c);
 
 void send_segment(struct segment* s) {
@@ -40,7 +46,7 @@ void send_segment(struct segment* s) {
 	}
 
 	s->chunk_num = 0;
-	assert(s->features == NULL);
+
 }
 
 /*
@@ -49,7 +55,7 @@ void send_segment(struct segment* s) {
 int segment_fixed(struct segment* s, struct chunk * c) {
 
 	if (c == NULL)
-		/* STREAM_END */
+		/* The end of stream */
 		return 1;
 
 	g_queue_push_tail(s->chunks, c);
@@ -77,7 +83,7 @@ int segment_file_defined(struct segment* s, struct chunk *c) {
 	 * the end is not a new segment.
 	 */
 	if (c == NULL)
-		return 0;
+		return 1;
 
 	g_queue_push_tail(s->chunks, c);
 	if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
@@ -96,6 +102,7 @@ int segment_file_defined(struct segment* s, struct chunk *c) {
  */
 int segment_content_defined(struct segment* s, struct chunk *c) {
 	if (c == NULL)
+		/* The end of stream */
 		return 1;
 
 	g_queue_push_tail(s->chunks, c);
@@ -134,20 +141,25 @@ void *dedup_thread(void *arg) {
 			s->features = featuring(
 					(!c || CHECK_CHUNK(c, CHUNK_FILE_START)
 							|| CHECK_CHUNK(c, CHUNK_FILE_END)) ?
-					NULL :
-																	&c->fp,
-					success);
+					NULL : &c->fp, success);
 
 		TIMER_END(1, jcr.dedup_time);
 
 		if (success) {
-			VERBOSE(
-					"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
-					segment_num++, s->chunk_num,
-					s->features ? g_hash_table_size(s->features) : 0);
-			/* Each redundant chunk will be marked. */
-			index_lookup(s);
-
+			if (s->chunk_num > 0) {
+				VERBOSE(
+						"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
+						segment_num++, s->chunk_num,
+						s->features ? g_hash_table_size(s->features) : 0);
+				/* Each redundant chunk will be marked. */
+				index_lookup(s);
+				/* features are moved in index_lookup */
+				assert(s->features == NULL);
+			} else {
+				NOTICE("Dedup phase: an empty segment");
+				g_hash_table_destroy(s->features);
+				s->features = NULL;
+			}
 			/* Send chunks in the segment to the next phase.
 			 * The segment will be cleared. */
 			send_segment(s);
@@ -156,7 +168,9 @@ void *dedup_thread(void *arg) {
 		if (c == NULL)
 			break;
 	}
+
 	sync_queue_term(dedup_queue);
+
 	free_segment(s, free_chunk);
 	return NULL;
 }
@@ -182,7 +196,7 @@ void start_dedup_phase() {
 }
 
 void stop_dedup_phase() {
-	NOTICE("Dedup phase concludes: %d segments of %d chunks on average", segment_num,
-			chunk_num / segment_num);
+	NOTICE("Dedup phase concludes: %d segments of %d chunks on average",
+			segment_num, chunk_num / segment_num);
 	pthread_join(dedup_t, NULL);
 }
