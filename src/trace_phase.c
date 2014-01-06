@@ -162,8 +162,6 @@ static void* read_trace_thread(void *argv) {
 		int filenamelen;
 		sscanf(line, "file start %d", &filenamelen);
 
-		jcr.file_num++;
-
 		/* An additional '\n' is read */
 		c = new_chunk(filenamelen + 2);
 		fgets(c->data, filenamelen + 2, trace_file);

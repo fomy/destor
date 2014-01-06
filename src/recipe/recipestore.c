@@ -242,6 +242,8 @@ void append_recipe_meta(struct backupVersion* b, struct recipe* r) {
 	fwrite(r->filename, len, 1, b->metadata_fp);
 	fwrite(&r->chunknum, sizeof(r->chunknum), 1, b->metadata_fp);
 	fwrite(&r->filesize, sizeof(r->filesize), 1, b->metadata_fp);
+
+	b->number_of_files++;
 }
 
 void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
@@ -258,6 +260,8 @@ void append_n_chunk_pointers(struct backupVersion* b, struct chunkPointer* cp,
 		fwrite(&cp[i].fp, sizeof(fingerprint), 1, b->recipe_fp);
 		fwrite(&cp[i].id, sizeof(containerid), 1, b->recipe_fp);
 		fwrite(&cp[i].size, sizeof(int32_t), 1, b->recipe_fp);
+
+		b->number_of_chunks++;
 	}
 }
 

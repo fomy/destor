@@ -43,8 +43,6 @@ void do_backup(char *path) {
 
 	close_index();
 
-	jcr.bv->number_of_chunks = jcr.chunk_num;
-	jcr.bv->number_of_files = jcr.file_num;
 	update_backup_version(jcr.bv);
 
 	free_backup_version(jcr.bv);
