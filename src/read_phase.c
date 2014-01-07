@@ -8,8 +8,17 @@ static void read_file(sds path) {
 	static unsigned char buf[DEFAULT_BLOCK_SIZE];
 
 	sds filename = sdsdup(path);
-	if (sdslen(jcr.path) != sdslen(path))
+
+	if (jcr.path[sdslen(jcr.path) - 1] == '/') {
+		/* the backup path points to a direcory */
 		sdsrange(filename, sdslen(jcr.path), -1);
+	} else {
+		/* the backup path points to a file */
+		int cur = sdslen(filename) - 1;
+		while (filename[cur] != '/')
+			cur--;
+		sdsrange(filename, cur, -1);
+	}
 
 	FILE *fp;
 	if ((fp = fopen(path, "r")) == NULL) {

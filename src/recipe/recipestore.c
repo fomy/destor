@@ -58,6 +58,17 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	b->number = get_next_version_number();
 	b->path = sdsnew(path);
+
+	/*
+	 * If the path points to a file,
+	 */
+	int cur = sdslen(b->path) - 1;
+	while (b->path[cur] != '/') {
+		b->path[cur] = 0;
+		cur--;
+	}
+	sdsupdatelen(b->path);
+
 	b->deleted = 1;
 	b->number_of_chunks = 0;
 	b->number_of_files = 0;

@@ -141,7 +141,9 @@ void *dedup_thread(void *arg) {
 			s->features = featuring(
 					(!c || CHECK_CHUNK(c, CHUNK_FILE_START)
 							|| CHECK_CHUNK(c, CHUNK_FILE_END)) ?
-					NULL : &c->fp, success);
+					NULL :
+																	&c->fp,
+					success);
 
 		TIMER_END(1, jcr.dedup_time);
 
@@ -197,7 +199,7 @@ void start_dedup_phase() {
 }
 
 void stop_dedup_phase() {
-	NOTICE("Dedup phase concludes: %d segments of %d chunks on average",
-			segment_num, chunk_num / segment_num);
 	pthread_join(dedup_t, NULL);
+	NOTICE("Dedup phase concludes: %d segments of %d chunks on average",
+			segment_num, segment_num ? chunk_num / segment_num : 0);
 }
