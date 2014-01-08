@@ -150,9 +150,14 @@ static void* filter_thread(void *arg) {
 void start_filter_phase() {
 	container_queue = sync_queue_new(25);
 
+	init_har();
+
+	init_restore_aware();
+
 	pthread_create(&filter_t, NULL, filter_thread, NULL);
 }
 
 void stop_filter_phase() {
 	pthread_join(filter_t, NULL);
+	close_har();
 }

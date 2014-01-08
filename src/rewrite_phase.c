@@ -59,8 +59,7 @@ void rewrite_buffer_push(struct chunk* c) {
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_head(rewrite_buffer.chunk_queue);
 
-	if (c
-			&& !CHECK_CHUNK(c,
+	if (c && !CHECK_CHUNK(c,
 					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		/* A normal chunk */
 		if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
@@ -102,10 +101,6 @@ void start_rewrite_phase() {
 	rewrite_queue = sync_queue_new(1000);
 	init_rewrite_buffer();
 
-	init_har();
-
-	init_restore_aware();
-
 	if (destor.rewrite_algorithm[0] == REWRITE_NO) {
 		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
 	} else if (destor.rewrite_algorithm[0]
@@ -124,5 +119,4 @@ void start_rewrite_phase() {
 
 void stop_rewrite_phase() {
 	pthread_join(rewrite_t, NULL);
-	close_har();
 }
