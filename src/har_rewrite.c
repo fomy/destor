@@ -127,8 +127,9 @@ void close_har() {
 	}
 	fclose(fp);
 
-	NOTICE("Record %d emerging sparse containers",
-			g_hash_table_size(container_utilization_monitor.sparse_map));
+	NOTICE("Record %d sparse containers, and %d of them are inherited",
+			g_hash_table_size(container_utilization_monitor.sparse_map),
+			inherited_sparse_num);
 
 	sdsfree(fname);
 }

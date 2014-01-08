@@ -59,7 +59,9 @@ void rewrite_buffer_push(struct chunk* c) {
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_head(rewrite_buffer.chunk_queue);
 
-	if (c && !CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+	if (c
+			&& !CHECK_CHUNK(c,
+					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		/* A normal chunk */
 		if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			GSequenceIter *iter = g_sequence_lookup(
@@ -121,6 +123,6 @@ void start_rewrite_phase() {
 }
 
 void stop_rewrite_phase() {
-	close_har();
 	pthread_join(rewrite_t, NULL);
+	close_har();
 }
