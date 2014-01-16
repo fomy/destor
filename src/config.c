@@ -154,9 +154,9 @@ void load_config_from_string(sds config) {
 				&& argc >= 2) {
 			if (strcasecmp(argv[1], "no") == 0)
 				destor.index_feature_method[0] = INDEX_FEATURE_NO;
-			else if (strcasecmp(argv[1], "sample") == 0)
+			else if (strcasecmp(argv[1], "random") == 0)
 				destor.index_feature_method[0] =
-				INDEX_FEATURE_SAMPLE;
+				INDEX_FEATURE_RANDOM;
 			else if (strcasecmp(argv[1], "min") == 0)
 				destor.index_feature_method[0] = INDEX_FEATURE_MIN;
 			else if (strcasecmp(argv[1], "uniform") == 0)

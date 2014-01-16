@@ -104,7 +104,7 @@
  * UNIFORM selects a feature every n fingerprints.
  */
 #define INDEX_FEATURE_NO 0
-#define INDEX_FEATURE_SAMPLE 1
+#define INDEX_FEATURE_RANDOM 1
 #define INDEX_FEATURE_MIN 2
 #define INDEX_FEATURE_UNIFORM 3
 

@@ -94,7 +94,7 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 /*
  * Used by Sparse Indexing.
  */
-static GHashTable* index_feature_sample(fingerprint *fp, int success) {
+static GHashTable* index_feature_random(fingerprint *fp, int success) {
 
 	assert(destor.index_feature_method[1] != 0);
 
@@ -222,9 +222,9 @@ void init_index() {
 	}
 
 	switch (destor.index_feature_method[0]) {
-	case INDEX_FEATURE_SAMPLE:
+	case INDEX_FEATURE_RANDOM:
 	case INDEX_FEATURE_NO:
-		featuring = index_feature_sample;
+		featuring = index_feature_random;
 		break;
 	case INDEX_FEATURE_MIN:
 		featuring = index_feature_min;
