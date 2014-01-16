@@ -112,6 +112,10 @@ void close_har() {
 		exit(1);
 	}
 
+	jcr.total_container_num = g_hash_table_size(
+			container_utilization_monitor.sparse_map)
+			+ g_hash_table_size(container_utilization_monitor.dense_map);
+
 	/* sparse containers */
 	int inherited_sparse_num = 0;
 	GHashTableIter iter;
@@ -121,9 +125,10 @@ void close_har() {
 		struct containerRecord* cr = (struct containerRecord*) value;
 		if (inherited_sparse_containers
 				&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid))
-			inherited_sparse_num++;
+			jcr.inherited_sparse_num++;
 
 		fprintf(fp, "%ld %d\n", cr->cid, cr->size);
+		jcr.sparse_container_num++;
 	}
 	fclose(fp);
 

@@ -129,19 +129,17 @@ void do_backup(char *path) {
 	FILE *fp = fopen(logfile, "a");
 	/*
 	 * job id,
-	 * chunk number,
 	 * accumulative consumed capacity,
-	 * deduplication ratio,
-	 * rewritten ratio,
+	 * deduplication rate,
+	 * rewritten rate,
 	 * total container number,
 	 * sparse container number,
 	 * inherited container number,
-	 * throughput,
-	 * index memory overhead,
 	 * index lookups,
 	 * index updates,
+	 * throughput,
 	 */
-	fprintf(fp, "%d %ld %.4f %.4f %d %d %d %.2f\n", jcr.id,
+	fprintf(fp, "%d %ld %.4f %.4f %d %d %d %lld %lld %.2f\n", jcr.id,
 			destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.unique_data_size)
@@ -151,7 +149,7 @@ void do_backup(char *path) {
 					(double) (jcr.rewritten_chunk_size)
 							/ (double) (jcr.data_size) :
 					0, jcr.total_container_num, jcr.sparse_container_num,
-			jcr.inherited_sparse_num,
+			jcr.inherited_sparse_num, jcr.index_lookup_io, jcr.index_update_io,
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
