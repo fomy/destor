@@ -239,6 +239,8 @@ struct destor {
 	int64_t rewritten_chunk_num;
 	int64_t rewritten_chunk_size;
 
+	int32_t index_memory_footprint;
+
 } destor;
 
 typedef unsigned char fingerprint[20];

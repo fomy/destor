@@ -74,6 +74,8 @@ int db_get_item_num() {
 }
 
 void db_close() {
+	destor.index_memory_footprint = db_get_item_num();
+
 	mysql_stmt_close(search_stmt);
 	mysql_stmt_close(insert_stmt);
 	mysql_close(mdb);

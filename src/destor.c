@@ -173,6 +173,8 @@ void destor_start() {
 		fread(&destor.rewritten_chunk_num, 8, 1, fp);
 		fread(&destor.rewritten_chunk_size, 8, 1, fp);
 
+		fread(&destor.index_memory_footprint, 4, 1, fp);
+
 		int last_level;
 		fread(&last_level, 4, 1, fp);
 		check_simulation_level(last_level, destor.simulation_level);
@@ -187,6 +189,7 @@ void destor_start() {
 		destor.zero_chunk_size = 0;
 		destor.rewritten_chunk_num = 0;
 		destor.rewritten_chunk_size = 0;
+		destor.index_memory_footprint = 0;
 	}
 
 	sdsfree(stat_file);
@@ -214,6 +217,8 @@ void destor_shutdown() {
 	fwrite(&destor.rewritten_chunk_num, 8, 1, fp);
 	fwrite(&destor.rewritten_chunk_size, 8, 1, fp);
 
+	fwrite(&destor.index_memory_footprint, 4, 1, fp);
+
 	fwrite(&destor.simulation_level, 4, 1, fp);
 
 	fclose(fp);
@@ -223,12 +228,15 @@ void destor_shutdown() {
 void destor_stat() {
 	printf("=== destor stat ===\n");
 
+	printf("the index memory footprint (B): %d\n", destor.index_memory_footprint);
+
 	printf("the number of chunks: %ld\n", destor.chunk_num);
 	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);
 
-	printf("the size of data: %ld\n", destor.data_size);
-	printf("the size of stored data: %ld\n", destor.stored_data_size);
-	printf("the size of saved data: %ld\n",
+	printf("the size of data (B): %ld\n", destor.data_size);
+	printf("the size of stored data (B): %ld\n", destor.stored_data_size);
+
+	printf("the size of saved data (B): %ld\n",
 			destor.data_size - destor.stored_data_size);
 
 	printf("deduplication ratio: %.4f, %.4f\n",
@@ -237,10 +245,10 @@ void destor_stat() {
 			((double) destor.data_size) / (destor.stored_data_size));
 
 	printf("the number of zero chunks: %ld\n", destor.zero_chunk_num);
-	printf("the size of zero chunks: %ld\n", destor.zero_chunk_size);
+	printf("the size of zero chunks (B): %ld\n", destor.zero_chunk_size);
 
 	printf("the number of rewritten chunks: %ld\n", destor.rewritten_chunk_num);
-	printf("the size of rewritten chunks: %ld\n", destor.rewritten_chunk_size);
+	printf("the size of rewritten chunks (B): %ld\n", destor.rewritten_chunk_size);
 	printf("rewrite ratio: %.4f\n",
 			destor.rewritten_chunk_size / (double) destor.data_size);
 

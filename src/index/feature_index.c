@@ -108,6 +108,8 @@ void close_feature_index() {
 
 	}
 
+	destor.index_memory_footprint = g_hash_table_size(feature_index) * (24 + 4);
+
 	fclose(fp);
 
 	sdsfree(indexpath);
