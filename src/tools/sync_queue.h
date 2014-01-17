@@ -20,5 +20,8 @@ void sync_queue_push(SyncQueue*, void*);
 void* sync_queue_pop(SyncQueue*);
 void sync_queue_term(SyncQueue*);
 int sync_queue_size(SyncQueue* s_queue);
+void* sync_queue_find(SyncQueue* s_queue, int (*hit)(void*, void*), void* data,
+		void* (*dup)(void*));
+void* sync_queue_get_top(SyncQueue* s_queue);
 
 #endif

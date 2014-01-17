@@ -78,7 +78,8 @@ static void* filter_thread(void *arg) {
 
 				if (container_overflow(cbuf, c->size)) {
 					TIMER_END(1, jcr.filter_time);
-					sync_queue_push(container_queue, cbuf);
+
+					write_container_async(cbuf);
 					TIMER_BEGIN(1);
 					cbuf = create_container();
 				}
@@ -141,14 +142,12 @@ static void* filter_thread(void *arg) {
 	}
 
 	if (cbuf)
-		sync_queue_push(container_queue, cbuf);
+		write_container_async(cbuf);
 
-	sync_queue_term(container_queue);
 	return NULL;
 }
 
 void start_filter_phase() {
-	container_queue = sync_queue_new(25);
 
 	init_har();
 

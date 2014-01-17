@@ -104,8 +104,27 @@ void* queue_get_n(Queue *queue, int n) {
 	queue_ele_t *item = queue->first;
 	while (i < n) {
 		item = item->next;
-        ++i;
+		++i;
 	}
 	return item->data;
+
+}
+
+/*
+ * Iterate the Queue to find an elem which meets the condition ('hit' returns 1).
+ */
+void* queue_find(Queue* queue, int (*hit)(void*, void*), void* data) {
+
+	queue_ele_t *item = 0;
+	if (queue->elem_num == 0)
+		return NULL;
+
+	item = queue->first;
+	do {
+		if (hit(item->data, data) == 1)
+			break;
+	} while ((item = item->next));
+
+	return item ? item->data : NULL;
 
 }

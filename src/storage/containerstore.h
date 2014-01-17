@@ -33,9 +33,13 @@ void init_container_store();
 void close_container_store();
 
 struct container* create_container();
+
 void write_container(struct container*);
+void write_container_async(struct container*);
 struct container* retrieve_container_by_id(containerid);
 struct containerMeta* retrieve_container_meta_by_id(containerid);
+struct containerMeta* retrieve_container_meta_by_id_async(containerid);
+
 struct chunk* get_chunk_in_container(struct container*, fingerprint*);
 void add_chunk_to_container(struct container*, struct chunk*);
 int container_overflow(struct container*, int32_t size);

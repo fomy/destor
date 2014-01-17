@@ -1,15 +1,47 @@
 #include "containerstore.h"
 #include "../tools/serial.h"
+#include "../tools/sync_queue.h"
+#include "../jcr.h"
 
 static int64_t container_count = 0;
 static FILE* fp;
+/* Control the concurrent accesses to fp. */
 static pthread_mutex_t mutex;
+
+static pthread_t append_t;
+
+static SyncQueue* container_buffer;
 
 struct metaEntry {
 	int32_t off;
 	int32_t len;
 	fingerprint fp;
 };
+
+/*
+ * We must ensure a container is either in the buffer or written to disks.
+ */
+static void* append_thread(void *arg) {
+
+	while (1) {
+		struct container *c = sync_queue_get_top(container_buffer);
+		if (c == NULL)
+			break;
+
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+
+		write_container(c);
+
+		TIMER_END(1, jcr.write_time);
+
+		sync_queue_pop(container_buffer);
+
+		free_container(c);
+	}
+
+	return NULL;
+}
 
 void init_container_store() {
 
@@ -26,10 +58,17 @@ void init_container_store() {
 
 	sdsfree(containerfile);
 
+	container_buffer = sync_queue_new(25);
+
 	pthread_mutex_init(&mutex, NULL);
+
+	pthread_create(&append_t, NULL, append_thread, NULL);
 }
 
 void close_container_store() {
+	sync_queue_term(container_buffer);
+	pthread_join(append_t, NULL);
+
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&container_count, sizeof(container_count), 1, fp);
 
@@ -64,6 +103,21 @@ struct container* create_container() {
 
 containerid get_container_id(struct container* c) {
 	return c->meta.id;
+}
+
+void write_container_async(struct container* c) {
+	assert(c->meta.chunk_num == g_hash_table_size(c->meta.map));
+
+	if (container_empty(c)) {
+		/* An empty container
+		 * It possibly occurs in the end of backup */
+		container_count--;
+		VERBOSE("Append phase: Deny writing an empty container %lld",
+				c->meta.id);
+		return;
+	}
+
+	sync_queue_push(container_buffer, c);
 }
 
 /*
@@ -210,9 +264,39 @@ struct container* retrieve_container_by_id(containerid id) {
 	return c;
 }
 
-struct containerMeta* retrieve_container_meta_by_id(containerid id) {
-	struct containerMeta* cm = (struct containerMeta*) malloc(
+static struct containerMeta* container_meta_duplicate(struct container *c) {
+	struct containerMeta* base = &c->meta;
+	struct containerMeta* dup = (struct containerMeta*) malloc(
 			sizeof(struct containerMeta));
+	init_container_meta(dup);
+	dup->id = base->id;
+	dup->chunk_num = base->chunk_num;
+	dup->data_size = base->data_size;
+
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, base->map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct metaEntry* me = (struct metaEntry*) malloc(
+				sizeof(struct metaEntry));
+		memcpy(me, value, sizeof(struct metaEntry));
+		g_hash_table_insert(dup, &me->fp, me);
+	}
+
+	return dup;
+}
+
+struct containerMeta* retrieve_container_meta_by_id(containerid id) {
+	struct containerMeta* cm = NULL;
+
+	/* First, we find it in the buffer */
+	cm = sync_queue_find(container_buffer, container_check_id, &id,
+			container_meta_duplicate);
+
+	if (cm)
+		return cm;
+
+	cm = (struct containerMeta*) malloc(sizeof(struct containerMeta));
 	init_container_meta(cm);
 
 	unsigned char buf[CONTAINER_META_SIZE];
