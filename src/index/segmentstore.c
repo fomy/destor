@@ -10,6 +10,8 @@
 
 #define VOLUME_HEAD 20
 
+static pthread_mutex_t mutex;
+
 static struct {
 	FILE *fp;
 	int64_t segment_num;
@@ -66,6 +68,8 @@ void init_segment_management() {
 			sizeof(segment_volume.current_length), 1, segment_volume.fp);
 
 	sdsfree(fname);
+
+	pthread_mutex_init(&mutex, NULL);
 }
 
 void close_segment_management() {
@@ -78,6 +82,8 @@ void close_segment_management() {
 	fwrite(&segment_volume.current_length,
 			sizeof(segment_volume.current_length), 1, segment_volume.fp);
 	fclose(segment_volume.fp);
+
+	pthread_mutex_destroy(&mutex);
 }
 
 struct segmentRecipe* retrieve_segment(segmentid id) {
@@ -87,6 +93,8 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	int64_t offset = id_to_offset(id);
 	int64_t length = id_to_length(id);
 
+	pthread_mutex_lock(&mutex);
+
 	char buf[length];
 	fseek(segment_volume.fp, offset, SEEK_SET);
 	if (fread(buf, length, 1, segment_volume.fp) != 1) {
@@ -94,6 +102,8 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 				offset);
 		exit(1);
 	}
+
+	pthread_mutex_unlock(&mutex);
 
 	VERBOSE("Dedup phase: Read similar segment of %lld offset", offset);
 
@@ -134,6 +144,9 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	GQueue *segments = g_queue_new();
 
 	int64_t offset = id_to_offset(id);
+
+	pthread_mutex_lock(&mutex);
+
 	fseek(segment_volume.fp, offset, SEEK_SET);
 
 	VERBOSE("Dedup phase: Read similar segment of %lld offset", offset);
@@ -185,6 +198,8 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		g_queue_push_tail(segments, sr);
 	}
 
+	pthread_mutex_unlock(&mutex);
+
 	return segments;
 }
 
@@ -222,8 +237,12 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	}
 	ser_end(buf, length);
 
+	pthread_mutex_lock(&mutex);
+
 	fseek(segment_volume.fp, offset, SEEK_SET);
 	fwrite(buf, length, 1, segment_volume.fp);
+
+	pthread_mutex_unlock(&mutex);
 
 	segment_volume.current_length += length;
 	segment_volume.segment_num++;
