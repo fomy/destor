@@ -39,8 +39,10 @@ void close_exact_locality_index() {
 		GHashTableIter iter;
 		gpointer feature, value;
 		g_hash_table_iter_init(&iter, features);
-		while (g_hash_table_iter_next(&iter, &feature, &value))
+		while (g_hash_table_iter_next(&iter, &feature, &value)) {
+			jcr.index_update_io++;
 			db_insert_fingerprint((fingerprint*) feature, index_buffer.cid);
+		}
 
 		g_hash_table_destroy(features);
 	}
