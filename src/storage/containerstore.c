@@ -280,7 +280,7 @@ static struct containerMeta* container_meta_duplicate(struct container *c) {
 		struct metaEntry* me = (struct metaEntry*) malloc(
 				sizeof(struct metaEntry));
 		memcpy(me, value, sizeof(struct metaEntry));
-		g_hash_table_insert(dup, &me->fp, me);
+		g_hash_table_insert(dup->map, &me->fp, me);
 	}
 
 	return dup;
