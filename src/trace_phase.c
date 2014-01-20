@@ -149,7 +149,9 @@ static void* read_trace_thread(void *argv) {
 	char line[128];
 
 	while (1) {
-		fgets(line, 128, trace_file);
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1), fgets(line, 128, trace_file);
+		TIMER_END(1, jcr.read_time);
 
 		if (strcmp(line, "stream end") == 0) {
 			sync_queue_term(trace_queue);
@@ -157,6 +159,8 @@ static void* read_trace_thread(void *argv) {
 		}
 
 		struct chunk* c;
+
+		TIMER_BEGIN(1),
 
 		assert(strncmp(line, "file start ", 11) == 0);
 		int filenamelen;
@@ -169,9 +173,12 @@ static void* read_trace_thread(void *argv) {
 		VERBOSE("Reading: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
+
+		TIMER_END(1, jcr.read_time);
+
 		sync_queue_push(trace_queue, c);
 
-		fgets(line, 128, trace_file);
+		TIMER_BEGIN(1), fgets(line, 128, trace_file);
 		while (strncmp(line, "file end", 8) != 0) {
 			c = new_chunk(0);
 
@@ -183,7 +190,9 @@ static void* read_trace_thread(void *argv) {
 			jcr.chunk_num++;
 			jcr.data_size += c->size;
 
+			TIMER_END(1, jcr.read_time);
 			sync_queue_push(trace_queue, c);
+			TIMER_BEGIN(1),
 
 			fgets(line, 128, trace_file);
 		}
