@@ -94,20 +94,16 @@ void exact_similarity_index_lookup(struct segment* s) {
 				}
 				g_queue_free(segments);
 
+				sr = lru_cache_lookup(segment_recipe_cache,
+						&c->fp);
+				assert(sr);
+				/* Find it */
+				SET_CHUNK(c, CHUNK_DUPLICATE);
 				struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
 				assert(e);
 				c->id = e->id;
-				SET_CHUNK(c, CHUNK_DUPLICATE);
-			}
 
-			struct segmentRecipe* sr = lru_cache_lookup(segment_recipe_cache,
-					&c->fp);
-			assert(sr);
-			/* Find it */
-			SET_CHUNK(c, CHUNK_DUPLICATE);
-			struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
-			assert(e);
-			c->id = e->id;
+			}
 		}
 
 		struct indexElem *ne = (struct indexElem*) malloc(
