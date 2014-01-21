@@ -74,9 +74,10 @@ void exact_similarity_index_lookup(struct segment* s) {
 
 		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 			segmentid id = db_lookup_fingerprint(&c->fp);
-			if (id != TEMPORARY_ID
-					&& !lru_cache_hits(segment_recipe_cache, &id,
-							segment_recipe_check_id)) {
+			if (id != TEMPORARY_ID) {
+				assert(
+						!lru_cache_hits(segment_recipe_cache, &id,
+								segment_recipe_check_id));
 				jcr.index_lookup_io++;
 				GQueue* segments = prefetch_segments(id,
 						destor.index_segment_prefech);
@@ -98,6 +99,15 @@ void exact_similarity_index_lookup(struct segment* s) {
 				c->id = e->id;
 				SET_CHUNK(c, CHUNK_DUPLICATE);
 			}
+
+			struct segmentRecipe* sr = lru_cache_lookup(segment_recipe_cache,
+					&c->fp);
+			assert(sr);
+			/* Find it */
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+			struct indexElem* e = g_hash_table_lookup(sr->index, &c->fp);
+			assert(e);
+			c->id = e->id;
 		}
 
 		struct indexElem *ne = (struct indexElem*) malloc(
