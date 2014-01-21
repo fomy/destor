@@ -19,15 +19,17 @@ static struct {
 } segment_volume;
 
 static inline int64_t id_to_offset(segmentid id) {
-	return id >> 32;
+	int64_t off = id >> 40;
+	assert(off >= 0);
+	return off;
 }
 
 static inline int64_t id_to_length(segmentid id) {
-	return id & (0xffffffff);
+	return id & (0xffffff);
 }
 
 static inline segmentid make_segment_id(int64_t offset, int64_t length) {
-	return (offset << 32) + length;
+	return (offset << 40) + length;
 }
 
 void init_segment_management() {
@@ -137,8 +139,10 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 }
 
 GQueue* prefetch_segments(segmentid id, int prefetch_num) {
-	if (id == TEMPORARY_ID)
+	if (id == TEMPORARY_ID) {
+		assert(id != TEMPORARY_ID);
 		return NULL;
+	}
 
 	/* All prefetched segment recipes */
 	GQueue *segments = g_queue_new();
