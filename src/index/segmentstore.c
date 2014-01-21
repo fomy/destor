@@ -19,7 +19,7 @@ static struct {
 } segment_volume;
 
 static inline int64_t id_to_offset(segmentid id) {
-	int64_t off = id >> 40;
+	int64_t off = id >> 24;
 	assert(off >= 0);
 	return off;
 }
@@ -29,7 +29,7 @@ static inline int64_t id_to_length(segmentid id) {
 }
 
 static inline segmentid make_segment_id(int64_t offset, int64_t length) {
-	return (offset << 40) + length;
+	return (offset << 24) + length;
 }
 
 void init_segment_management() {
