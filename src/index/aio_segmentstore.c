@@ -222,12 +222,13 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 				offset);
 	} else if (id_to_level(sr->id) != level) {
 		assert(id_to_level(sr->id) < level);
-		/* Migrate the segment */
-		offset = sv->current_volume_length;
-		sr->id = make_segment_id(level, offset);
 
 		struct segmentVolume* old_sv = segment_volume_array[id_to_level(sr->id)];
 		old_sv->current_segment_num--;
+
+		/* Migrate the segment */
+		offset = sv->current_volume_length;
+		sr->id = make_segment_id(level, offset);
 
 		VERBOSE("Dedup phase: Migrate a segment of level %d to level %d",
 				old_sv->level, level);
