@@ -101,6 +101,8 @@ int segment_file_defined(struct segment* s, struct chunk *c) {
  * Used by Sparse Index.
  */
 int segment_content_defined(struct segment* s, struct chunk *c) {
+	static int max_segment_size = 102400;
+	static int min_segment_size = 256;
 	if (c == NULL)
 		/* The end of stream */
 		return 1;
@@ -113,8 +115,10 @@ int segment_content_defined(struct segment* s, struct chunk *c) {
 	s->chunk_num++;
 
 	/* Avoid too small segment. */
-	if (s->chunk_num < 2 * destor.index_feature_method[1])
+	if (s->chunk_num < min_segment_size)
 		return 0;
+	if (s->chunk_num > max_segment_size)
+		return 1;
 
 	if ((*((int*) (&c->fp))) % destor.index_segment_algorithm[1] == 0)
 		return 1;
