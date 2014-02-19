@@ -271,11 +271,16 @@ static void all_segment_select(GHashTable* features) {
 		selected = segment_recipe_merge(selected,
 				(struct segmentRecipe *) value);
 
-	if (selected)
+	if (selected) {
 		lru_cache_insert(segment_recipe_cache, selected,
 		NULL, NULL);
+		g_queue_push_tail(segment_buffer, ref_segment_recipe(selected));
+	} else {
+		selected = new_segment_recipe();
+		g_queue_push_tail(segment_buffer, selected);
+	}
 
-	g_queue_push_tail(segment_buffer, ref_segment_recipe(selected));
+	/* segment_buffer is only accessed in index_update */
 
 	g_hash_table_destroy(segments);
 }
