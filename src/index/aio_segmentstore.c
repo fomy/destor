@@ -17,8 +17,6 @@
 #define VOLUME_HEAD_SIZE 16
 #define SEGMENT_HEAD_SIZE 24
 
-static pthread_mutex_t mutex;
-
 struct segmentVolume {
 	int32_t level;
 	int32_t current_segment_num;
@@ -123,7 +121,6 @@ void init_aio_segment_management() {
 	for (; i < LEVEL_NUM; ++i) {
 		segment_volume_array[i] = init_segment_volume((int64_t) i);
 	}
-	pthread_mutex_init(&mutex, NULL);
 }
 
 void close_aio_segment_management() {
@@ -131,9 +128,6 @@ void close_aio_segment_management() {
 	for (; i < LEVEL_NUM; ++i) {
 		close_segment_volume(segment_volume_array[i]);
 	}
-
-	pthread_mutex_destroy(&mutex);
-
 }
 
 static inline int32_t id_to_level(segmentid id) {
@@ -167,12 +161,8 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 	int32_t size = level_to_max_size(level);
 	char *buf = malloc(size);
 
-	pthread_mutex_lock(&mutex);
-
 	fseek(sv->fp, offset, SEEK_SET);
 	fread(buf, size, 1, sv->fp);
-
-	pthread_mutex_unlock(&mutex);
 
 	struct segmentRecipe* sr = new_segment_recipe();
 
@@ -277,12 +267,8 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	if (!sv->fp)
 		sv->fp = fopen(sv->fname, "r+");
 
-	pthread_mutex_lock(&mutex);
-
 	fseek(sv->fp, offset, SEEK_SET);
 	fwrite(buf, level_to_max_size(level), 1, sv->fp);
-
-	pthread_mutex_unlock(&mutex);
 
     free(buf);
 

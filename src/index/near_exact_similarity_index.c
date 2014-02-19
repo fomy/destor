@@ -15,6 +15,7 @@
 static struct lruCache* segment_recipe_cache;
 /* For ALL select method. */
 static GQueue *segment_buffer;
+static double selection_time;
 
 void init_near_exact_similarity_index() {
 	init_feature_index();
@@ -50,6 +51,7 @@ void close_near_exact_similarity_index() {
 
 	free_lru_cache(segment_recipe_cache);
 
+	VERBOSE("Selection time: %.3fs!", selection_time / 1000000);
 }
 
 /*
@@ -230,35 +232,38 @@ static void all_segment_select(GHashTable* features) {
 	/* Buffered all prefetched segments. */
 	GHashTable *segments = g_hash_table_new_full(g_int64_hash, g_int64_equal,
 	NULL, free_segment_recipe);
+	struct segmentRecipe* selected = NULL;
 
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
 	/* Iterate the features and retrieve each segment. */
-    int i = 0;
+	int i = 0;
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-		if (id != TEMPORARY_ID && !g_hash_table_contains(segments, &id)) {
-			jcr.index_lookup_io++;
-            DEBUG("Read %d aiosegment", ++i);
-			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
-			g_hash_table_insert(segments, &sr->id, sr);
+		if (id != TEMPORARY_ID) {
+			if (selected == NULL) {
+				jcr.index_lookup_io++;
+				DEBUG("Read %d aiosegment", ++i);
+				selected = retrieve_segment_all_in_one(id);
+			} else if (id != selected->id
+					&& !g_hash_table_contains(segments, &id)) {
+				jcr.index_lookup_io++;
+				DEBUG("Read %d aiosegment", ++i);
+				struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
+				g_hash_table_insert(segments, &sr->id, sr);
+			}
 		}
 	}
 
-	struct segmentRecipe* selected = new_segment_recipe();
-	if (g_hash_table_size(segments) > 0) {
+	g_hash_table_iter_init(&iter, segments);
+	while (g_hash_table_iter_next(&iter, &key, &value))
+		selected = segment_recipe_merge(selected,
+				(struct segmentRecipe *) value);
 
-		GHashTableIter iter;
-		gpointer key, value;
-		g_hash_table_iter_init(&iter, segments);
-		while (g_hash_table_iter_next(&iter, &key, &value))
-			selected = segment_recipe_merge(selected,
-					(struct segmentRecipe *) value);
-
+	if (selected)
 		lru_cache_insert(segment_recipe_cache, segment_recipe_dup(selected),
 		NULL, NULL);
-	}
 
 	g_queue_push_tail(segment_buffer, selected);
 
@@ -267,6 +272,8 @@ static void all_segment_select(GHashTable* features) {
 
 void near_exact_similarity_index_lookup(struct segment* s) {
 	/* Load similar segments into segment cache. */
+	TIMER_DECLARE(1);
+	TIMER_BEGIN(1);
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		all_segment_select(s->features);
 	} else if (destor.index_segment_selection_method[0]
@@ -279,6 +286,7 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 		fprintf(stderr, "Invalid segment selection method.\n");
 		exit(1);
 	}
+	TIMER_END(1, selection_time);
 
 	/* Dedup the segment */
 	struct segment* bs = new_segment();
