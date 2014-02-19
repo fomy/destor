@@ -83,8 +83,10 @@ static void* filter_thread(void *arg) {
 					TIMER_BEGIN(1);
 					cbuf = create_container();
 				}
+				TIMER_END(1, jcr.filter_time);
 				containerid ret = index_update(&c->fp, c->id,
 						get_container_id(cbuf));
+				TIMER_BEGIN(1);
 				if (ret == TEMPORARY_ID) {
 					if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 						jcr.unique_chunk_num++;
@@ -102,8 +104,9 @@ static void* filter_thread(void *arg) {
 				}
 			} else {
 				/* This is a duplicate and not fragmented chunk.  */
-
+				TIMER_END(1, jcr.filter_time);
 				containerid ret = index_update(c->fp, c->id, c->id);
+				TIMER_BEGIN(1);
 				if (ret != TEMPORARY_ID)
 					/* An identical chunk has been rewritten earlier. */
 					c->id = ret;
