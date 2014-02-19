@@ -102,14 +102,12 @@ static void* filter_thread(void *arg) {
 				}
 			} else {
 				/* This is a duplicate and not fragmented chunk.  */
-				TIMER_END(1, jcr.filter_time);
 
 				containerid ret = index_update(c->fp, c->id, c->id);
 				if (ret != TEMPORARY_ID)
 					/* An identical chunk has been rewritten earlier. */
 					c->id = ret;
 
-				TIMER_BEGIN(1);
 			}
 
 			chunk_num++;
@@ -122,8 +120,6 @@ static void* filter_thread(void *arg) {
 			append_n_chunk_pointers(jcr.bv, cp, 1);
 			free(cp);
 
-			TIMER_END(1, jcr.filter_time);
-
 			/* Collect historical information. */
 			har_monitor_update(c->id, c->size);
 
@@ -132,7 +128,10 @@ static void* filter_thread(void *arg) {
 
 			free_chunk(c);
 
+			TIMER_END(1, jcr.filter_time);
+
 			c = sync_queue_pop(rewrite_queue);
+
 			TIMER_BEGIN(1);
 		}
 
