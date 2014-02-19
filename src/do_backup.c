@@ -92,12 +92,18 @@ void do_backup(char *path) {
 			jcr.data_size * 1000000 / jcr.chunk_time / 1024 / 1024);
 	printf("hash_time : %.3fs, %.2fMB/s\n", jcr.hash_time / 1000000,
 			jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024);
-	printf("dedup_time : %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
-			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
+
+	printf("dedup_time : %.3fs, %.2fMB/s, with index_lookup_time %.3fs, %.2fMB/s", jcr.dedup_time / 1000000,
+			jcr.data_size * 1000000 / jcr.dedup_time / 1024 / 1024,
+			jcr.index_lookup_time/1000000, jcr.data_size * 1000000 / jcr.index_lookup_time / 1024 / 1024);
+
 	printf("rewrite_time : %.3fs, %.2fMB/s\n", jcr.rewrite_time / 1000000,
 			jcr.data_size * 1000000 / jcr.rewrite_time / 1024 / 1024);
-	printf("filter_time : %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
-			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
+
+	printf("filter_time : %.3fs, %.2fMB/s, with index_update_time %.3fs, %.2fMB/s", jcr.filter_time / 1000000,
+			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024,
+			jcr.index_update_time/1000000, jcr.data_size * 1000000 / jcr.index_update_time / 1024 / 1024);
+
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
 

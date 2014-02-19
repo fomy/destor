@@ -50,6 +50,8 @@ void init_jcr(char *path) {
 	jcr.rewrite_time = 0;
 	jcr.filter_time = 0;
 	jcr.write_time = 0;
+	jcr.index_lookup_time = 0;
+	jcr.index_update_time = 0;
 
 	/*
 	 * the time consuming of three restore phase

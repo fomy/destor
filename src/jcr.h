@@ -49,6 +49,8 @@ struct {
 	double rewrite_time;
 	double filter_time;
 	double write_time;
+	double index_lookup_time;
+	double index_update_time;
 
 	double read_recipe_time;
 	double read_chunk_time;

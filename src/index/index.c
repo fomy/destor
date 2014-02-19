@@ -278,6 +278,9 @@ void index_lookup(struct segment* s) {
 	TIMER_DECLARE(1);
 	TIMER_BEGIN(1);
 
+	TIMER_DECLARE(2);
+	TIMER_BEGIN(2);
+
 	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
 		exact_locality_index_lookup(s);
@@ -295,6 +298,7 @@ void index_lookup(struct segment* s) {
 		exit(1);
 	}
 
+	TIMER_END(2, jcr.index_lookup_time);
 	TIMER_END(1, jcr.dedup_time);
 
 	g_mutex_unlock(&mutex);
@@ -325,6 +329,9 @@ int index_update(fingerprint *fp, containerid from, containerid to) {
 	TIMER_DECLARE(1);
 	TIMER_BEGIN(1);
 
+	TIMER_DECLARE(2);
+	TIMER_BEGIN(2);
+
 	containerid final_id;
 
 	if (destor.index_category[0] == INDEX_CATEGORY_EXACT
@@ -351,6 +358,7 @@ int index_update(fingerprint *fp, containerid from, containerid to) {
 		g_cond_broadcast(&not_full_cond);
 	}
 
+	TIMER_END(2, jcr.index_update_time);
 	TIMER_END(1, jcr.filter_time);
 
 	g_mutex_unlock(&mutex);
