@@ -235,10 +235,12 @@ static void all_segment_select(GHashTable* features) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
 	/* Iterate the features and retrieve each segment. */
+    int i = 0;
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
 		if (id != TEMPORARY_ID && !g_hash_table_contains(segments, &id)) {
 			jcr.index_lookup_io++;
+            DEBUG("Read %d aiosegment", ++i);
 			struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
 			g_hash_table_insert(segments, &sr->id, sr);
 		}

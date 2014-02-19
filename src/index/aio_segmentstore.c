@@ -165,7 +165,7 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 		sv->fp = fopen(sv->fname, "r+");
 
 	int32_t size = level_to_max_size(level);
-	char buf[size];
+	char *buf = malloc(size);
 
 	pthread_mutex_lock(&mutex);
 
@@ -200,6 +200,8 @@ struct segmentRecipe* retrieve_segment_all_in_one(segmentid id) {
 
 	unser_end(buf, size);
 
+    free(buf);
+        
 	return sr;
 }
 
@@ -244,7 +246,8 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 				level, offset);
 	}
 
-	char buf[level_to_max_size(level)];
+    int lsize = level_to_max_size(level);
+    char *buf = malloc(lsize);
 	ser_declare;
 	ser_begin(buf, level_to_max_size(level));
 
@@ -280,6 +283,8 @@ struct segmentRecipe* update_segment_all_in_one(struct segmentRecipe* sr) {
 	fwrite(buf, level_to_max_size(level), 1, sv->fp);
 
 	pthread_mutex_unlock(&mutex);
+
+    free(buf);
 
 	return sr;
 }
