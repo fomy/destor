@@ -15,7 +15,7 @@
 static struct lruCache* segment_recipe_cache;
 /* For ALL select method. */
 static GQueue *segment_buffer;
-static double selection_time;
+static double read_segment_time;
 
 void init_near_exact_similarity_index() {
 	init_feature_index();
@@ -51,7 +51,7 @@ void close_near_exact_similarity_index() {
 
 	free_lru_cache(segment_recipe_cache);
 
-	VERBOSE("Selection time: %.3fs!", selection_time / 1000000);
+	VERBOSE("Selection time: %.3fs!", read_segment_time / 1000000);
 }
 
 /*
@@ -245,16 +245,26 @@ static void all_segment_select(GHashTable* features) {
 			if (selected == NULL) {
 				jcr.index_lookup_io++;
 				DEBUG("Read %d aiosegment", ++i);
+				TIMER_DECLARE(1);
+				TIMER_BEGIN(1);
 				selected = retrieve_segment_all_in_one(id);
+				TIMER_END(1, read_segment_time);
 			} else if (id != selected->id
 					&& !g_hash_table_contains(segments, &id)) {
 				jcr.index_lookup_io++;
 				DEBUG("Read %d aiosegment", ++i);
+				TIMER_DECLARE(1);
+				TIMER_BEGIN(1);
 				struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
+				TIMER_END(1, read_segment_time);
 				g_hash_table_insert(segments, &sr->id, sr);
 			}
 		}
 	}
+
+	if (g_hash_table_size(segments) > 0)
+		NOTICE("Dedup phase: Merge %d segments into one!",
+				g_hash_table_size(segments) + 1);
 
 	g_hash_table_iter_init(&iter, segments);
 	while (g_hash_table_iter_next(&iter, &key, &value))
@@ -272,8 +282,6 @@ static void all_segment_select(GHashTable* features) {
 
 void near_exact_similarity_index_lookup(struct segment* s) {
 	/* Load similar segments into segment cache. */
-	TIMER_DECLARE(1);
-	TIMER_BEGIN(1);
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		all_segment_select(s->features);
 	} else if (destor.index_segment_selection_method[0]
@@ -286,7 +294,6 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 		fprintf(stderr, "Invalid segment selection method.\n");
 		exit(1);
 	}
-	TIMER_END(1, selection_time);
 
 	/* Dedup the segment */
 	struct segment* bs = new_segment();
