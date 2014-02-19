@@ -30,7 +30,7 @@ void init_near_exact_similarity_index() {
 	}
 
 	segment_recipe_cache = new_lru_cache(destor.index_segment_cache_size,
-			free_segment_recipe, lookup_fingerprint_in_segment_recipe);
+			unref_segment_recipe, lookup_fingerprint_in_segment_recipe);
 
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		segment_buffer = g_queue_new();
@@ -51,7 +51,7 @@ void close_near_exact_similarity_index() {
 
 	free_lru_cache(segment_recipe_cache);
 
-	VERBOSE("Selection time: %.3fs!", read_segment_time / 1000000);
+	VERBOSE("Read segment time: %.3fs!", read_segment_time / 1000000);
 }
 
 /*
@@ -272,10 +272,10 @@ static void all_segment_select(GHashTable* features) {
 				(struct segmentRecipe *) value);
 
 	if (selected)
-		lru_cache_insert(segment_recipe_cache, segment_recipe_dup(selected),
+		lru_cache_insert(segment_recipe_cache, selected,
 		NULL, NULL);
 
-	g_queue_push_tail(segment_buffer, selected);
+	g_queue_push_tail(segment_buffer, ref_segment_recipe(selected));
 
 	g_hash_table_destroy(segments);
 }
@@ -433,7 +433,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 			struct segmentRecipe* base = g_queue_pop_head(segment_buffer);
 			/* over-write old addresses. */
 			base = segment_recipe_merge(base, srbuf);
-			free_segment_recipe(srbuf);
+			unref_segment_recipe(srbuf);
 			srbuf = base;
 			srbuf = update_segment_all_in_one(srbuf);
 		} else if (destor.index_segment_selection_method[0]
@@ -453,7 +453,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 		while (g_hash_table_iter_next(&iter, &key, &value))
 			feature_index_update((fingerprint*) key, srbuf->id);
 
-		free_segment_recipe(srbuf);
+		unref_segment_recipe(srbuf);
 		srbuf = NULL;
 		n = 0;
 	}

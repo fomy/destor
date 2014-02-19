@@ -374,12 +374,35 @@ struct segmentRecipe* new_segment_recipe() {
 			free);
 	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
 			free, NULL);
+	sr->reference_count = 1;
+	pthread_mutex_init(&sr->mutex, NULL);
 	return sr;
+}
+
+/* For simple, ref and unref cannot be called concurrently */
+struct segmentRecipe* ref_segment_recipe(struct segmentRecipe* sr) {
+	pthread_mutex_lock(&sr->mutex);
+
+	sr->reference_count++;
+
+	pthread_mutex_unlock(&sr->mutex);
+	return sr;
+}
+
+void unref_segment_recipe(struct segmentRecipe* sr) {
+	pthread_mutex_lock(&sr->mutex);
+	sr->reference_count++;
+	if (sr->reference_count == 0) {
+		free_segment_recipe(sr);
+		return;
+	}
+	pthread_mutex_unlock(&sr->mutex);
 }
 
 void free_segment_recipe(struct segmentRecipe* sr) {
 	g_hash_table_destroy(sr->index);
 	g_hash_table_destroy(sr->features);
+	pthread_mutex_destroy(&sr->mutex);
 	free(sr);
 }
 

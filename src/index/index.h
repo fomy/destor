@@ -65,9 +65,13 @@ struct segmentRecipe {
 	GHashTable* features;
 	/* Map fingerprints in the segment to their container IDs.*/
 	GHashTable *index;
+	pthread_mutex_t mutex;
+	int reference_count;
 };
 
 struct segmentRecipe* new_segment_recipe();
+struct segmentRecipe* ref_segment_recipe(struct segmentRecipe*);
+void unref_segment_recipe(struct segmentRecipe*);
 void free_segment_recipe(struct segmentRecipe*);
 int lookup_fingerprint_in_segment_recipe(struct segmentRecipe*, fingerprint *);
 int segment_recipe_check_id(struct segmentRecipe*, segmentid *id);
