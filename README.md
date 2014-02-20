@@ -77,10 +77,10 @@ Run rebuild script to clean data.
 destor has provided four types of services:
 
 1. start a backup task,
-   > destor /path/to/data
+   > destor /path/to/data -p"a line in config file"
 
 2. start a restore task,
-   > destor -r<jobid> /path/to/restore
+   > destor -r<jobid> /path/to/restore -p"a line in config file"
 
 3. start a delete job,
    > destor -d<jobid>
