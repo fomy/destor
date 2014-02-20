@@ -272,9 +272,9 @@ static void all_segment_select(GHashTable* features) {
 				segment_recipe_check_id);
 		if (!selected) {
 			/* It is not in the cache */
-			selected = g_queue_find_custom(segment_buffer, &champion[0],
+			GList *elem = g_queue_find_custom(segment_buffer, &champion[0],
 					segment_recipe_check_id);
-			if (!selected) {
+			if (!elem) {
 				jcr.index_lookup_io++;
 				TIMER_DECLARE(1);
 				TIMER_BEGIN(1);
@@ -284,7 +284,7 @@ static void all_segment_select(GHashTable* features) {
 			} else {
 				/* It is in the buffer but not in the cache*/
 				lru_cache_insert(segment_recipe_cache,
-						ref_segment_recipe(selected),
+						ref_segment_recipe(elem->data),
 						NULL, NULL);
 			}
 		}
