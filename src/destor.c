@@ -15,35 +15,38 @@ extern void do_restore(int revision, char *path);
 extern void make_trace(char *raw_files);
 
 extern int load_config();
+extern void load_config_from_string(sds config);
 
 /* : means argument is required.
  * :: means argument is required and no space.
  */
-const char * const short_options = "sr::d::t::h";
+const char * const short_options = "sr::d::t::p::h";
 
-struct option long_options[] = { { "restore", 1, NULL, 'r' }, { "state", 0,
-NULL, 's' }, { "cache", 1, NULL, 'c' }, { "cache-size", 1, NULL, 'C' }, {
-		"help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
+struct option long_options[] = { { "state", 0,
+NULL, 's' }, { "help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
 void usage() {
 	puts("GENERAL USAGE");
 	puts("\tstart a backup job");
-	puts("\t\tdestor /path/to/data");
+	puts("\t\tdestor /path/to/data -p\"a line in config file\"");
 
 	puts("\tstart a restore job");
-	puts("\t\tdestor -r<JOB_ID> /path/to/restore");
+	puts("\t\tdestor -r<JOB_ID> /path/to/restore -p\"a line in config file\"");
 
 	puts("\tsimulate deleting backups before JOB_ID.");
 	puts("\t\tdestor -d<JOB_ID>");
 
 	puts("\tprint state of destor");
-	puts("\t\t./destor -s");
+	puts("\t\tdestor -s");
 
 	puts("\tprint this");
-	puts("\t\t./destor -h");
+	puts("\t\tdestor -h");
 
 	puts("\tMake a trance");
-	puts("\t\t./destor -t /path/to/data");
+	puts("\t\tdestor -t /path/to/data");
+
+	puts("\tParameter");
+	puts("\t\t-p\"a line in config file\"");
 
 	/*puts("OPTIONS");
 	 puts("\t--restore or -r");
@@ -228,7 +231,8 @@ void destor_shutdown() {
 void destor_stat() {
 	printf("=== destor stat ===\n");
 
-	printf("the index memory footprint (B): %d\n", destor.index_memory_footprint);
+	printf("the index memory footprint (B): %d\n",
+			destor.index_memory_footprint);
 
 	printf("the number of chunks: %ld\n", destor.chunk_num);
 	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);
@@ -248,7 +252,8 @@ void destor_stat() {
 	printf("the size of zero chunks (B): %ld\n", destor.zero_chunk_size);
 
 	printf("the number of rewritten chunks: %ld\n", destor.rewritten_chunk_num);
-	printf("the size of rewritten chunks (B): %ld\n", destor.rewritten_chunk_size);
+	printf("the size of rewritten chunks (B): %ld\n",
+			destor.rewritten_chunk_size);
 	printf("rewrite ratio: %.4f\n",
 			destor.rewritten_chunk_size / (double) destor.data_size);
 
@@ -293,24 +298,14 @@ int main(int argc, char **argv) {
 			job = DESTOR_DELETE;
 			revision = atoi(optarg);
 			break;
-		case 'c':
-			if (strcasecmp(optarg, "lru") == 0)
-				destor.restore_cache[0] = RESTORE_CACHE_LRU;
-			else if (strcasecmp(optarg, "opt") == 0)
-				destor.restore_cache[0] = RESTORE_CACHE_OPT;
-			else if (strcasecmp(optarg, "asm") == 0)
-				destor.restore_cache[0] = RESTORE_CACHE_ASM;
-			else {
-				fprintf(stderr, "Invalid restore cache");
-				usage();
-			}
-			break;
-		case 'C':
-			destor.restore_cache[1] = atoi(optarg);
-			break;
 		case 'h':
 			usage();
 			break;
+		case 'p': {
+			sds param = sdsnew(optarg);
+			load_config_from_string(param);
+			break;
+		}
 		default:
 			return 0;
 		}
