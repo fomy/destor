@@ -63,9 +63,9 @@ Run rebuild script to clean data.
 
 destor has provided four types of services:
 1. start a backup job,
-    destor <directory or file>
+    destor /backup/path -p"a line in config file"
 2. start a recovery job,
-    destor -r<jobid> <dest directory>
+    destor -r<jobid> /path/to/restore -p"a line in config file"
 3. start a delete job,
     destor -d<jobid>
 4. lookup statistics of system,
