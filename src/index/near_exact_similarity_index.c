@@ -283,8 +283,9 @@ static void all_segment_select(GHashTable* features) {
 				lru_cache_insert(segment_recipe_cache, selected, NULL, NULL);
 			} else {
 				/* It is in the buffer but not in the cache*/
+				selected = elem->data;
 				lru_cache_insert(segment_recipe_cache,
-						ref_segment_recipe(elem->data),
+						ref_segment_recipe(selected),
 						NULL, NULL);
 			}
 		}
