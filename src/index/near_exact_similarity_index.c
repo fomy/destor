@@ -229,60 +229,72 @@ static void top_segment_select(GHashTable* features) {
 }
 
 static void all_segment_select(GHashTable* features) {
-	/* Buffered all prefetched segments. */
-	GHashTable *segments = g_hash_table_new_full(g_int64_hash, g_int64_equal,
-	NULL, free_segment_recipe);
 	struct segmentRecipe* selected = NULL;
 
+	GHashTable *score_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+	NULL, free);
+	segmentid champion[2] = { TEMPORARY_ID, 0 };
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
-	/* Iterate the features and retrieve each segment. */
-	int i = 0;
+	/* Iterate the features of the segment. */
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-		if (id != TEMPORARY_ID) {
-			if (selected == NULL) {
-				jcr.index_lookup_io++;
-				DEBUG("Read %d aiosegment", ++i);
-				TIMER_DECLARE(1);
-				TIMER_BEGIN(1);
-				selected = retrieve_segment_all_in_one(id);
-				TIMER_END(1, read_segment_time);
-			} else if (id != selected->id
-					&& !g_hash_table_contains(segments, &id)) {
-				jcr.index_lookup_io++;
-				DEBUG("Read %d aiosegment", ++i);
-				TIMER_DECLARE(1);
-				TIMER_BEGIN(1);
-				struct segmentRecipe* sr = retrieve_segment_all_in_one(id);
-				TIMER_END(1, read_segment_time);
-				g_hash_table_insert(segments, &sr->id, sr);
+		/* Each feature is mapped to several segment IDs. */
+		segmentid *ids = feature_index_lookup((fingerprint*) key);
+		if (ids) {
+			int i;
+			for (i = 0; i < destor.index_feature_segment_num; i++) {
+				if (ids[i] == TEMPORARY_ID)
+					break;
+				segmentid* segscore = g_hash_table_lookup(score_table, &ids[i]);
+				if (!segscore) {
+					segscore = malloc(sizeof(segmentid) * 2);
+					segscore[0] = ids[i];
+					segscore[1] = 0;
+					g_hash_table_insert(score_table, &segscore[0], segscore);
+				}
+				segscore[1]++;
+				if (segscore[0] != champion[0] && segscore[1] > champion[1]) {
+					/* new champion */
+					champion[0] = segscore[0];
+					champion[1] = segscore[0];
+				}
 			}
+		} else {
+			VERBOSE("Dedup phase: Missed feature");
 		}
 	}
+	g_hash_table_destroy(score_table);
 
-	if (g_hash_table_size(segments) > 0)
-		NOTICE("Dedup phase: Merge %d segments into one!",
-				g_hash_table_size(segments) + 1);
-
-	g_hash_table_iter_init(&iter, segments);
-	while (g_hash_table_iter_next(&iter, &key, &value))
-		selected = segment_recipe_merge(selected,
-				(struct segmentRecipe *) value);
-
-	if (selected) {
-		lru_cache_insert(segment_recipe_cache, selected,
-		NULL, NULL);
+	if (champion[0] != TEMPORARY_ID) {
+		/* We have a champion */
+		selected = lru_cache_hits(segment_recipe_cache, &champion[0],
+				segment_recipe_check_id);
+		if (!selected) {
+			/* It is not in the cache */
+			selected = g_queue_find_custom(segment_buffer, &champion[0],
+					segment_recipe_check_id);
+			if (!selected) {
+				jcr.index_lookup_io++;
+				TIMER_DECLARE(1);
+				TIMER_BEGIN(1);
+				selected = retrieve_segment_all_in_one(champion[0]);
+				TIMER_END(1, read_segment_time);
+				lru_cache_insert(segment_recipe_cache, selected, NULL, NULL);
+			} else {
+				/* It is in the buffer but not in the cache*/
+				lru_cache_insert(segment_recipe_cache,
+						ref_segment_recipe(selected),
+						NULL, NULL);
+			}
+		}
 		g_queue_push_tail(segment_buffer, ref_segment_recipe(selected));
 	} else {
+		NOTICE("Dedup phase: No similar segment is selected. %d features.",
+				g_hash_table_size(features));
 		selected = new_segment_recipe();
 		g_queue_push_tail(segment_buffer, selected);
 	}
-
-	/* segment_buffer is only accessed in index_update */
-
-	g_hash_table_destroy(segments);
 }
 
 void near_exact_similarity_index_lookup(struct segment* s) {

@@ -70,7 +70,7 @@ void* lru_cache_lookup_without_update(struct lruCache* c, void* user_data) {
 /*
  * Hit an existing elem for simulating an insertion of it.
  */
-int lru_cache_hits(struct lruCache* c, void* user_data,
+void* lru_cache_hits(struct lruCache* c, void* user_data,
 		int (*hit)(void* elem, void* user_data)) {
 	GList* elem = g_list_first(c->elem_queue);
 	while (elem) {
@@ -81,9 +81,9 @@ int lru_cache_hits(struct lruCache* c, void* user_data,
 	if (elem) {
 		c->elem_queue = g_list_remove_link(c->elem_queue, elem);
 		c->elem_queue = g_list_concat(elem, c->elem_queue);
-		return 1;
+		return elem->data;
 	} else {
-		return 0;
+		return NULL;
 	}
 }
 

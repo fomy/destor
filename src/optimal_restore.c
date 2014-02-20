@@ -157,10 +157,11 @@ static int optimal_cache_hits(containerid id) {
 	}
 
 	if (destor.simulation_level == SIMULATION_NO)
-		return lru_cache_hits(optimal_cache.lru_queue, &id, container_check_id);
+		return lru_cache_hits(optimal_cache.lru_queue, &id,
+				container_check_id) == NULL ? 0 : 1;
 	else
 		return lru_cache_hits(optimal_cache.lru_queue, &id,
-				container_meta_check_id);
+				container_meta_check_id) == NULL ? 0 : 1;
 }
 
 /* The function will not be called if the simulation level >= RESTORE. */
