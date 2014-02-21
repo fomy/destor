@@ -117,7 +117,6 @@ void close_har() {
 			+ g_hash_table_size(container_utilization_monitor.dense_map);
 
 	/* sparse containers */
-	int inherited_sparse_num = 0;
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, container_utilization_monitor.sparse_map);
@@ -134,7 +133,7 @@ void close_har() {
 
 	NOTICE("Record %d sparse containers, and %d of them are inherited",
 			g_hash_table_size(container_utilization_monitor.sparse_map),
-			inherited_sparse_num);
+			jcr.inherited_sparse_num);
 
 	sdsfree(fname);
 }
