@@ -70,13 +70,13 @@ void exact_locality_index_lookup(struct segment* s) {
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
-		if (index_buffer.buffered_features
+/*		if (index_buffer.buffered_features
 				&& g_hash_table_contains(index_buffer.buffered_features,
 						&c->fp)) {
 			assert(index_buffer.cid != TEMPORARY_ID);
 			c->id = index_buffer.cid;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
-		}
+		}*/
 
 		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
 		if (!tq) {

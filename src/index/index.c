@@ -30,62 +30,97 @@ GHashTable* (*featuring)(fingerprint *fp, int success);
  * Used by Extreme Binning and Silo.
  */
 static GHashTable* index_feature_min(fingerprint *fp, int success) {
-	static int count = 0;
-	static fingerprint candidate;
+
+	static int predicted_segment_length;
+	static int current_segment_length;
+	static int predicted_feature_num;
+	static GSequence *candidates;
+
+	if (candidates == NULL)
+		candidates = g_sequence_new(NULL);
+
+	/* Init */
+	if (current_segment_length == 0) {
+		predicted_segment_length =
+				destor.index_segment_algorithm[1] == 0 ?
+						1024 * 2 : destor.index_segment_algorithm[1] * 2;
+		assert(current_segment_length == 0);
+		predicted_feature_num =
+				destor.index_feature_method[1] == 0 ?
+						1 :
+						predicted_segment_length
+								/ destor.index_feature_method[1];
+		assert(predicted_feature_num > 0);
+	}
 
 	if (!fp && !success)
 		return NULL;
 
-	/* Init */
-	if (count == 0)
-		memset(&candidate, 0xff, sizeof(fingerprint));
-	if (index_buffer.buffered_features == NULL)
-		index_buffer.buffered_features = g_hash_table_new_full(g_int64_hash,
-				g_fingerprint_equal, free, NULL);
-
-	/* Examine whether fp is a feature */
 	if (fp) {
-		if (memcmp(fp, &candidate, sizeof(fingerprint)) < 0)
-			memcpy(&candidate, fp, sizeof(fingerprint));
+		fingerprint *last = g_sequence_get(
+				g_sequence_iter_prev(g_sequence_get_end_iter(candidates)));
 
-		count++;
-		if (count == destor.index_feature_method[1]) {
-			/*
-			 * Select a feature per destor.index_feature_method[1]
-			 * */
-			if (!g_hash_table_contains(index_buffer.buffered_features,
-					&candidate)) {
-				fingerprint *new_feature = (fingerprint*) malloc(
-						sizeof(fingerprint));
-				memcpy(new_feature, &candidate, sizeof(fingerprint));
-				g_hash_table_insert(index_buffer.buffered_features, new_feature,
-						new_feature);
+		if (g_sequence_get_length(candidates) < predicted_feature_num
+				|| memcmp(fp, last, sizeof(fingerprint)) < 0) {
+
+			fingerprint *new_candidate = (fingerprint*) malloc(
+					sizeof(fingerprint));
+			memcpy(new_candidate, fp, sizeof(fingerprint));
+			g_sequence_insert_sorted(candidates, new_candidate,
+					g_fingerprint_cmp, NULL);
+			if (g_sequence_get_length(candidates) > predicted_feature_num) {
+				assert(last);
+				free(last);
+				g_sequence_remove(
+						g_sequence_iter_prev(
+								g_sequence_get_end_iter(candidates)));
 			}
-			count = 0;
+		}
+
+		current_segment_length++;
+		if (current_segment_length * 2 > predicted_segment_length) {
+			predicted_segment_length *= 2;
+			predicted_feature_num =
+					destor.index_feature_method[1] == 0 ?
+							1 :
+							predicted_segment_length
+									/ destor.index_feature_method[1];
+			assert(predicted_feature_num > 0);
 		}
 	}
 
 	if (success) {
-		/* a segment/container boundary. */
-		if (g_hash_table_size(index_buffer.buffered_features) == 0
-				|| count * 2 > destor.index_feature_method[1]) {
-			/*
-			 * Already considering the case of destor.index_feature_method[1] being zero.
-			 */
-			if (!g_hash_table_contains(index_buffer.buffered_features,
-					&candidate)) {
-				fingerprint *new_feature = (fingerprint*) malloc(
-						sizeof(fingerprint));
-				memcpy(new_feature, &candidate, sizeof(fingerprint));
-				g_hash_table_insert(index_buffer.buffered_features, new_feature,
-						new_feature);
+		int feature_num =
+				destor.index_feature_method[1] == 0 ?
+						1 :
+						current_segment_length / destor.index_feature_method[1];
+
+		GHashTable * features = g_hash_table_new_full(g_int64_hash,
+				g_fingerprint_equal, free, NULL);
+
+		fingerprint *feature = NULL;
+		while ((feature = g_sequence_get(g_sequence_get_begin_iter(candidates)))) {
+			if (g_hash_table_size(features) == feature_num) {
+				break;
 			}
+			g_hash_table_insert(features, feature, feature);
+			g_sequence_remove(g_sequence_get_begin_iter(candidates));
+		}
+		g_sequence_foreach(candidates, free, NULL);
+		g_sequence_remove_range(g_sequence_get_begin_iter(candidates),
+				g_sequence_get_end_iter(candidates));
+
+		current_segment_length = 0;
+
+		if (g_hash_table_size(features) == 0) {
+			NOTICE(
+					"Dedup phase: An empty segment and thus no min-feature is selected!");
+			fingerprint* fp = malloc(sizeof(fingerprint));
+			memset(fp, 0xff, sizeof(fingerprint));
+			g_hash_table_insert(features, fp, fp);
 		}
 
-		count = 0;
-		GHashTable* ret = index_buffer.buffered_features;
-		index_buffer.buffered_features = NULL;
-		return ret;
+		return features;
 	}
 
 	return NULL;
