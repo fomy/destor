@@ -57,11 +57,13 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 		return NULL;
 
 	if (fp) {
-		fingerprint *last = g_sequence_get(
-				g_sequence_iter_prev(g_sequence_get_end_iter(candidates)));
 
 		if (g_sequence_get_length(candidates) < predicted_feature_num
-				|| memcmp(fp, last, sizeof(fingerprint)) < 0) {
+				|| memcmp(fp,
+						g_sequence_get(
+								g_sequence_iter_prev(
+										g_sequence_get_end_iter(candidates))),
+						sizeof(fingerprint)) < 0) {
 
 			fingerprint *new_candidate = (fingerprint*) malloc(
 					sizeof(fingerprint));
@@ -69,8 +71,10 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 			g_sequence_insert_sorted(candidates, new_candidate,
 					g_fingerprint_cmp, NULL);
 			if (g_sequence_get_length(candidates) > predicted_feature_num) {
-				assert(last);
-				free(last);
+				free(
+						g_sequence_get(
+								g_sequence_iter_prev(
+										g_sequence_get_end_iter(candidates))));
 				g_sequence_remove(
 						g_sequence_iter_prev(
 								g_sequence_get_end_iter(candidates)));
@@ -93,16 +97,17 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 		int feature_num =
 				destor.index_feature_method[1] == 0 ?
 						1 :
-						current_segment_length / destor.index_feature_method[1];
+						current_segment_length / destor.index_feature_method[1]
+								+ 1;
 
 		GHashTable * features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
 
 		fingerprint *feature = NULL;
-		while ((feature = g_sequence_get(g_sequence_get_begin_iter(candidates)))) {
-			if (g_hash_table_size(features) == feature_num) {
-				break;
-			}
+		while (g_sequence_get_length(candidates) > 0
+				&& g_hash_table_size(features) < feature_num) {
+			fingerprint *feature = g_sequence_get(
+					g_sequence_get_begin_iter(candidates));
 			g_hash_table_insert(features, feature, feature);
 			g_sequence_remove(g_sequence_get_begin_iter(candidates));
 		}
@@ -405,8 +410,8 @@ struct segmentRecipe* new_segment_recipe() {
 	struct segmentRecipe* sr = (struct segmentRecipe*) malloc(
 			sizeof(struct segmentRecipe));
 	sr->id = TEMPORARY_ID;
-	sr->index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, NULL,
-			free);
+	sr->index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
+	NULL, free);
 	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
 			free, NULL);
 	sr->reference_count = 1;
