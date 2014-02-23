@@ -160,6 +160,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		segmentid rid;
 		if (fread(&rid, sizeof(rid), 1, segment_volume.fp) != 1) {
 			NOTICE("Dedup phase: no more segments can be prefetched");
+			pthread_mutex_unlock(&mutex);
 			return segments;
 		}
 		int64_t length = id_to_length(rid);
