@@ -97,8 +97,8 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 		int feature_num =
 				destor.index_feature_method[1] == 0 ?
 						1 :
-						current_segment_length / destor.index_feature_method[1]
-								+ 1;
+						(current_segment_length + destor.index_feature_method[1]
+								- 1) / destor.index_feature_method[1];
 
 		GHashTable * features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
@@ -108,7 +108,7 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 				&& g_hash_table_size(features) < feature_num) {
 			fingerprint *feature = g_sequence_get(
 					g_sequence_get_begin_iter(candidates));
-			g_hash_table_insert(features, feature, feature);
+			g_hash_table_replace(features, feature, NULL);
 			g_sequence_remove(g_sequence_get_begin_iter(candidates));
 		}
 		g_sequence_foreach(candidates, free, NULL);
@@ -157,7 +157,7 @@ static GHashTable* index_feature_random(fingerprint *fp, int success) {
 						sizeof(fingerprint));
 				memcpy(new_feature, fp, sizeof(fingerprint));
 				g_hash_table_insert(index_buffer.buffered_features, new_feature,
-						new_feature);
+				NULL);
 			}
 		}
 	}
@@ -207,7 +207,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 						sizeof(fingerprint));
 				memcpy(new_feature, fp, sizeof(fingerprint));
 				g_hash_table_insert(index_buffer.buffered_features, new_feature,
-						new_feature);
+				NULL);
 			}
 			count = 0;
 		}
