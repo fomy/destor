@@ -211,7 +211,7 @@ static void top_segment_select(GHashTable* features) {
 				while (sr) {
 					if (g_queue_find_custom(segments, &sr->id,
 							segment_recipe_check_id))
-						NOTICE(
+						VERBOSE(
 								"Dedup phase: prefetching a segment already read! Top selection");
 
 					g_queue_push_tail(segments, sr);
