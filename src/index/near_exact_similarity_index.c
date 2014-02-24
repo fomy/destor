@@ -129,6 +129,7 @@ static void features_trim(struct segmentRecipe *target,
 
 /*
  * Select the top segments that are most similar with features.
+ * (top-k * prefetching_num) cannot be larger than the segment cache size.
  */
 static void top_segment_select(GHashTable* features) {
 	/*
@@ -185,8 +186,7 @@ static void top_segment_select(GHashTable* features) {
 						destor.index_segment_selection_method[1] :
 						g_sequence_get_length(seq), i;
 
-		destor_log(DESTOR_DEBUG, "select Top-%d in %d segments\n", num,
-				g_sequence_get_length(seq));
+		DEBUG("select Top-%d in %d segments\n", num, g_sequence_get_length(seq));
 
 		/* Prefetched top similar segments are pushed into the queue. */
 		GQueue *segments = g_queue_new();
@@ -204,10 +204,20 @@ static void top_segment_select(GHashTable* features) {
 					segment_recipe_check_id)) {
 
 				jcr.index_lookup_io++;
-				struct segmentRecipe* sr = retrieve_segment(top->id);
+				/* We prefetch the segments adjacent to the top. */
+				GQueue* tmp = prefetch_segments(top->id,
+						destor.index_segment_prefech);
+				struct segmentRecipe* sr = g_queue_pop_head(tmp);
+				while (sr) {
+					if (g_queue_find_custom(segments, &sr->id,
+							segment_recipe_check_id))
+						NOTICE(
+								"Dedup phase: prefetching a segment already read! Top selection");
 
-				g_queue_push_tail(segments, sr);
-
+					g_queue_push_tail(segments, sr);
+					sr = g_queue_pop_head(tmp);
+				}
+				g_queue_free(tmp);
 			}
 
 			g_sequence_remove(g_sequence_get_begin_iter(seq));
