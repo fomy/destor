@@ -94,11 +94,18 @@ static GHashTable* index_feature_min(fingerprint *fp, int success) {
 	}
 
 	if (success) {
-		int feature_num =
-				destor.index_feature_method[1] == 0 ?
-						1 :
-						(current_segment_length + destor.index_feature_method[1]
-								- 1) / destor.index_feature_method[1];
+		int feature_num = 1;
+		if (destor.index_feature_method[1] != 0
+				&& current_segment_length > destor.index_feature_method[1]) {
+			/* Calculate the number of features we need */
+			int remain = current_segment_length
+					% destor.index_feature_method[1];
+			feature_num = current_segment_length
+					/ destor.index_feature_method[1];
+			feature_num =
+					(remain * 2 > destor.index_feature_method[1]) ?
+							feature_num + 1 : feature_num;
+		}
 
 		GHashTable * features = g_hash_table_new_full(g_int64_hash,
 				g_fingerprint_equal, free, NULL);
