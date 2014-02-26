@@ -111,7 +111,11 @@ static void latest_segment_select(GHashTable* features) {
  */
 static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
 		struct segmentRecipe* b, gpointer user_data) {
-	return g_hash_table_size(b->features) - g_hash_table_size(a->features);
+	gint ret = g_hash_table_size(b->features) - g_hash_table_size(a->features);
+	if(ret == 0)
+		return b->id - a->id;
+	else
+		return ret;
 }
 
 /*
