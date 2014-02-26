@@ -93,16 +93,22 @@ void do_backup(char *path) {
 	printf("hash_time : %.3fs, %.2fMB/s\n", jcr.hash_time / 1000000,
 			jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024);
 
-	printf("dedup_time : %.3fs, %.2fMB/s, with index_lookup_time %.3fs, %.2fMB/s\n", jcr.dedup_time / 1000000,
+	printf(
+			"dedup_time : %.3fs, %.2fMB/s, with index_lookup_time %.3fs, %.2fMB/s\n",
+			jcr.dedup_time / 1000000,
 			jcr.data_size * 1000000 / jcr.dedup_time / 1024 / 1024,
-			jcr.index_lookup_time/1000000, jcr.data_size * 1000000 / jcr.index_lookup_time / 1024 / 1024);
+			jcr.index_lookup_time / 1000000,
+			jcr.data_size * 1000000 / jcr.index_lookup_time / 1024 / 1024);
 
 	printf("rewrite_time : %.3fs, %.2fMB/s\n", jcr.rewrite_time / 1000000,
 			jcr.data_size * 1000000 / jcr.rewrite_time / 1024 / 1024);
 
-	printf("filter_time : %.3fs, %.2fMB/s, with index_update_time %.3fs, %.2fMB/s\n", jcr.filter_time / 1000000,
+	printf(
+			"filter_time : %.3fs, %.2fMB/s, with index_update_time %.3fs, %.2fMB/s\n",
+			jcr.filter_time / 1000000,
 			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024,
-			jcr.index_update_time/1000000, jcr.data_size * 1000000 / jcr.index_update_time / 1024 / 1024);
+			jcr.index_update_time / 1000000,
+			jcr.data_size * 1000000 / jcr.index_update_time / 1024 / 1024);
 
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
@@ -143,16 +149,11 @@ void do_backup(char *path) {
 	 * index updates,
 	 * throughput,
 	 */
-	fprintf(fp, "%d %ld %.4f %.4f %d %d %d %lld %lld %.2f\n", jcr.id,
-			destor.stored_data_size,
-			jcr.data_size != 0 ?
-					(jcr.data_size - jcr.unique_data_size)
-							/ (double) (jcr.data_size) :
-					0,
-			jcr.data_size != 0 ?
-					(double) (jcr.rewritten_chunk_size)
-							/ (double) (jcr.data_size) :
-					0, jcr.total_container_num, jcr.sparse_container_num,
+	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %lld %lld %.2f\n", jcr.id,
+			jcr.data_size, destor.stored_data_size,
+			jcr.data_size != 0 ? (jcr.data_size - jcr.unique_data_size)	/ (double) (jcr.data_size) : 0,
+			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
+			jcr.total_container_num, jcr.sparse_container_num,
 			jcr.inherited_sparse_num, jcr.index_lookup_io, jcr.index_update_io,
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
