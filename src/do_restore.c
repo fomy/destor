@@ -259,8 +259,8 @@ void do_restore(int revision, char *path) {
 	 */
 	fprintf(fp, "%d %lld %d %.4f %.4f\n", jcr.id, jcr.data_size,
 			jcr.read_container_num,
-			(double) jcr.data_size / (1024 * 1024 * jcr.read_container_num),
-			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
+			jcr.data_size / (1024.0 * 1024 * jcr.read_container_num),
+			jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
 }
