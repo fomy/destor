@@ -21,7 +21,7 @@ static int64_t segment_num;
  * else return 0.
  * If c == NULL, return 1.
  */
-static int (*segmenting)(struct segment* s, struct chunk *c);
+static struct segment* (*segmenting)(struct chunk *c);
 
 void send_segment(struct segment* s) {
 	struct chunk* c;
@@ -52,82 +52,109 @@ void send_segment(struct segment* s) {
 /*
  * Used by SiLo and Block Locality Caching.
  */
-int segment_fixed(struct segment* s, struct chunk * c) {
+struct segment* segment_fixed(struct chunk * c) {
+	static struct segment* tmp;
+	if (tmp == NULL)
+		tmp = new_segment();
 
 	if (c == NULL)
 		/* The end of stream */
-		return 1;
+		return tmp;
 
-	g_queue_push_tail(s->chunks, c);
+	g_queue_push_tail(tmp->chunks, c);
 	if (CHECK_CHUNK(c,
 			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 		/* FILE_END */
-		return 0;
+		return NULL;
 
 	/* a normal chunk */
-	s->chunk_num++;
+	tmp->chunk_num++;
 
-	if (s->chunk_num == destor.index_segment_algorithm[1])
+	if (tmp->chunk_num == destor.index_segment_algorithm[1]) {
 		/* segment boundary */
-		return 1;
+		struct segment* ret = tmp;
+		tmp = NULL;
+		return ret;
+	}
 
-	return 0;
+	return NULL;
 }
 
 /*
  * Used by Extreme Binning.
  */
-int segment_file_defined(struct segment* s, struct chunk *c) {
+struct segment* segment_file_defined(struct chunk *c) {
+	static struct segment* tmp;
 	/*
 	 * For file-defined segmenting,
 	 * the end is not a new segment.
 	 */
-	if (c == NULL)
-		return 1;
+	if (tmp == NULL)
+		tmp = new_segment();
 
-	g_queue_push_tail(s->chunks, c);
+	if (c == NULL)
+		return tmp;
+
+	g_queue_push_tail(tmp->chunks, c);
 	if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
-		return 1;
+		struct segment* ret = tmp;
+		tmp = NULL;
+		return ret;
 	} else if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
-		return 0;
+		return NULL;
 	} else {
 		/* a normal chunk */
-		s->chunk_num++;
-		return 0;
+		tmp->chunk_num++;
+		return NULL;
 	}
 }
 
 /*
  * Used by Sparse Index.
  */
-int segment_content_defined(struct segment* s, struct chunk *c) {
+struct segment* segment_content_defined(struct chunk *c) {
 	static int max_segment_size = 102400;
 	static int min_segment_size = 256;
+	static struct segment* tmp;
+
+	if (tmp == NULL)
+		tmp = new_segment();
+
 	if (c == NULL)
 		/* The end of stream */
-		return 1;
+		return tmp;
 
-	g_queue_push_tail(s->chunks, c);
 	if (CHECK_CHUNK(c,
-			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
-		return 0;
-
-	s->chunk_num++;
+			CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
+		g_queue_push_tail(tmp->chunks, c);
+		return NULL;
+	}
 
 	/* Avoid too small segment. */
-	if (s->chunk_num < min_segment_size)
-		return 0;
-	if (s->chunk_num > max_segment_size)
-		return 1;
+	if (tmp->chunk_num < min_segment_size) {
+		g_queue_push_tail(tmp->chunks, c);
+		tmp->chunk_num++;
+		return NULL;
+	}
 
-	if ((*((int*) (&c->fp))) % destor.index_segment_algorithm[1] == 0)
-		return 1;
+	if ((*((int*) (&c->fp))) % destor.index_segment_algorithm[1] == 0) {
+		struct segment* ret = tmp;
+		tmp = new_segment();
+		g_queue_push_tail(tmp->chunks, c);
+		tmp->chunk_num++;
+		return ret;
+	}
 
-	return 0;
+	g_queue_push_tail(tmp->chunks, c);
+	tmp->chunk_num++;
+	if (tmp->chunk_num >= max_segment_size)
+		return tmp;
+
+	return NULL;
 }
 
 void *dedup_thread(void *arg) {
-	struct segment* s = new_segment();
+	struct segment* s = NULL;
 	while (1) {
 		struct chunk *c = NULL;
 		if (destor.simulation_level != SIMULATION_ALL)
@@ -138,37 +165,36 @@ void *dedup_thread(void *arg) {
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
 		/* Add the chunk to the segment. */
-		int success = segmenting(s, c);
-
-		/* For indexes exploiting logical locality */
-		if (destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
-			s->features = featuring(
-					(!c || CHECK_CHUNK(c, CHUNK_FILE_START)
-							|| CHECK_CHUNK(c, CHUNK_FILE_END)) ?
-					NULL : &c->fp, success);
+		s = segmenting(c);
+		if (!s)
+			continue;
 
 		TIMER_END(1, jcr.dedup_time);
+		if (s->chunk_num > 0) {
+			/* segmenting success */
+			if (featuring)
+				s->features = featuring(s->chunks, s->chunk_num);
 
-		if (success) {
-			if (s->chunk_num > 0) {
-				NOTICE(
-						"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
-						segment_num++, s->chunk_num,
-						s->features ? g_hash_table_size(s->features) : 0);
-				/* Each redundant chunk will be marked. */
-				index_lookup(s);
-				/* features are moved in index_lookup */
-				assert(s->features == NULL);
-			} else {
-				NOTICE("Dedup phase: an empty segment");
-				if (s->features)
-					g_hash_table_destroy(s->features);
-				s->features = NULL;
-			}
-			/* Send chunks in the segment to the next phase.
-			 * The segment will be cleared. */
-			send_segment(s);
+			NOTICE(
+					"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
+					segment_num++, s->chunk_num,
+					s->features ? g_hash_table_size(s->features) : 0);
+			/* Each redundant chunk will be marked. */
+			index_lookup(s);
+			/* features are moved in index_lookup */
+			assert(s->features == NULL);
+		} else {
+			NOTICE("Dedup phase: an empty segment");
+			if (s->features)
+				g_hash_table_destroy(s->features);
+			s->features = NULL;
 		}
+		/* Send chunks in the segment to the next phase.
+		 * The segment will be cleared. */
+		send_segment(s);
+
+		free_segment(s, NULL);
+		s = NULL;
 
 		if (c == NULL)
 			break;
@@ -176,7 +202,6 @@ void *dedup_thread(void *arg) {
 
 	sync_queue_term(dedup_queue);
 
-	free_segment(s, free_chunk);
 	return NULL;
 }
 

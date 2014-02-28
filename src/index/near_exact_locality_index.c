@@ -75,9 +75,8 @@ void near_exact_locality_index_lookup(struct segment* s) {
 			continue;
 
 		/* Examine the buffered features that have not been updated to index. */
-		if (index_buffer.buffered_features
-				&& g_hash_table_contains(index_buffer.buffered_features,
-						&c->fp)) {
+		if (index_buffer.feature_buffer
+				&& g_hash_table_contains(index_buffer.feature_buffer, &c->fp)) {
 			assert(index_buffer.cid != TEMPORARY_ID);
 			c->id = index_buffer.cid;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
@@ -169,7 +168,8 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 
 			if (index_buffer.cid != TEMPORARY_ID && index_buffer.cid != to) {
 				/* Another container */
-				GHashTable *features = featuring(NULL, 1);
+				GHashTable *features = featuring(index_buffer.feature_buffer,
+						0);
 
 				GHashTableIter iter;
 				gpointer key, value;
@@ -178,10 +178,15 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 					feature_index_update((fingerprint*) key, index_buffer.cid);
 
 				g_hash_table_destroy(features);
+
+				g_queue_free_full(index_buffer.feature_buffer, free_chunk);
+				index_buffer.feature_buffer = g_queue_new();
 			}
 
 			index_buffer.cid = to;
-			featuring(fp, 0);
+			struct chunk* candidate = new_chunk(0);
+			memcpy(&candidate->fp, fp, sizeof(fingerprint));
+			g_queue_push_tail(index_buffer.feature_buffer, candidate);
 
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
