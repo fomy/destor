@@ -29,8 +29,8 @@ struct {
 	/* The number of buffered chunks */
 	int num;
 
-	/* Buffer selected features in the current open container/segment. */
-	GHashTable* buffered_features;
+	/* Buffer candidate features in the current open container. */
+	GQueue* feature_buffer;
 	/* If cid == TEMPORARY_ID, features are for segment. */
 	containerid cid;
 } index_buffer;
@@ -54,7 +54,7 @@ int index_update(fingerprint *fp, containerid from, containerid to);
 
 void index_delete(fingerprint *);
 
-GHashTable* (*featuring)(fingerprint *fp, int success);
+GHashTable* (*featuring)(GQueue *chunks, int32_t chunk_num);
 
 /*
  * Each prefetched segment is organized as a hash table for optimizing lookup.
