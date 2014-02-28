@@ -145,15 +145,13 @@ void *dedup_thread(void *arg) {
 			s->features = featuring(
 					(!c || CHECK_CHUNK(c, CHUNK_FILE_START)
 							|| CHECK_CHUNK(c, CHUNK_FILE_END)) ?
-					NULL :
-																	&c->fp,
-					success);
+					NULL : &c->fp, success);
 
 		TIMER_END(1, jcr.dedup_time);
 
 		if (success) {
 			if (s->chunk_num > 0) {
-				VERBOSE(
+				NOTICE(
 						"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
 						segment_num++, s->chunk_num,
 						s->features ? g_hash_table_size(s->features) : 0);

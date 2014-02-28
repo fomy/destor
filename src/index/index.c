@@ -234,6 +234,7 @@ static GHashTable* index_feature_uniform(fingerprint *fp, int success) {
 		}
 		GHashTable* ret = index_buffer.buffered_features;
 		index_buffer.buffered_features = NULL;
+		count = 0;
 		return ret;
 	}
 
