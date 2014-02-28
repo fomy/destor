@@ -338,9 +338,12 @@ void index_lookup(struct segment* s) {
 			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
 		exact_similarity_index_lookup(s);
 	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
-		near_exact_similarity_index_lookup(s);
-	else {
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
+		if(destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_GREEDY)
+			near_exact_similarity_index_lookup_greedy(s);
+		else
+			near_exact_similarity_index_lookup(s);
+	}else {
 		fprintf(stderr, "Invalid fingerprint category");
 		exit(1);
 	}

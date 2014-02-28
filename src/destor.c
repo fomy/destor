@@ -47,47 +47,6 @@ void usage() {
 
 	puts("\tParameter");
 	puts("\t\t-p\"a line in config file\"");
-
-	/*puts("OPTIONS");
-	 puts("\t--restore or -r");
-	 puts("\t\tA restore job, which required a job id following the option.");
-	 puts("\t--state or -s");
-	 puts("\t\tprint the state of destor.");
-	 puts("\t--help or -h");
-	 puts("\t\tprint this.");
-	 puts("\t--index=[RAM|DDFS|EXBIN|SILO|SAMPLE|SPARSE|SEGBIN]");
-	 puts(
-	 "\t\tAssign fingerprint index type. It now support RAM, DDFS, EXBIN, SILO, SAMPLE, and BLC.");
-	 puts("\t--cache=[LRU|ASM|OPT]");
-	 puts("\t\tAssign read cache type. IT now support LRU, OPT.");
-	 puts("\t--cache_size=[number of containers]");
-	 puts("\t\tAssign read cache size, e.g. --cache_size=100.");
-	 puts("\t--rewrite=[NO|CFL|CBR|CAP|HBR]");
-	 puts(
-	 "\t\tAssign rewrite algorithm type. It now support NO, CFL, CBR, CAP, HBR.");
-	 puts("\t--cfl_p=[p in CFL]");
-	 puts("\t\tSet p parameter in CFL, e.g. --cfl_p=3.");
-	 puts("\t--rewrite_limit=[rewrite limit for CBR]");
-	 puts("\t\tSet rewrite_limit, e.g. --rewrite_limit=0.05.");
-	 puts("\t--min_utility=[minimal rewrite utility for CBR]");
-	 puts("\t\tSet minimal_rewrite_utility, e.g. --min_utility=0.7.");
-	 puts("\t--window_size=[size of the slide window for OPT]");
-	 puts(
-	 "\t\tSet size of slide window for OPT cache, e.g. --window_size=1024000.");
-	 puts("\t--stream_context_size=[size (MB) of the stream context for CBR]");
-	 puts("\t\tSet stream_context_size in CBR, e.g. --stream_context_size=16.");
-	 puts("\t--capping_t=[T for CAP]");
-	 puts("\t\tSet T for capping, e.g. --T=16.");
-	 puts("\t--capping_segment_size=[size (MB) of segment in CAP]");
-	 puts("\t\tSet segment size for capping, e.g. --capping_segment_size=16.");
-	 puts("\t--enable_hbr");
-	 puts("\t\tenable HBR.");
-	 puts("\t--enable_cache_filter");
-	 puts("\t\tenable cache filter.");
-	 puts("\t--simulation=[NO|RECOVERY|APPEND|ALL]");
-	 puts("\t\tSelect the simulation level.");
-	 puts(
-	 "\t\tThere are four simulation levels, and each level simulates more phases from NO to ALL.");*/
 	exit(0);
 }
 
@@ -141,7 +100,7 @@ void destor_start() {
 	destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
 	destor.index_feature_method[1] = 1;
 	destor.index_feature_segment_num = 1;
-	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
+	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
 	destor.index_segment_selection_method[1] = 1;
 	destor.index_segment_prefech = 0;
 	destor.index_segment_cache_size = 0;

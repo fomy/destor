@@ -23,7 +23,7 @@ void init_near_exact_similarity_index() {
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		init_aio_segment_management();
 	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_LATEST
+			== INDEX_SEGMENT_SELECT_GREEDY
 			|| destor.index_segment_selection_method[0]
 					== INDEX_SEGMENT_SELECT_TOP) {
 		init_segment_management();
@@ -43,7 +43,7 @@ void close_near_exact_similarity_index() {
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		close_aio_segment_management();
 	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_LATEST
+			== INDEX_SEGMENT_SELECT_GREEDY
 			|| destor.index_segment_selection_method[0]
 					== INDEX_SEGMENT_SELECT_TOP) {
 		close_segment_management();
@@ -55,64 +55,13 @@ void close_near_exact_similarity_index() {
 }
 
 /*
- * Enable/Disable segment prefetching.
- */
-static void latest_segment_select(GHashTable* features) {
-
-	segmentid latest = TEMPORARY_ID;
-
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, features);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		segmentid id = feature_index_lookup_for_latest((fingerprint*) key);
-		if (id > latest) {
-			destor_log(DESTOR_DEBUG, "Latest segment: %lld -> %lld", latest,
-					id);
-			latest = id;
-		} else if (id != TEMPORARY_ID) {
-			destor_log(DESTOR_DEBUG, "Latest segment: %lld -> %lld failed",
-					latest, id);
-		} else {
-			unsigned char code[41];
-			hash2code(key, code);
-			code[40] = 0;
-			DEBUG("Feature %s missed", code);
-		}
-	}
-
-	/* If latest has already been cached, we need not to read it. */
-	if (latest != TEMPORARY_ID
-			&& !lru_cache_hits(segment_recipe_cache, &latest,
-					segment_recipe_check_id)) {
-		jcr.index_lookup_io++;
-		GQueue* segments = prefetch_segments(latest,
-				destor.index_segment_prefech);
-		struct segmentRecipe* sr;
-		while ((sr = g_queue_pop_tail(segments))) {
-			/* From tail to head */
-			if (!lru_cache_hits(segment_recipe_cache, &sr->id,
-					segment_recipe_check_id)) {
-				lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
-			} else {
-				/* Already in cache */
-				free_segment_recipe(sr);
-			}
-		}
-		g_queue_free(segments);
-
-	}
-
-}
-
-/*
  * Larger one comes before smaller one.
  * Descending order.
  */
 static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
 		struct segmentRecipe* b, gpointer user_data) {
 	gint ret = g_hash_table_size(b->features) - g_hash_table_size(a->features);
-	if(ret == 0)
+	if (ret == 0)
 		return b->id - a->id;
 	else
 		return ret;
@@ -312,6 +261,91 @@ static void all_segment_select(GHashTable* features) {
 	}
 }
 
+void near_exact_similarity_index_lookup_greedy(struct segment *s) {
+	/* Dedup the segment */
+	struct segment* bs = new_segment();
+
+	int len = g_queue_get_length(s->chunks), i;
+
+	for (i = 0; i < len; ++i) {
+		struct chunk* c = g_queue_peek_nth(s->chunks, i);
+
+		if (CHECK_CHUNK(c,
+				CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+			continue;
+
+		GQueue *tq = g_hash_table_lookup(index_buffer.table, &c->fp);
+		if (tq) {
+			struct indexElem *be = g_queue_peek_head(tq);
+			c->id = be->id;
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+		} else {
+			tq = g_queue_new();
+		}
+
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) && segment_recipe_cache) {
+			struct segmentRecipe* si = lru_cache_lookup(segment_recipe_cache,
+					&c->fp);
+			if (si) {
+				/* Find it */
+				struct indexElem *ie = g_hash_table_lookup(si->index, c->fp);
+				assert(ie);
+				SET_CHUNK(c, CHUNK_DUPLICATE);
+				c->id = ie->id;
+			}
+		}
+
+		/* Lookup the feature index */
+		if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+			segmentid id = feature_index_lookup_for_latest(&c->fp);
+
+			if (id != TEMPORARY_ID) {
+				/* Find it */
+				jcr.index_lookup_io++;
+				GQueue* segments = prefetch_segments(id,
+						destor.index_segment_prefech);
+				struct segmentRecipe* sr;
+				while ((sr = g_queue_pop_tail(segments))) {
+					/* From tail to head */
+					if (!lru_cache_hits(segment_recipe_cache, &sr->id,
+							segment_recipe_check_id)) {
+						lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
+					} else {
+						/* Already in cache */
+						free_segment_recipe(sr);
+					}
+				}
+				g_queue_free(segments);
+
+				sr = lru_cache_lookup(segment_recipe_cache, &c->fp);
+				assert(sr);
+				struct indexElem *ie = g_hash_table_lookup(sr->index, c->fp);
+				assert(ie);
+				SET_CHUNK(c, CHUNK_DUPLICATE);
+				c->id = ie->id;
+
+			}
+		}
+
+		struct indexElem *ne = (struct indexElem*) malloc(
+				sizeof(struct indexElem));
+		ne->id = c->id;
+		memcpy(&ne->fp, &c->fp, sizeof(fingerprint));
+
+		g_queue_push_tail(bs->chunks, ne);
+		bs->chunk_num++;
+
+		g_queue_push_tail(tq, ne);
+		g_hash_table_replace(index_buffer.table, &ne->fp, tq);
+
+		index_buffer.num++;
+	}
+
+	bs->features = s->features;
+	s->features = NULL;
+	g_queue_push_tail(index_buffer.segment_queue, bs);
+}
+
 void near_exact_similarity_index_lookup(struct segment* s) {
 	/* Load similar segments into segment cache. */
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
@@ -319,9 +353,6 @@ void near_exact_similarity_index_lookup(struct segment* s) {
 	} else if (destor.index_segment_selection_method[0]
 			== INDEX_SEGMENT_SELECT_TOP) {
 		top_segment_select(s->features);
-	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_LATEST) {
-		latest_segment_select(s->features);
 	} else {
 		fprintf(stderr, "Invalid segment selection method.\n");
 		exit(1);
@@ -472,7 +503,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 				== INDEX_SEGMENT_SELECT_TOP) {
 			srbuf = update_segment(srbuf);
 		} else if (destor.index_segment_selection_method[0]
-				== INDEX_SEGMENT_SELECT_LATEST) {
+				== INDEX_SEGMENT_SELECT_GREEDY) {
 			srbuf = update_segment(srbuf);
 		} else {
 			fprintf(stderr, "Invalid segment selection method.\n");

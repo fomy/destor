@@ -198,9 +198,9 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-selection")
 				== 0 && argc >= 2) {
 			destor.index_segment_selection_method[1] = 1;
-			if (strcasecmp(argv[1], "latest") == 0)
+			if (strcasecmp(argv[1], "greedy") == 0)
 				destor.index_segment_selection_method[0] =
-				INDEX_SEGMENT_SELECT_LATEST;
+				INDEX_SEGMENT_SELECT_GREEDY;
 			else if (strcasecmp(argv[1], "top") == 0) {
 				destor.index_segment_selection_method[0] =
 				INDEX_SEGMENT_SELECT_TOP;

@@ -39,9 +39,7 @@ void init_feature_index() {
 
 	if (destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY
 			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_ALL
-			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_LATEST)
+					== INDEX_SEGMENT_SELECT_GREEDY)
 		destor.index_feature_segment_num = 1;
 
 	feature_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
@@ -108,7 +106,8 @@ void close_feature_index() {
 
 	}
 
-	destor.index_memory_footprint = g_hash_table_size(feature_index) * (24 + 4);
+	destor.index_memory_footprint = g_hash_table_size(feature_index)
+			* (20 + 8 * destor.index_feature_segment_num);
 
 	fclose(fp);
 
