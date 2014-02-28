@@ -76,7 +76,8 @@ void near_exact_locality_index_lookup(struct segment* s) {
 
 		/* Examine the buffered features that have not been updated to index. */
 		if (index_buffer.feature_buffer
-				&& g_hash_table_contains(index_buffer.feature_buffer, &c->fp)) {
+				&& g_queue_find_custom(index_buffer.feature_buffer, &c->fp,
+						g_fingerprint_cmp)) {
 			assert(index_buffer.cid != TEMPORARY_ID);
 			c->id = index_buffer.cid;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
