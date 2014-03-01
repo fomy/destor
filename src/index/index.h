@@ -31,6 +31,7 @@ struct {
 
 	/* Buffer candidate features in the current open container. */
 	GQueue* feature_buffer;
+	GHashTable* feature_index;
 	/* If cid == TEMPORARY_ID, features are for segment. */
 	containerid cid;
 } index_buffer;

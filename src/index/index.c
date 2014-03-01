@@ -171,6 +171,8 @@ void init_index() {
 	index_buffer.num = 0;
 
 	index_buffer.feature_buffer = g_queue_new();
+	index_buffer.feature_index = g_hash_table_new(g_int64_hash,
+			g_fingerprint_equal);
 	index_buffer.cid = TEMPORARY_ID;
 
 	if (destor.index_category[0] == INDEX_CATEGORY_EXACT

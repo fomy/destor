@@ -49,6 +49,7 @@ void close_near_exact_locality_index() {
 
 		g_hash_table_destroy(features);
 		g_queue_free_full(index_buffer.feature_buffer, free_chunk);
+		g_hash_table_destroy(index_buffer.feature_index);
 	}
 
 	close_feature_index();
@@ -79,8 +80,7 @@ void near_exact_locality_index_lookup(struct segment* s) {
 
 		/* Examine the buffered features that have not been updated to index. */
 		if (index_buffer.feature_buffer
-				&& g_queue_find_custom(index_buffer.feature_buffer, &c->fp,
-						g_chunk_cmp)) {
+				&& g_hash_table_contains(index_buffer.feature_index, &c->fp)) {
 			assert(index_buffer.cid != TEMPORARY_ID);
 			c->id = index_buffer.cid;
 			SET_CHUNK(c, CHUNK_DUPLICATE);
@@ -185,12 +185,15 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 
 				g_queue_free_full(index_buffer.feature_buffer, free_chunk);
 				index_buffer.feature_buffer = g_queue_new();
+				g_hash_table_remove_all(index_buffer.feature_index);
 			}
 
 			index_buffer.cid = to;
 			struct chunk* candidate = new_chunk(0);
 			memcpy(&candidate->fp, fp, sizeof(fingerprint));
 			g_queue_push_tail(index_buffer.feature_buffer, candidate);
+			g_hash_table_insert(index_buffer.feature_index, &candidate->fp,
+					candidate);
 
 			GQueue *tq = g_hash_table_lookup(index_buffer.table, &e->fp);
 			assert(tq);
