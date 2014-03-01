@@ -37,15 +37,18 @@ void init_near_exact_locality_index() {
 
 void close_near_exact_locality_index() {
 	if (index_buffer.cid != TEMPORARY_ID) {
-		GHashTable *features = featuring(NULL, 1);
+
+		GHashTable *features = featuring(index_buffer.feature_buffer, 0);
 
 		GHashTableIter iter;
-		gpointer feature, value;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, features);
-		while (g_hash_table_iter_next(&iter, &feature, &value))
-			feature_index_update((fingerprint*) feature, index_buffer.cid);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			feature_index_update((fingerprint*) key, index_buffer.cid);
+		}
 
 		g_hash_table_destroy(features);
+		g_queue_free_full(index_buffer.feature_buffer, free_chunk);
 	}
 
 	close_feature_index();

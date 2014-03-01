@@ -34,17 +34,20 @@ void init_exact_locality_index() {
 void close_exact_locality_index() {
 
 	if (index_buffer.cid != TEMPORARY_ID) {
-		GHashTable *features = featuring(NULL, 1);
+		GHashTable *features = featuring(index_buffer.feature_buffer,
+								0);
 
 		GHashTableIter iter;
-		gpointer feature, value;
+		gpointer key, value;
 		g_hash_table_iter_init(&iter, features);
-		while (g_hash_table_iter_next(&iter, &feature, &value)) {
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			jcr.index_update_io++;
-			db_insert_fingerprint((fingerprint*) feature, index_buffer.cid);
+			db_insert_fingerprint((fingerprint*) key, index_buffer.cid);
 		}
 
 		g_hash_table_destroy(features);
+
+		g_queue_free_full(index_buffer.feature_buffer, free_chunk);
 	}
 
 	db_close();
