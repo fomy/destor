@@ -391,3 +391,7 @@ gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2) {
 gint g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2, gpointer user_data) {
 	return memcmp(fp1, fp2, sizeof(fingerprint));
 }
+
+gint g_chunk_cmp(struct chunk* a, struct chunk* b, gpointer user_data){
+	return memcmp(&a->fp, b->fp, sizeof(fingerprint));
+}
