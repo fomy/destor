@@ -166,15 +166,17 @@ void *dedup_thread(void *arg) {
 		TIMER_BEGIN(1);
 		/* Add the chunk to the segment. */
 		s = segmenting(c);
+		TIMER_END(1, jcr.dedup_time);
 		if (!s)
 			continue;
 
-		TIMER_END(1, jcr.dedup_time);
+		/* segmenting success */
+
 		if (s->chunk_num > 0) {
-			/* segmenting success */
+			TIMER_BEGIN(1);
 			if (featuring)
 				s->features = featuring(s->chunks, s->chunk_num);
-
+			TIMER_END(1, jcr.dedup_time);
 			NOTICE(
 					"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
 					segment_num++, s->chunk_num,
@@ -185,8 +187,7 @@ void *dedup_thread(void *arg) {
 			assert(s->features == NULL);
 		} else {
 			NOTICE("Dedup phase: an empty segment");
-			if (s->features)
-				g_hash_table_destroy(s->features);
+			assert(s->features == NULL);
 			s->features = NULL;
 		}
 		/* Send chunks in the segment to the next phase.

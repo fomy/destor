@@ -11,18 +11,7 @@ static GCond not_full_cond; // buffer is not full
 static int wait_flag;
 
 /*
- * Inputs: a fingerprint,
- * 		   a success flag that indicates whether a segment is terminated.
- * If success is true,
- * a segment is terminated and thus we return the features.
- *
- * featuring(fp, 0): a normal fingerprint, not a segment boundary,
- * 	examine whether fp is a feature and return nothing;
- * featuring(fp, 1): a normal fingerprint, a segment boundary,
- * 	examine whether fp is a feature and return features;
- * featuring(NULL, 0): a Flag, not a segment boundary, no operation and no return;
- * featuring(NULL, 1): a flag, a segment boundary
- * 	(maybe no selected features, select a predefined value as a feature).
+ * Calculate features for a chunk sequence.
  */
 GHashTable* (*featuring)(GQueue *chunks, int32_t chunk_num);
 

@@ -50,7 +50,7 @@ void do_backup(char *path) {
 	printf("job id: %d\n", jcr.id);
 	printf("backup path: %s\n", jcr.path);
 	printf("number of files: %d\n", jcr.file_num);
-	printf("number of chunks: %d (%d bytes on average)\n", jcr.chunk_num,
+	printf("number of chunks: %d (%ld bytes on average)\n", jcr.chunk_num,
 			jcr.data_size / jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
 	printf("total size(B): %ld\n", jcr.data_size);

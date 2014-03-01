@@ -270,7 +270,7 @@ struct segment* new_segment();
 void free_segment(struct segment* s, void (*free_data)(void *));
 
 gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2);
-gboolean g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2,
+gint g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2,
 		gpointer user_data);
 
 void hash2code(unsigned char hash[20], char code[40]);
