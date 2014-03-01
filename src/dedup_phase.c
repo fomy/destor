@@ -196,7 +196,7 @@ void *dedup_thread(void *arg) {
 		 * The segment will be cleared. */
 		send_segment(s);
 
-		free_segment(s, NULL);
+		free_segment(s, free_chunk);
 		s = NULL;
 
 		if (c == NULL)
