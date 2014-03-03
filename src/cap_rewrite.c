@@ -5,19 +5,6 @@
 
 static int64_t chunk_num;
 
-static int cap_segment_push(struct chunk *c) {
-
-	rewrite_buffer_push(c);
-
-	if (rewrite_buffer.num == destor.rewrite_algorithm[1])
-		return 1;
-	return 0;
-}
-
-static struct chunk* cap_segment_pop() {
-	return rewrite_buffer_pop();
-}
-
 static GHashTable *top;
 
 static void cap_segment_get_top() {
@@ -38,6 +25,7 @@ static void cap_segment_get_top() {
 		struct containerRecord* r = (struct containerRecord*) malloc(
 				sizeof(struct containerRecord));
 		memcpy(r, record, sizeof(struct containerRecord));
+		r->out_of_order = 0;
 		g_hash_table_insert(top, &r->cid, r);
 		iter = g_sequence_iter_next(iter);
 	}
@@ -59,14 +47,14 @@ void *cap_rewrite(void* arg) {
 
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
-		if (!cap_segment_push(c)) {
+		if (!rewrite_buffer_push(c)) {
 			TIMER_END(1, jcr.rewrite_time);
 			continue;
 		}
 
 		cap_segment_get_top();
 
-		while ((c = cap_segment_pop())) {
+		while ((c = rewrite_buffer_pop())) {
 			if (!CHECK_CHUNK(c,
 					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
 					) {
@@ -91,7 +79,7 @@ void *cap_rewrite(void* arg) {
 	cap_segment_get_top();
 
 	struct chunk *c;
-	while ((c = cap_segment_pop())) {
+	while ((c = rewrite_buffer_pop())) {
 		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 			if (g_hash_table_lookup(top, &c->id) == NULL) {
 				/* not in TOP */

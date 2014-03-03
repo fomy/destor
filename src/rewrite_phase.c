@@ -26,13 +26,14 @@ static void init_rewrite_buffer() {
 	rewrite_buffer.num = 0;
 }
 
-void rewrite_buffer_push(struct chunk* c) {
+int rewrite_buffer_push(struct chunk* c) {
 	g_queue_push_tail(rewrite_buffer.chunk_queue, c);
 
 	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
-		return;
+		return 0;
 
-	if (CHECK_CHUNK(c, CHUNK_DUPLICATE) && c->id != TEMPORARY_ID) {
+	if (c->id != TEMPORARY_ID) {
+		assert(CHECK_CHUNK(c, CHUNK_DUPLICATE));
 		struct containerRecord tmp_record;
 		tmp_record.cid = c->id;
 		GSequenceIter *iter = g_sequence_lookup(
@@ -44,6 +45,8 @@ void rewrite_buffer_push(struct chunk* c) {
 					sizeof(struct containerRecord));
 			record->cid = c->id;
 			record->size = c->size;
+			/* We first assume it is out-of-order */
+			record->out_of_order = 1;
 			g_sequence_insert_sorted(rewrite_buffer.container_record_seq,
 					record, g_record_cmp_by_id, NULL);
 		} else {
@@ -54,6 +57,13 @@ void rewrite_buffer_push(struct chunk* c) {
 	}
 
 	rewrite_buffer.num++;
+
+	if (rewrite_buffer.num >= destor.rewrite_algorithm[1]) {
+		assert(rewrite_buffer.num == destor.rewrite_algorithm[1]);
+		return 1;
+	}
+
+	return 0;
 }
 
 struct chunk* rewrite_buffer_pop() {

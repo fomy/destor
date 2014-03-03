@@ -13,6 +13,7 @@
 struct containerRecord {
 	containerid cid;
 	int32_t size;
+	int32_t out_of_order;
 };
 
 struct {
@@ -43,7 +44,7 @@ gint g_record_descmp_by_length(struct containerRecord* a,
 gint g_record_cmp_by_id(struct containerRecord* a, struct containerRecord* b,
 		gpointer user_data);
 
-void rewrite_buffer_push(struct chunk* c);
+int rewrite_buffer_push(struct chunk* c);
 struct chunk* rewrite_buffer_pop();
 
 #endif /* REWRITE_PHASE_H_ */
