@@ -151,7 +151,9 @@ void do_backup(char *path) {
 	 */
 	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %lld %lld %.2f\n", jcr.id,
 			jcr.data_size, destor.stored_data_size,
-			jcr.data_size != 0 ? (jcr.data_size - jcr.unique_data_size)	/ (double) (jcr.data_size) : 0,
+			jcr.data_size != 0 ?
+					(jcr.data_size - jcr.rewritten_chunk_size - jcr.unique_data_size)/(double) (jcr.data_size)
+					: 0,
 			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
 			jcr.total_container_num, jcr.sparse_container_num,
 			jcr.inherited_sparse_num, jcr.index_lookup_io, jcr.index_update_io,
