@@ -24,6 +24,7 @@ static void init_rewrite_buffer() {
 	rewrite_buffer.chunk_queue = g_queue_new();
 	rewrite_buffer.container_record_seq = g_sequence_new(free);
 	rewrite_buffer.num = 0;
+	rewrite_buffer.size = 0;
 }
 
 int rewrite_buffer_push(struct chunk* c) {
@@ -57,6 +58,7 @@ int rewrite_buffer_push(struct chunk* c) {
 	}
 
 	rewrite_buffer.num++;
+	rewrite_buffer.size += c->size;
 
 	if (rewrite_buffer.num >= destor.rewrite_algorithm[1]) {
 		assert(rewrite_buffer.num == destor.rewrite_algorithm[1]);
@@ -88,6 +90,7 @@ struct chunk* rewrite_buffer_pop() {
 				g_sequence_remove(iter);
 		}
 		rewrite_buffer.num--;
+		rewrite_buffer.size -= c->size;
 	}
 
 	return c;

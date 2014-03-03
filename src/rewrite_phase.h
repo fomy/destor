@@ -20,6 +20,7 @@ struct {
 	GQueue *chunk_queue;
 	GSequence *container_record_seq; //
 	int num;
+	int size;
 } rewrite_buffer;
 
 void* cfl_rewrite(void* arg);
