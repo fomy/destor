@@ -127,6 +127,8 @@ static void top_segment_select(GHashTable* features) {
 		g_hash_table_iter_init(&iter, table);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			/* Insert similar segments into GSequence. */
+			struct segmentRecipe* sr = value;
+			NOTICE("candidate segment %ld with %d features", sr->id >> 24, g_hash_table_size(sr->features));
 			g_sequence_insert_sorted(seq, (struct segmentRecipe*) value,
 					g_segment_cmp_feature_num,
 					NULL);
@@ -139,7 +141,7 @@ static void top_segment_select(GHashTable* features) {
 						destor.index_segment_selection_method[1] :
 						g_sequence_get_length(seq), i;
 
-		DEBUG("select Top-%d in %d segments\n", num, g_sequence_get_length(seq));
+		NOTICE("select Top-%d in %d segments", num, g_sequence_get_length(seq));
 
 		/* Prefetched top similar segments are pushed into the queue. */
 		GQueue *segments = g_queue_new();
@@ -147,7 +149,7 @@ static void top_segment_select(GHashTable* features) {
 			/* Get the top segment */
 			struct segmentRecipe *top = g_sequence_get(
 					g_sequence_get_begin_iter(seq));
-
+			NOTICE("read segment %ld", top->id >> 24);
 			/*
 			 * If it doesn't exist in the cache,
 			 * we need to insert it into the cache.
@@ -181,7 +183,6 @@ static void top_segment_select(GHashTable* features) {
 
 		struct segmentRecipe* sr;
 		while ((sr = g_queue_pop_tail(segments))) {
-			assert(sr);
 			lru_cache_insert(segment_recipe_cache, sr, NULL, NULL);
 		}
 
@@ -302,6 +303,7 @@ void near_exact_similarity_index_lookup_greedy(struct segment *s) {
 			if (id != TEMPORARY_ID) {
 				/* Find it */
 				jcr.index_lookup_io++;
+				NOTICE("read segment %ld", id >> 24);
 				GQueue* segments = prefetch_segments(id,
 						destor.index_segment_prefech);
 				struct segmentRecipe* sr;
