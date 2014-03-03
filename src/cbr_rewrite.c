@@ -107,7 +107,7 @@ void *cbr_rewrite(void* arg) {
 			assert(CHECK_CHUNK(decision_chunk, CHUNK_DUPLICATE));
 			/* a duplicate chunk */
 			GSequenceIter *iter = g_sequence_lookup(
-					rewrite_buffer.container_record_seq, &c->id,
+					rewrite_buffer.container_record_seq, &decision_chunk->id,
 					g_record_cmp_by_id, NULL);
 			assert(iter);
 			struct containerRecord *record = g_sequence_get(iter);
