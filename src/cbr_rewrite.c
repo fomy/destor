@@ -89,13 +89,14 @@ void *cbr_rewrite(void* arg) {
 		}
 
 		TIMER_BEGIN(1);
-		struct chunk *decision_chunk = rewrite_buffer_pop();
+		struct chunk *decision_chunk = rewrite_buffer_top();
 		while (CHECK_CHUNK(decision_chunk,
 				CHUNK_FILE_START) || CHECK_CHUNK(decision_chunk, CHUNK_FILE_END)) {
+			rewrite_buffer_pop();
 			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, decision_chunk);
 			TIMER_BEGIN(1);
-			decision_chunk = rewrite_buffer_pop();
+			decision_chunk = rewrite_buffer_top();
 		}
 
 		TIMER_BEGIN(1);
@@ -108,37 +109,32 @@ void *cbr_rewrite(void* arg) {
 			GSequenceIter *iter = g_sequence_lookup(
 					rewrite_buffer.container_record_seq, &c->id,
 					g_record_cmp_by_id, NULL);
-			if (iter) {
-				struct containerRecord *record = g_sequence_get(iter);
+			assert(iter);
+			struct containerRecord *record = g_sequence_get(iter);
 
-				if (record->out_of_order == 1) {
-					rewrite_utility = get_rewrite_utility(decision_chunk);
-					if (rewrite_utility < destor.rewrite_cbr_minimal_utility
-							|| rewrite_utility
-									< utility_buckets.current_utility_threshold) {
-						record->out_of_order = 0;
-					} else {
-						VERBOSE(
-								"Rewrite phase: %lldth chunk is in out-of-order container %lld",
-								chunk_num, decision_chunk->id);
-						SET_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER);
-					}
-
+			if (record->out_of_order == 1) {
+				rewrite_utility = get_rewrite_utility(decision_chunk);
+				if (rewrite_utility < destor.rewrite_cbr_minimal_utility
+						|| rewrite_utility
+								< utility_buckets.current_utility_threshold) {
+					record->out_of_order = 0;
 				} else {
-					/* if marked as not out of order*/
-					rewrite_utility = 0;
+					VERBOSE(
+							"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+							chunk_num, decision_chunk->id);
+					SET_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER);
 				}
+
 			} else {
-				VERBOSE(
-						"Rewrite phase: %lldth chunk is in out-of-order container %lld",
-						chunk_num, decision_chunk->id);
-				SET_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER);
+				/* if marked as not out of order*/
+				rewrite_utility = 0;
 			}
 		}
 
 		utility_buckets_update(rewrite_utility);
 		chunk_num++;
 
+		rewrite_buffer_pop();
 		TIMER_END(1, jcr.rewrite_time);
 		sync_queue_push(rewrite_queue, decision_chunk);
 	}

@@ -46,5 +46,6 @@ gint g_record_cmp_by_id(struct containerRecord* a, struct containerRecord* b,
 
 int rewrite_buffer_push(struct chunk* c);
 struct chunk* rewrite_buffer_pop();
+struct chunk* rewrite_buffer_top();
 
 #endif /* REWRITE_PHASE_H_ */

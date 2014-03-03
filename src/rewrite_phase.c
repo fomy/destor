@@ -66,6 +66,10 @@ int rewrite_buffer_push(struct chunk* c) {
 	return 0;
 }
 
+struct chunk* rewrite_buffer_top() {
+	return g_queue_peek_head(rewrite_buffer.chunk_queue);
+}
+
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_head(rewrite_buffer.chunk_queue);
 
