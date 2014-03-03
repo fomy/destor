@@ -141,9 +141,12 @@ void *cbr_rewrite(void* arg) {
 							chunk_num, decision_chunk->id);
 				}
 
-			} else
+			} else {
 				/* if marked as not out of order*/
 				rewrite_utility = 0;
+				g_queue_foreach(rewrite_buffer.chunk_queue,
+						mark_not_out_of_order, &decision_chunk->id);
+			}
 		}
 
 		utility_buckets_update(rewrite_utility);

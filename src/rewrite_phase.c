@@ -32,7 +32,7 @@ void rewrite_buffer_push(struct chunk* c) {
 	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 		return;
 
-	if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+	if (CHECK_CHUNK(c, CHUNK_DUPLICATE) && c->id != TEMPORARY_ID) {
 		struct containerRecord tmp_record;
 		tmp_record.cid = c->id;
 		GSequenceIter *iter = g_sequence_lookup(
@@ -59,7 +59,8 @@ void rewrite_buffer_push(struct chunk* c) {
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_head(rewrite_buffer.chunk_queue);
 
-	if (c && !CHECK_CHUNK(c,
+	if (c
+			&& !CHECK_CHUNK(c,
 					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 		/* A normal chunk */
 		if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
