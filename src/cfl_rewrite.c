@@ -34,7 +34,8 @@ void *cfl_rewrite(void* arg) {
 		if ((last_id != TEMPORARY_ID && last_id != c->id) || buffer_full == 1) {
 			/* judge */
 			int out_of_order = rewrite_buffer.size
-					< destor.rewrite_cfl_usage_threshold * CONTAINER_SIZE;
+					< destor.rewrite_cfl_usage_threshold
+							* (CONTAINER_SIZE - CONTAINER_META_SIZE);
 
 			struct chunk* bc;
 			while ((bc = rewrite_buffer_pop())) {
