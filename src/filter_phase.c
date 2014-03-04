@@ -40,13 +40,12 @@ static void* filter_thread(void *arg) {
 			if (destor.rewrite_enable_har)
 				har_check(c);
 
+			VERBOSE("  Filter phase: %dth chunk in %s container", chunk_num,
+					c->id, CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)?"out-of-order":"");
 			if (destor.rewrite_enable_cache_aware
 					&& restore_aware_contains(c->id)) {
 				assert(c->id != TEMPORARY_ID);
-				if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER))
-					VERBOSE(
-							"Filter phase: %lldth chunk in out-of-order container %lld is already cached",
-							chunk_num, c->id)
+				VERBOSE("  Filter phase: %dth chunk is cached", chunk_num);
 				SET_CHUNK(c, CHUNK_IN_CACHE);
 			}
 
@@ -99,12 +98,17 @@ static void* filter_thread(void *arg) {
 					add_chunk_to_container(cbuf, c);
 				} else {
 					VERBOSE(
-							"Filter phase: Deny the rewrite operation of %dth chunk",
+							"  Filter phase: Deny the write operation of %dth chunk",
 							chunk_num);
 					c->id = ret;
 				}
 			} else {
 				/* This is a duplicate and not fragmented chunk.  */
+				if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
+					VERBOSE(
+							"  Filter phase: %lldth chunk in out-of-order container %lld is already cached",
+							chunk_num, c->id);
+				}
 				TIMER_END(1, jcr.filter_time);
 				containerid ret = index_update(c->fp, c->id, c->id);
 				TIMER_BEGIN(1);
