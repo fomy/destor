@@ -42,6 +42,7 @@ static void* filter_thread(void *arg) {
 
 			if (destor.rewrite_enable_cache_aware
 					&& restore_aware_contains(c->id)) {
+				assert(c->id != TEMPORARY_ID);
 				if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER))
 					VERBOSE(
 							"Filter phase: %lldth chunk in out-of-order container %lld is already cached",
