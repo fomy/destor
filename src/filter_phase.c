@@ -40,8 +40,7 @@ static void* filter_thread(void *arg) {
 			if (destor.rewrite_enable_har)
 				har_check(c);
 
-			VERBOSE("  Filter phase: %dth chunk in %s container %lld",
-					chunk_num,
+			VERBOSE("Filter phase: %dth chunk in %s container %lld", chunk_num,
 					CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)?"out-of-order":"", c->id);
 			if (destor.rewrite_enable_cache_aware
 					&& restore_aware_contains(c->id)) {
@@ -97,6 +96,9 @@ static void* filter_thread(void *arg) {
 						jcr.rewritten_chunk_size += c->size;
 					}
 					add_chunk_to_container(cbuf, c);
+					VERBOSE(
+							"  Filter phase: Write %dth chunk to container %lld",
+							chunk_num, c->id);
 				} else {
 					VERBOSE(
 							"  Filter phase: Deny the write operation of %dth chunk",
