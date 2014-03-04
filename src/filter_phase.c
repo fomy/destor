@@ -40,8 +40,9 @@ static void* filter_thread(void *arg) {
 			if (destor.rewrite_enable_har)
 				har_check(c);
 
-			VERBOSE("  Filter phase: %dth chunk in %s container", chunk_num,
-					c->id, CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)?"out-of-order":"");
+			VERBOSE("  Filter phase: %dth chunk in %s container %lld",
+					chunk_num,
+					CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)?"out-of-order":"", c->id);
 			if (destor.rewrite_enable_cache_aware
 					&& restore_aware_contains(c->id)) {
 				assert(c->id != TEMPORARY_ID);
