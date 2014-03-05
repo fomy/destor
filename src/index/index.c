@@ -264,8 +264,8 @@ void index_lookup(struct segment* s) {
 	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY) {
 		if (destor.index_segment_selection_method[0]
-				== INDEX_SEGMENT_SELECT_GREEDY)
-			near_exact_similarity_index_lookup_greedy(s);
+				== INDEX_SEGMENT_SELECT_LAZY)
+			near_exact_similarity_index_lookup_lazy(s);
 		else
 			near_exact_similarity_index_lookup(s);
 	} else {

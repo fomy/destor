@@ -39,7 +39,7 @@ void init_feature_index() {
 
 	if (destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY
 			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_GREEDY)
+					== INDEX_SEGMENT_SELECT_LAZY)
 		destor.index_feature_segment_num = 1;
 
 	feature_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,

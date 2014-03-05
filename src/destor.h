@@ -121,7 +121,7 @@
  * Many eligible segments may be found via looking up in feature index.
  * Further select champion segments in the eligible segments.
  */
-#define INDEX_SEGMENT_SELECT_GREEDY 0
+#define INDEX_SEGMENT_SELECT_LAZY 0
 #define INDEX_SEGMENT_SELECT_TOP 1
 #define INDEX_SEGMENT_SELECT_ALL 2
 

@@ -200,7 +200,7 @@ void load_config_from_string(sds config) {
 			destor.index_segment_selection_method[1] = 1;
 			if (strcasecmp(argv[1], "greedy") == 0)
 				destor.index_segment_selection_method[0] =
-				INDEX_SEGMENT_SELECT_GREEDY;
+				INDEX_SEGMENT_SELECT_LAZY;
 			else if (strcasecmp(argv[1], "top") == 0) {
 				destor.index_segment_selection_method[0] =
 				INDEX_SEGMENT_SELECT_TOP;

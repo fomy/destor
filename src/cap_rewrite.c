@@ -36,6 +36,13 @@ static void cap_segment_get_top() {
 	NULL);
 }
 
+/*
+ * We first assemble a fixed-sized buffer of pending chunks.
+ * Then, counting container utilization in the buffer and sorting.
+ * The pending chunks in containers of most low utilization are fragmentation.
+ * The main drawback of capping,
+ * is that capping overlook the relationship of consecutive buffers.
+ */
 void *cap_rewrite(void* arg) {
 	top = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, free);
 

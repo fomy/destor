@@ -60,7 +60,14 @@ static void utility_buckets_update(double rewrite_utility) {
  * @Synopsis  Reducing impact of data fragmentation caused by in-line deduplication.
  *            In SYSTOR'12.
  *
- * @Param arg
+ *			  We first buffer a fixed-sized buffer of chunks for the decision chunk.
+ *			  Then, find all chunks in an identical container with the decision chunk.
+ *			  If these chunks are large enough, they are all not fragmentation.
+ *			  An important optimization is that,
+ *			  if we find a decision chunk already being marked not fragmented,
+ *			  we should ensure its physical neighbors in the buffer also being marked not fragmented.
+ *			  This optimization is very important for CBR.
+ * @Param
  *
  * @Returns   
  */

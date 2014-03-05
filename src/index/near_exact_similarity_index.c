@@ -23,7 +23,7 @@ void init_near_exact_similarity_index() {
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		init_aio_segment_management();
 	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_GREEDY
+			== INDEX_SEGMENT_SELECT_LAZY
 			|| destor.index_segment_selection_method[0]
 					== INDEX_SEGMENT_SELECT_TOP) {
 		init_segment_management();
@@ -43,7 +43,7 @@ void close_near_exact_similarity_index() {
 	if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 		close_aio_segment_management();
 	} else if (destor.index_segment_selection_method[0]
-			== INDEX_SEGMENT_SELECT_GREEDY
+			== INDEX_SEGMENT_SELECT_LAZY
 			|| destor.index_segment_selection_method[0]
 					== INDEX_SEGMENT_SELECT_TOP) {
 		close_segment_management();
@@ -262,7 +262,7 @@ static void all_segment_select(GHashTable* features) {
 	}
 }
 
-void near_exact_similarity_index_lookup_greedy(struct segment *s) {
+void near_exact_similarity_index_lookup_lazy(struct segment *s) {
 	/* Dedup the segment */
 	struct segment* bs = new_segment();
 
@@ -505,7 +505,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 				== INDEX_SEGMENT_SELECT_TOP) {
 			srbuf = update_segment(srbuf);
 		} else if (destor.index_segment_selection_method[0]
-				== INDEX_SEGMENT_SELECT_GREEDY) {
+				== INDEX_SEGMENT_SELECT_LAZY) {
 			srbuf = update_segment(srbuf);
 		} else {
 			fprintf(stderr, "Invalid segment selection method.\n");

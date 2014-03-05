@@ -15,7 +15,7 @@ void init_near_exact_locality_index();
 void close_near_exact_locality_index();
 
 void near_exact_locality_index_lookup(struct segment*);
-void near_exact_similarity_index_lookup_greedy(struct segment *s);
+void near_exact_similarity_index_lookup_lazy(struct segment *s);
 
 containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 		containerid to);
