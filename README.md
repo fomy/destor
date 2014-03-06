@@ -25,6 +25,8 @@ Related papers
     > e) Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
     > f) Block Locality Caching for Data Deduplication, @SYSTOR'13.
+    >
+    > g) The design of a similarity based deduplication system, @SYSTOR'09.
 
 2. The fragmentation:
     > a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
