@@ -114,7 +114,7 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 	int off = 8;
 	fingerprint prefix[off + 1];
 	int count = 0;
-	memset(prefix, 0xff, sizeof(fingerprint) * 8);
+	memset(prefix, 0xff, sizeof(fingerprint) * (off + 1));
 
 	/* Select anchors */
 	GSequence *anchors = g_sequence_new(free);
