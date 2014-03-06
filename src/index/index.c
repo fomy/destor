@@ -126,7 +126,7 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
-		memmove(prefix, &prefix[1], sizeof(fingerprint) * (off));
+		memmove(&prefix[1], prefix, sizeof(fingerprint) * (off));
 		memcpy(&prefix[0], &c->fp, sizeof(fingerprint));
 		if (g_sequence_get_length(anchors) < feature_num
 				|| memcmp(&c->fp,
