@@ -152,8 +152,8 @@ void load_config_from_string(sds config) {
 			destor.index_bloom_filter_size = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-feature-method") == 0
 				&& argc >= 2) {
-			if (strcasecmp(argv[1], "no") == 0)
-				destor.index_feature_method[0] = INDEX_FEATURE_NO;
+			if (strcasecmp(argv[1], "optmin") == 0)
+				destor.index_feature_method[0] = INDEX_FEATURE_OPTIMIZED_MIN;
 			else if (strcasecmp(argv[1], "random") == 0)
 				destor.index_feature_method[0] =
 				INDEX_FEATURE_RANDOM;
@@ -167,10 +167,8 @@ void load_config_from_string(sds config) {
 			}
 
 			if (argc > 2) {
-				assert(destor.index_feature_method != INDEX_FEATURE_NO);
 				destor.index_feature_method[1] = atoi(argv[2]);
 			} else {
-				assert(destor.index_feature_method == INDEX_FEATURE_NO);
 				destor.index_feature_method[1] = 0;
 			}
 		} else if (strcasecmp(argv[0],

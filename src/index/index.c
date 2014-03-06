@@ -75,9 +75,99 @@ static GHashTable* index_feature_min(GQueue *chunks, int32_t chunk_num) {
 		g_hash_table_replace(features, feature, NULL);
 		g_sequence_remove(g_sequence_get_begin_iter(candidates));
 	}
-	g_sequence_foreach(candidates, free, NULL);
-	g_sequence_remove_range(g_sequence_get_begin_iter(candidates),
-			g_sequence_get_end_iter(candidates));
+	g_sequence_free(candidates);
+
+	if (g_hash_table_size(features) == 0) {
+		WARNING(
+				"Dedup phase: An empty segment and thus no min-feature is selected!");
+		fingerprint* fp = malloc(sizeof(fingerprint));
+		memset(fp, 0xff, sizeof(fingerprint));
+		g_hash_table_insert(features, fp, NULL);
+	}
+
+	return features;
+}
+
+/*
+ * Used by Extreme Binning and Silo.
+ */
+static GHashTable* index_feature_optimized_min(GQueue *chunks,
+		int32_t chunk_num) {
+
+	chunk_num = (chunk_num == 0) ? g_queue_get_length(chunks) : chunk_num;
+	int feature_num = 1;
+	if (destor.index_feature_method[1] != 0
+			&& chunk_num > destor.index_feature_method[1]) {
+		/* Calculate the number of features we need */
+		int remain = chunk_num % destor.index_feature_method[1];
+		feature_num = chunk_num / destor.index_feature_method[1];
+		feature_num =
+				(remain * 2 > destor.index_feature_method[1]) ?
+						feature_num + 1 : feature_num;
+	}
+
+	struct anchor {
+		fingerprint anchor;
+		fingerprint candidate;
+	};
+
+	int off = 8;
+	fingerprint prefix[off + 1];
+	int count = 0;
+	memset(prefix, 0xff, sizeof(fingerprint) * 8);
+
+	/* Select anchors */
+	GSequence *anchors = g_sequence_new(free);
+	int queue_len = g_queue_get_length(chunks), i;
+	for (i = 0; i < queue_len; i++) {
+		/* iterate the queue */
+		struct chunk* c = g_queue_peek_nth(chunks, i);
+
+		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+			continue;
+
+		memmove(prefix, &prefix[1], sizeof(fingerprint) * (off - 1));
+		memcpy(prefix[0], c->fp, sizeof(fingerprint));
+		if (g_sequence_get_length(anchors) < feature_num
+				|| memcmp(&c->fp,
+						g_sequence_get(
+								g_sequence_iter_prev(
+										g_sequence_get_end_iter(anchors))),
+						sizeof(fingerprint)) < 0) {
+			/* insufficient candidates or new candidate */
+			struct anchor *new_anchor = (struct anchor*) malloc(
+					sizeof(struct anchor));
+			memcpy(new_anchor->anchor, &c->fp, sizeof(fingerprint));
+			if (count >= off) {
+				memcpy(new_anchor->candidate, &prefix[off],
+						sizeof(fingerprint));
+			} else {
+				memcpy(new_anchor->candidate, &prefix[count],
+						sizeof(fingerprint));
+			}
+
+			g_sequence_insert_sorted(anchors, new_anchor, g_fingerprint_cmp,
+			NULL);
+			if (g_sequence_get_length(anchors) > feature_num)
+				g_sequence_remove(
+						g_sequence_iter_prev(g_sequence_get_end_iter(anchors)));
+
+		}
+	}
+
+	GHashTable * features = g_hash_table_new_full(g_int64_hash,
+			g_fingerprint_equal, free, NULL);
+
+	while (g_sequence_get_length(anchors) > 0) {
+		struct anchor *a = g_sequence_get(g_sequence_get_begin_iter(anchors));
+
+		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
+		memcpy(feature, &a->candidate, sizeof(fingerprint));
+
+		g_hash_table_replace(features, feature, NULL);
+		g_sequence_remove(g_sequence_get_begin_iter(anchors));
+	}
+	g_sequence_free(anchors);
 
 	if (g_hash_table_size(features) == 0) {
 		WARNING(
@@ -194,8 +284,8 @@ void init_index() {
 
 	switch (destor.index_feature_method[0]) {
 	case INDEX_FEATURE_RANDOM:
-	case INDEX_FEATURE_NO:
-		featuring = index_feature_random;
+	case INDEX_FEATURE_OPTIMIZED_MIN:
+		featuring = index_feature_optimized_min;
 		break;
 	case INDEX_FEATURE_MIN:
 		featuring = index_feature_min;

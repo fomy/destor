@@ -103,10 +103,10 @@
  * MIN selects minimal fingerprint(s) as feature.
  * UNIFORM selects a feature every n fingerprints.
  */
-#define INDEX_FEATURE_NO 0
 #define INDEX_FEATURE_RANDOM 1
 #define INDEX_FEATURE_MIN 2
 #define INDEX_FEATURE_UNIFORM 3
+#define INDEX_FEATURE_OPTIMIZED_MIN 4
 
 /*
  * Unlike container that is a physical unit,
