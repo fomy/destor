@@ -126,8 +126,8 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
-		memmove(prefix, &prefix[1], sizeof(fingerprint) * (off - 1));
-		memcpy(prefix[0], c->fp, sizeof(fingerprint));
+		memmove(prefix, &prefix[1], sizeof(fingerprint) * (off));
+		memcpy(&prefix[0], &c->fp, sizeof(fingerprint));
 		if (g_sequence_get_length(anchors) < feature_num
 				|| memcmp(&c->fp,
 						g_sequence_get(
@@ -139,10 +139,10 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 					sizeof(struct anchor));
 			memcpy(new_anchor->anchor, &c->fp, sizeof(fingerprint));
 			if (count >= off) {
-				memcpy(new_anchor->candidate, &prefix[off],
+				memcpy(&new_anchor->candidate, &prefix[off],
 						sizeof(fingerprint));
 			} else {
-				memcpy(new_anchor->candidate, &prefix[count],
+				memcpy(&new_anchor->candidate, &prefix[count],
 						sizeof(fingerprint));
 			}
 
@@ -153,6 +153,7 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 						g_sequence_iter_prev(g_sequence_get_end_iter(anchors)));
 
 		}
+		count++;
 	}
 
 	GHashTable * features = g_hash_table_new_full(g_int64_hash,
