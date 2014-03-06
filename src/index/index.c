@@ -285,6 +285,8 @@ void init_index() {
 
 	switch (destor.index_feature_method[0]) {
 	case INDEX_FEATURE_RANDOM:
+		featuring = index_feature_random;
+		break;
 	case INDEX_FEATURE_OPTIMIZED_MIN:
 		featuring = index_feature_optimized_min;
 		break;
