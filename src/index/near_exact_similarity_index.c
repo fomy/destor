@@ -493,7 +493,7 @@ containerid near_exact_similarity_index_update(fingerprint *fp,
 
 		free_segment(bs, free);
 
-		jcr.index_update_io++;
+		/*jcr.index_update_io++;*/
 		if (destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_ALL) {
 			struct segmentRecipe* base = g_queue_pop_head(segment_buffer);
 			/* over-write old addresses. */

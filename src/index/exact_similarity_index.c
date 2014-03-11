@@ -214,7 +214,7 @@ containerid exact_similarity_index_update(fingerprint *fp, containerid from,
 
 		free_segment(bs, free);
 
-		jcr.index_update_io++;
+		/*jcr.index_update_io++;*/
 		srbuf = update_segment(srbuf);
 
 		GHashTableIter iter;
