@@ -28,7 +28,7 @@ static struct featureIndexElem* new_feature_index_elem() {
 
 static void feature_index_elem_add_id(struct featureIndexElem* e, int64_t id) {
 	assert(id != TEMPORARY_ID);
-	memmove(e->ids, &e->ids[1],
+	memmove(&e->ids[1], e->ids,
 			(destor.index_feature_segment_num - 1) * sizeof(int64_t));
 	e->ids[0] = id;
 }
