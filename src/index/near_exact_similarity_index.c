@@ -61,9 +61,10 @@ void close_near_exact_similarity_index() {
 static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
 		struct segmentRecipe* b, gpointer user_data) {
 	gint ret = g_hash_table_size(b->features) - g_hash_table_size(a->features);
-	if (ret == 0)
-		return b->id - a->id;
-	else
+	if (ret == 0) {
+		ret = b->id > a->id ? 1 : -1;
+		return ret;
+	} else
 		return ret;
 }
 
@@ -128,7 +129,8 @@ static void top_segment_select(GHashTable* features) {
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			/* Insert similar segments into GSequence. */
 			struct segmentRecipe* sr = value;
-			NOTICE("candidate segment %ld with %d features", sr->id >> 24, g_hash_table_size(sr->features));
+			NOTICE("candidate segment %ld with %d features", sr->id >> 24,
+					g_hash_table_size(sr->features));
 			g_sequence_insert_sorted(seq, (struct segmentRecipe*) value,
 					g_segment_cmp_feature_num,
 					NULL);
