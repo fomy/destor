@@ -23,7 +23,7 @@ void init_near_exact_locality_index() {
 		destor.index_segment_algorithm[1] = 1024;
 	}
 
-	if (destor.index_feature_method[1] > 1) {
+	if (destor.index_sampling_method[1] > 1) {
 		/*
 		 * If destor.index_feature_method[1] == 1,
 		 * all fingerprints are reserved in memory.
@@ -172,7 +172,7 @@ containerid near_exact_locality_index_update(fingerprint *fp, containerid from,
 
 			if (index_buffer.cid != TEMPORARY_ID && index_buffer.cid != to) {
 				/* Another container */
-				GHashTable *features = featuring(index_buffer.feature_buffer,
+				GHashTable *features = sampling(index_buffer.feature_buffer,
 						0);
 
 				GHashTableIter iter;

@@ -92,14 +92,15 @@ void destor_start() {
 	destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
 	destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
 	destor.index_specific = INDEX_SPECIFIC_SAMPLED;
+	destor.index_partial_key_size = 20;
 	/* in number of containers, for DDFS/ChunkStash/BLC/Sampled Index. */
 	destor.index_container_cache_size = 4096;
 
 	destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
 	destor.index_segment_algorithm[1] = 1024;
-	destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
-	destor.index_feature_method[1] = 1;
-	destor.index_feature_segment_num = 1;
+	destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
+	destor.index_sampling_method[1] = 1;
+	destor.index_value_length = 1;
 	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
 	destor.index_segment_selection_method[1] = 1;
 	destor.index_segment_prefech = 0;

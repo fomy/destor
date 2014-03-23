@@ -16,10 +16,10 @@ struct featureIndexElem {
 static struct featureIndexElem* new_feature_index_elem() {
 	struct featureIndexElem* elem = (struct featureIndexElem*) malloc(
 			sizeof(struct featureIndexElem)
-					+ destor.index_feature_segment_num * sizeof(int64_t));
+					+ destor.index_value_length * sizeof(int64_t));
 
 	int i;
-	for (i = 0; i < destor.index_feature_segment_num; i++) {
+	for (i = 0; i < destor.index_value_length; i++) {
 		elem->ids[i] = TEMPORARY_ID;
 	}
 
@@ -29,7 +29,7 @@ static struct featureIndexElem* new_feature_index_elem() {
 static void feature_index_elem_add_id(struct featureIndexElem* e, int64_t id) {
 	assert(id != TEMPORARY_ID);
 	memmove(&e->ids[1], e->ids,
-			(destor.index_feature_segment_num - 1) * sizeof(int64_t));
+			(destor.index_value_length - 1) * sizeof(int64_t));
 	e->ids[0] = id;
 }
 
@@ -39,8 +39,8 @@ void init_feature_index() {
 
 	if (destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY
 			|| destor.index_segment_selection_method[0]
-					== INDEX_SEGMENT_SELECT_LAZY)
-		destor.index_feature_segment_num = 1;
+					== INDEX_SEGMENT_SELECT_BASE)
+		destor.index_value_length = 1;
 
 	feature_index = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
 	NULL, free);
@@ -62,7 +62,7 @@ void init_feature_index() {
 			/* The number of segments/containers the feature refers to. */
 			int id_num, i;
 			fread(&id_num, sizeof(int), 1, fp);
-			assert(id_num <= destor.index_feature_segment_num);
+			assert(id_num <= destor.index_value_length);
 
 			for (i = 0; i < id_num; i++)
 				/* Read an ID */
@@ -99,15 +99,15 @@ void close_feature_index() {
 		fwrite(&ie->feature, sizeof(fingerprint), 1, fp);
 
 		/* Write the number of segments/containers */
-		fwrite(&destor.index_feature_segment_num, sizeof(int), 1, fp);
+		fwrite(&destor.index_value_length, sizeof(int), 1, fp);
 		int i;
-		for (i = 0; i < destor.index_feature_segment_num; i++)
+		for (i = 0; i < destor.index_value_length; i++)
 			fwrite(&ie->ids[i], sizeof(int64_t), 1, fp);
 
 	}
 
 	destor.index_memory_footprint = g_hash_table_size(feature_index)
-			* (20 + 8 * destor.index_feature_segment_num);
+			* (20 + 8 * destor.index_value_length);
 
 	fclose(fp);
 

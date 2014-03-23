@@ -18,9 +18,9 @@ void init_exact_similarity_index() {
 
 	db_init();
 
-	if (destor.index_segment_selection_method[0] != INDEX_SEGMENT_SELECT_LAZY) {
-		destor_log(DESTOR_NOTICE, "Change selection method to Greedy!");
-		destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_LAZY;
+	if (destor.index_segment_selection_method[0] != INDEX_SEGMENT_SELECT_BASE) {
+		destor_log(DESTOR_NOTICE, "Change selection method to Base!");
+		destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_BASE;
 	}
 	init_segment_management();
 

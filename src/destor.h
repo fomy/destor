@@ -103,10 +103,10 @@
  * MIN selects minimal fingerprint(s) as feature.
  * UNIFORM selects a feature every n fingerprints.
  */
-#define INDEX_FEATURE_RANDOM 1
-#define INDEX_FEATURE_MIN 2
-#define INDEX_FEATURE_UNIFORM 3
-#define INDEX_FEATURE_OPTIMIZED_MIN 4
+#define INDEX_SAMPLING_RANDOM 1
+#define INDEX_SAMPLING_MIN 2
+#define INDEX_SAMPLING_UNIFORM 3
+#define INDEX_SAMPLING_OPTIMIZED_MIN 4
 
 /*
  * Unlike container that is a physical unit,
@@ -121,7 +121,7 @@
  * Many eligible segments may be found via looking up in feature index.
  * Further select champion segments in the eligible segments.
  */
-#define INDEX_SEGMENT_SELECT_LAZY 0
+#define INDEX_SEGMENT_SELECT_BASE 0
 #define INDEX_SEGMENT_SELECT_TOP 1
 #define INDEX_SEGMENT_SELECT_ALL 2
 
@@ -161,6 +161,8 @@
 /* signal chunk */
 #define CHUNK_FILE_START (0x10)
 #define CHUNK_FILE_END (0x20)
+#define SEGMENT_START (0x40)
+#define SEGMENT_END (0x80)
 
 #define SET_CHUNK(c, f) (c->flag |= f)
 #define UNSET_CHUNK(c, f) (c->flag &= ~f)
@@ -188,6 +190,8 @@ struct destor {
 	/* optional */
 	int index_specific;
 
+	int index_partial_key_size;
+
 	/* in number of containers, for DDFS/ChunkStash/Sampled Index. */
 	int index_container_cache_size;
 	int index_bloom_filter_size;
@@ -196,8 +200,8 @@ struct destor {
 	 * [0] specifies the feature method,
 	 * and we select one feature every [1].
 	 */
-	int index_feature_method[2];
-	int index_feature_segment_num;
+	int index_sampling_method[2];
+	int index_value_length;
 
 	/*
 	 * [0] specifies the algorithm,

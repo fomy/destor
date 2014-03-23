@@ -147,33 +147,35 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "fingerprint-index-container-cache-size")
 				== 0 && argc == 2) {
 			destor.index_container_cache_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-partial-key") == 0
+				&& argc == 2) {
+			destor.index_partial_key_size = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-bloom-filter") == 0
 				&& argc == 2) {
 			destor.index_bloom_filter_size = atoi(argv[1]);
-		} else if (strcasecmp(argv[0], "fingerprint-index-feature-method") == 0
+		} else if (strcasecmp(argv[0], "fingerprint-index-sampling-method") == 0
 				&& argc >= 2) {
 			if (strcasecmp(argv[1], "optmin") == 0)
-				destor.index_feature_method[0] = INDEX_FEATURE_OPTIMIZED_MIN;
+				destor.index_sampling_method[0] = INDEX_SAMPLING_OPTIMIZED_MIN;
 			else if (strcasecmp(argv[1], "random") == 0)
-				destor.index_feature_method[0] =
-				INDEX_FEATURE_RANDOM;
+				destor.index_sampling_method[0] = INDEX_SAMPLING_RANDOM;
 			else if (strcasecmp(argv[1], "min") == 0)
-				destor.index_feature_method[0] = INDEX_FEATURE_MIN;
+				destor.index_sampling_method[0] = INDEX_SAMPLING_MIN;
 			else if (strcasecmp(argv[1], "uniform") == 0)
-				destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
+				destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
 			else {
 				err = "Invalid feature method!";
 				goto loaderr;
 			}
 
 			if (argc > 2) {
-				destor.index_feature_method[1] = atoi(argv[2]);
+				destor.index_sampling_method[1] = atoi(argv[2]);
 			} else {
-				destor.index_feature_method[1] = 0;
+				destor.index_sampling_method[1] = 0;
 			}
 		} else if (strcasecmp(argv[0],
-				"fingerprint-index-feature-segment-number") == 0 && argc == 2) {
-			destor.index_feature_segment_num = atoi(argv[1]);
+				"fingerprint-index-value-length") == 0 && argc == 2) {
+			destor.index_value_length = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-algorithm")
 				== 0 && argc >= 2) {
 			if (strcasecmp(argv[1], "fixed") == 0)
@@ -181,38 +183,32 @@ void load_config_from_string(sds config) {
 			else if (strcasecmp(argv[1], "file-defined") == 0)
 				destor.index_segment_algorithm[0] = INDEX_SEGMENT_FILE_DEFINED;
 			else if (strcasecmp(argv[1], "content-defined") == 0)
-				destor.index_segment_algorithm[0] =
-				INDEX_SEGMENT_CONTENT_DEFINED;
+				destor.index_segment_algorithm[0] =	INDEX_SEGMENT_CONTENT_DEFINED;
 			else {
 				err = "Invalid segment algorithm";
 				goto loaderr;
 			}
 
 			if (argc > 2) {
-				assert(
-						destor.index_segment_algorithm[0] != INDEX_SEGMENT_FILE_DEFINED);
+				assert(destor.index_segment_algorithm[0] != INDEX_SEGMENT_FILE_DEFINED);
 				destor.index_segment_algorithm[1] = atoi(argv[2]);
 			}
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-selection")
 				== 0 && argc >= 2) {
 			destor.index_segment_selection_method[1] = 1;
-			if (strcasecmp(argv[1], "lazy") == 0)
-				destor.index_segment_selection_method[0] =
-				INDEX_SEGMENT_SELECT_LAZY;
+			if (strcasecmp(argv[1], "base") == 0)
+				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_BASE;
 			else if (strcasecmp(argv[1], "top") == 0) {
-				destor.index_segment_selection_method[0] =
-				INDEX_SEGMENT_SELECT_TOP;
+				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
 				if (argc > 2)
 					destor.index_segment_selection_method[1] = atoi(argv[2]);
 			} else if (strcasecmp(argv[1], "all") == 0)
-				destor.index_segment_selection_method[0] =
-				INDEX_SEGMENT_SELECT_ALL;
+				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
 			else {
 				err = "Invalid selection method!";
 				goto loaderr;
 			}
-		} else if (strcasecmp(argv[0], "fingerprint-index-segment-prefetching")
-				== 0 && argc == 2) {
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-prefetching")	== 0 && argc == 2) {
 			destor.index_segment_prefech = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-caching") == 0
 				&& argc == 2) {

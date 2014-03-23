@@ -15,11 +15,11 @@ static struct lruCache* container_meta_cache = NULL;
 
 void init_exact_locality_index() {
 
-	if (destor.index_feature_method[0] != INDEX_FEATURE_UNIFORM) {
-		destor_log(DESTOR_NOTICE, "Change feature method to uniform-1!");
-		destor.index_feature_method[0] = INDEX_FEATURE_UNIFORM;
+	if (destor.index_sampling_method[0] != INDEX_SAMPLING_UNIFORM) {
+		destor_log(DESTOR_NOTICE, "Change sampling method to uniform-1!");
+		destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
 	}
-	destor.index_feature_method[1] = 1;
+	destor.index_sampling_method[1] = 1;
 	if (destor.index_segment_algorithm[0] != INDEX_SEGMENT_FIXED) {
 		destor_log(DESTOR_NOTICE, "Change segment method to 1024-fixed!");
 		destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;

@@ -13,22 +13,22 @@ static int wait_flag;
 /*
  * Calculate features for a chunk sequence.
  */
-GHashTable* (*featuring)(GQueue *chunks, int32_t chunk_num);
+GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
 
 /*
  * Used by Extreme Binning and Silo.
  */
-static GHashTable* index_feature_min(GQueue *chunks, int32_t chunk_num) {
+static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
 
 	chunk_num = (chunk_num == 0) ? g_queue_get_length(chunks) : chunk_num;
 	int feature_num = 1;
-	if (destor.index_feature_method[1] != 0
-			&& chunk_num > destor.index_feature_method[1]) {
+	if (destor.index_sampling_method[1] != 0
+			&& chunk_num > destor.index_sampling_method[1]) {
 		/* Calculate the number of features we need */
-		int remain = chunk_num % destor.index_feature_method[1];
-		feature_num = chunk_num / destor.index_feature_method[1];
+		int remain = chunk_num % destor.index_sampling_method[1];
+		feature_num = chunk_num / destor.index_sampling_method[1];
 		feature_num =
-				(remain * 2 > destor.index_feature_method[1]) ?
+				(remain * 2 > destor.index_sampling_method[1]) ?
 						feature_num + 1 : feature_num;
 	}
 
@@ -91,18 +91,18 @@ static GHashTable* index_feature_min(GQueue *chunks, int32_t chunk_num) {
 /*
  * Used by Extreme Binning and Silo.
  */
-static GHashTable* index_feature_optimized_min(GQueue *chunks,
+static GHashTable* index_sampling_optimized_min(GQueue *chunks,
 		int32_t chunk_num) {
 
 	chunk_num = (chunk_num == 0) ? g_queue_get_length(chunks) : chunk_num;
 	int feature_num = 1;
-	if (destor.index_feature_method[1] != 0
-			&& chunk_num > destor.index_feature_method[1]) {
+	if (destor.index_sampling_method[1] != 0
+			&& chunk_num > destor.index_sampling_method[1]) {
 		/* Calculate the number of features we need */
-		int remain = chunk_num % destor.index_feature_method[1];
-		feature_num = chunk_num / destor.index_feature_method[1];
+		int remain = chunk_num % destor.index_sampling_method[1];
+		feature_num = chunk_num / destor.index_sampling_method[1];
 		feature_num =
-				(remain * 2 > destor.index_feature_method[1]) ?
+				(remain * 2 > destor.index_sampling_method[1]) ?
 						feature_num + 1 : feature_num;
 	}
 
@@ -184,8 +184,8 @@ static GHashTable* index_feature_optimized_min(GQueue *chunks,
 /*
  * Used by Sparse Indexing.
  */
-static GHashTable* index_feature_random(GQueue *chunks, int32_t chunk_num) {
-	assert(destor.index_feature_method[1] != 0);
+static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
+	assert(destor.index_sampling_method[1] != 0);
 	GHashTable * features = g_hash_table_new_full(g_int64_hash,
 			g_fingerprint_equal, free, NULL);
 
@@ -197,7 +197,7 @@ static GHashTable* index_feature_random(GQueue *chunks, int32_t chunk_num) {
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
-		if ((*((int*) (&c->fp))) % destor.index_feature_method[1] == 0) {
+		if ((*((int*) (&c->fp))) % destor.index_sampling_method[1] == 0) {
 			if (!g_hash_table_contains(features, &c->fp)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
@@ -219,8 +219,8 @@ static GHashTable* index_feature_random(GQueue *chunks, int32_t chunk_num) {
 
 }
 
-static GHashTable* index_feature_uniform(GQueue *chunks, int32_t chunk_num) {
-	assert(destor.index_feature_method[1] != 0);
+static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
+	assert(destor.index_sampling_method[1] != 0);
 	GHashTable * features = g_hash_table_new_full(g_int64_hash,
 			g_fingerprint_equal, free, NULL);
 	int count = 0;
@@ -228,7 +228,7 @@ static GHashTable* index_feature_uniform(GQueue *chunks, int32_t chunk_num) {
 	for (i = 0; i < queue_len; i++) {
 		struct chunk *c = g_queue_peek_nth(chunks, i);
 		/* Examine whether fp is a feature */
-		if (count % destor.index_feature_method[1] == 0) {
+		if (count % destor.index_sampling_method[1] == 0) {
 			if (!g_hash_table_contains(features, &c->fp)) {
 				fingerprint *new_feature = (fingerprint*) malloc(
 						sizeof(fingerprint));
@@ -283,21 +283,21 @@ void init_index() {
 		exit(1);
 	}
 
-	switch (destor.index_feature_method[0]) {
-	case INDEX_FEATURE_RANDOM:
-		featuring = index_feature_random;
+	switch (destor.index_sampling_method[0]) {
+	case INDEX_SAMPLING_RANDOM:
+		sampling = index_sampling_random;
 		break;
-	case INDEX_FEATURE_OPTIMIZED_MIN:
-		featuring = index_feature_optimized_min;
+	case INDEX_SAMPLING_OPTIMIZED_MIN:
+		sampling = index_sampling_optimized_min;
 		break;
-	case INDEX_FEATURE_MIN:
-		featuring = index_feature_min;
+	case INDEX_SAMPLING_MIN:
+		sampling = index_sampling_min;
 		break;
-	case INDEX_FEATURE_UNIFORM:
-		featuring = index_feature_uniform;
+	case INDEX_SAMPLING_UNIFORM:
+		sampling = index_sampling_uniform;
 		break;
 	default:
-		fprintf(stderr, "Invalid feature method!\n");
+		fprintf(stderr, "Invalid sampling method!\n");
 		exit(1);
 	}
 }
@@ -357,8 +357,8 @@ void index_lookup(struct segment* s) {
 	else if (destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
 			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY) {
 		if (destor.index_segment_selection_method[0]
-				== INDEX_SEGMENT_SELECT_LAZY)
-			near_exact_similarity_index_lookup_lazy(s);
+				== INDEX_SEGMENT_SELECT_BASE)
+			near_exact_similarity_index_lookup_base(s);
 		else
 			near_exact_similarity_index_lookup(s);
 	} else {
