@@ -55,7 +55,7 @@ int index_update(fingerprint *fp, containerid from, containerid to);
 
 void index_delete(fingerprint *);
 
-GHashTable* (*featuring)(GQueue *chunks, int32_t chunk_num);
+GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
 
 /*
  * Each prefetched segment is organized as a hash table for optimizing lookup.

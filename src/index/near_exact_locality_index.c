@@ -38,7 +38,7 @@ void init_near_exact_locality_index() {
 void close_near_exact_locality_index() {
 	if (index_buffer.cid != TEMPORARY_ID) {
 
-		GHashTable *features = featuring(index_buffer.feature_buffer, 0);
+		GHashTable *features = sampling(index_buffer.feature_buffer, 0);
 
 		GHashTableIter iter;
 		gpointer key, value;

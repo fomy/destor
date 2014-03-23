@@ -34,8 +34,7 @@ void init_exact_locality_index() {
 void close_exact_locality_index() {
 
 	if (index_buffer.cid != TEMPORARY_ID) {
-		GHashTable *features = featuring(index_buffer.feature_buffer,
-								0);
+		GHashTable *features = sampling(index_buffer.feature_buffer, 0);
 
 		GHashTableIter iter;
 		gpointer key, value;
@@ -164,8 +163,7 @@ containerid exact_locality_index_update(fingerprint *fp, containerid from,
 
 			if (index_buffer.cid != TEMPORARY_ID && index_buffer.cid != to) {
 				/* Another container */
-				GHashTable *features = featuring(index_buffer.feature_buffer,
-										0);
+				GHashTable *features = sampling(index_buffer.feature_buffer, 0);
 
 				GHashTableIter iter;
 				gpointer key, value;

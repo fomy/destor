@@ -174,10 +174,10 @@ void *dedup_thread(void *arg) {
 
 		if (s->chunk_num > 0) {
 			TIMER_BEGIN(1);
-			if (featuring
+			if (sampling
 					&& destor.index_category[1]
 							== INDEX_CATEGORY_LOGICAL_LOCALITY)
-				s->features = featuring(s->chunks, s->chunk_num);
+				s->features = sampling(s->chunks, s->chunk_num);
 			TIMER_END(1, jcr.dedup_time);
 			NOTICE(
 					"Dedup phase: the %lldth segment of %lld chunks paired with %d features",
