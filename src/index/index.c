@@ -23,10 +23,22 @@ void init_index() {
 			g_fingerprint_equal, NULL, NULL);
 	index_buffer.num = 0;
 
+	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
+		destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
+		if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
+			destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
+			destor.index_sampling_method[1] = 1;
+		}
+	}else{
+		init_segment_management();
+	}
+
 	init_sampling_method();
 	init_segmenting_method();
 
 	init_kvstore();
+
+	init_fingerprint_cache();
 
 }
 
@@ -112,7 +124,8 @@ int index_lookup(struct segment* s) {
 		return 0;
 	}
 
-	if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
+	if(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
+			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
 			&& destor.index_segment_selection_method[1] == INDEX_SEGMENT_SELECT_TOP){
 		/* Similarity-based */
 		s->features = sampling(s->chunks, s->chunk_num);
@@ -201,6 +214,7 @@ int index_update_buffer(struct segment *s){
 			}
 		}
 		free(e);
+		index_buffer.num--;
 	}
 
 	if (index_buffer.num <= 2 * destor.rewrite_algorithm[1]) {

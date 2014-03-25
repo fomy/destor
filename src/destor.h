@@ -168,10 +168,10 @@
 #define CHUNK_REWRITE_DENIED (0x1000)
 
 /* signal chunk */
-#define CHUNK_FILE_START (0x0010)
-#define CHUNK_FILE_END (0x0020)
-#define CHUNK_SEGMENT_START (0x0040)
-#define CHUNK_SEGMENT_END (0x0080)
+#define CHUNK_FILE_START (0x0001)
+#define CHUNK_FILE_END (0x0002)
+#define CHUNK_SEGMENT_START (0x0004)
+#define CHUNK_SEGMENT_END (0x0008)
 
 #define SET_CHUNK(c, f) (c->flag |= f)
 #define UNSET_CHUNK(c, f) (c->flag &= ~f)

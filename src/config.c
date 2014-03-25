@@ -104,9 +104,9 @@ void load_config_from_string(sds config) {
 				goto loaderr;
 			}
 
-			if (strcasecmp(argv[2], "locality") == 0) {
+			if (strcasecmp(argv[2], "physical") == 0) {
 				destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
-			} else if (strcasecmp(argv[2], "similarity") == 0) {
+			} else if (strcasecmp(argv[2], "logical") == 0) {
 				destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
 			} else {
 				err = "Invalid index category";
@@ -150,9 +150,7 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "fingerprint-index-key-value") == 0
 				&& argc == 2) {
 			if (strcasecmp(argv[1], "htable") == 0) {
-				destor.index_category[0] = INDEX_KEY_VALUE_HTABLE;
-			} else if (strcasecmp(argv[1], "mysql") == 0) {
-				destor.index_category[0] = INDEX_KEY_VALUE_MYSQL;
+				destor.index_key_value_store = INDEX_KEY_VALUE_HTABLE;
 			} else {
 				err = "Invalid key-value store";
 				goto loaderr;

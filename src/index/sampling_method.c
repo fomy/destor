@@ -230,8 +230,7 @@ static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
     if (g_hash_table_size(features) == 0) {
         /* No feature? Empty segment.*/
         assert(chunk_num == 0);
-        WARNING(
-                "Dedup phase: An empty segment and thus no uniform-feature is selected!");
+        WARNING("Dedup phase: An empty segment and thus no uniform-feature is selected!");
         fingerprint *new_feature = (fingerprint*) malloc(sizeof(fingerprint));
         memset(new_feature, 0x00, sizeof(fingerprint));
         g_hash_table_insert(features, new_feature,

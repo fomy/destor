@@ -75,17 +75,6 @@ void *dedup_thread(void *arg) {
 		else
 			c = sync_queue_pop(trace_queue);
 
-		/* First check the chunk in container buffer */
-		if (c && !CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
-			g_mutex_lock(&storage_buffer.mutex);
-			if (lookup_fingerprint_in_container(storage_buffer.container_buffer,
-					&c->fp)) {
-				/* It exists */
-				c->id = get_container_id(storage_buffer.container_buffer);
-				SET_CHUNK(c, CHUNK_DUPLICATE);
-			}
-			g_mutex_unlock(&storage_buffer.mutex);
-		}
 		/* Add the chunk to the segment. */
 		s = segmenting(c);
 		if (!s)
@@ -100,6 +89,7 @@ void *dedup_thread(void *arg) {
 				index_lock.wait_flag = 1;
 				g_cond_wait(&index_lock.not_full_cond, &index_lock.mutex);
 			}
+			g_mutex_unlock(&index_lock.mutex);
 		} else {
 			NOTICE("Dedup phase: an empty segment");
 		}

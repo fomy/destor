@@ -12,7 +12,6 @@ static int64_t chunk_num;
 
 struct{
 	/* accessed in dedup phase */
-	GMutex mutex;
 	struct container *container_buffer;
 	/* In order to facilitate sampling in container,
 	 * we keep a queue for chunks in container buffer. */
@@ -71,7 +70,7 @@ static void* filter_thread(void *arg) {
         GHashTable *recently_rewritten_chunks = g_hash_table_new_full(g_int64_hash,
         		g_fingerprint_equal, NULL, free_chunk);
         GHashTable *recently_unique_chunks = g_hash_table_new_full(g_int64_hash,
-         		g_fingerprint_equal, NULL, free_chunk);
+        			g_fingerprint_equal, NULL, free_chunk);
 
         /* This function will check the fragmented chunks
          * that would be rewritten later.
@@ -84,13 +83,16 @@ static void* filter_thread(void *arg) {
         for(i = 0; i<len; i++){
             struct chunk* c = g_queue_peek_nth(s->chunks, i);
 
+    		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+    			continue;
+
             VERBOSE("Filter phase: %dth chunk in %s container %lld", chunk_num,
                     CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER) ? "out-of-order" : "", c->id);
 
             /* Cache-Aware Filter */
             if (destor.rewrite_enable_cache_aware && restore_aware_contains(c->id)) {
                 assert(c->id != TEMPORARY_ID);
-                VERBOSE("  Filter phase: %dth chunk is cached", chunk_num);
+                VERBOSE("Filter phase: %dth chunk is cached", chunk_num);
                 SET_CHUNK(c, CHUNK_IN_CACHE);
             }
 
@@ -108,6 +110,11 @@ static void* filter_thread(void *arg) {
                 }
             }
 
+            if(CHECK_CHUNK(c, CHUNK_DUPLICATE) && c->id == TEMPORARY_ID){
+            	struct chunk* ruc = g_hash_table_lookup(recently_unique_chunks, &c->fp);
+            	assert(ruc);
+            	c->id = ruc->id;
+            }
             struct chunk* rwc = g_hash_table_lookup(recently_rewritten_chunks, &c->fp);
             if(rwc){
             	c->id = rwc->id;
@@ -130,49 +137,56 @@ static void* filter_thread(void *arg) {
                 		storage_buffer.chunks = g_queue_new();
                 }
 
-                g_mutex_lock(&storage_buffer.mutex);
                 if (container_overflow(storage_buffer.container_buffer, c->size)) {
 
-                    write_container_async(storage_buffer.container_buffer);
                     if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
                         /*
                          * TO-DO
                          * Update_index for physical locality
                          */
-                    	GHashTable *features = sampling(storage_buffer.chunks,
-                    			g_queue_get_length(storage_buffer.chunks));
-                    	index_update(features, get_container_id(storage_buffer.container_buffer));
-                    	g_hash_table_destroy(features);
-                    	g_queue_free_full(storage_buffer.chunks, free_chunk);
-                    	storage_buffer.chunks = g_queue_new();
+                        GHashTable *features = sampling(storage_buffer.chunks,
+                        		g_queue_get_length(storage_buffer.chunks));
+                        index_update(features, get_container_id(storage_buffer.container_buffer));
+                        g_hash_table_destroy(features);
+                        g_queue_free_full(storage_buffer.chunks, free_chunk);
+                        storage_buffer.chunks = g_queue_new();
                     }
+                    write_container_async(storage_buffer.container_buffer);
                     storage_buffer.container_buffer = create_container();
                 }
 
-                struct chunk* wc = new_chunk(0);
-                memcpy(&wc->fp, &c->fp, sizeof(fingerprint));
-                wc->id = c->id;
-                if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
-                    jcr.unique_chunk_num++;
-                    jcr.unique_data_size += c->size;
-                    g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
-                } else {
-                    jcr.rewritten_chunk_num++;
-                    jcr.rewritten_chunk_size += c->size;
-                    g_hash_table_insert(recently_rewritten_chunks, &wc->fp, wc);
+                if(add_chunk_to_container(storage_buffer.container_buffer, c)){
+
+                	struct chunk* wc = new_chunk(0);
+                	memcpy(&wc->fp, &c->fp, sizeof(fingerprint));
+                	wc->id = c->id;
+                	if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+                		jcr.unique_chunk_num++;
+                		jcr.unique_data_size += c->size;
+                		g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
+                	} else {
+                		jcr.rewritten_chunk_num++;
+                		jcr.rewritten_chunk_size += c->size;
+                		g_hash_table_insert(recently_rewritten_chunks, &wc->fp, wc);
+                	}
+
+                	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
+                		struct chunk* ck = new_chunk(0);
+                		memcpy(&ck->fp, &c->fp, sizeof(fingerprint));
+                		g_queue_push_tail(storage_buffer.chunks, ck);
+                	}
+
+                	VERBOSE("Filter phase: Write %dth chunk to container %lld",
+                			chunk_num, c->id);
+                }else{
+                	VERBOSE("Filter phase: Deny writing %dth chunk to container %lld",
+                			chunk_num, c->id);
+                	struct chunk* wc = new_chunk(0);
+                	memcpy(&wc->fp, &c->fp, sizeof(fingerprint));
+                	wc->id = c->id;
+                	/* a fake unique chunk */
+                	g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
                 }
-
-                if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
-                	struct chunk* ck = new_chunk(0);
-                	memcpy(&ck->fp, &c->fp, sizeof(fingerprint));
-                	g_queue_push_tail(storage_buffer.chunks, ck);
-                }
-                add_chunk_to_container(storage_buffer.container_buffer, c);
-
-                g_mutex_unlock(&storage_buffer.mutex);
-
-                VERBOSE("Filter phase: Write %dth chunk to container %lld",
-                        chunk_num, c->id);
             }else{
                 if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
                     VERBOSE("Filter phase: %lldth chunk in out-of-order container %lld is already cached",
@@ -189,6 +203,8 @@ static void* filter_thread(void *arg) {
 
             /* Restore-aware */
             restore_aware_update(c->id, c->size);
+
+            chunk_num++;
         }
 
         int full = index_update_buffer(s);
@@ -198,14 +214,9 @@ static void* filter_thread(void *arg) {
              * TO-DO
              * Update_index for logical locality
              */
-        	struct segmentRecipe* sr = new_segment_recipe(s);
+        	struct segmentRecipe* sr = new_segment_recipe_full(s);
         	sr = update_segment(sr);
-        	if(destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_TOP){
-        		assert(s->features != NULL);
-        	}else{
-        		assert(s->features == NULL);
-            	s->features = sampling(s->chunks, s->chunk_num);
-        	}
+            s->features = sampling(s->chunks, s->chunk_num);
         	if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
         		/* For exact deduplication,
         		 * unique fingerprints are inserted.
@@ -221,6 +232,7 @@ static void* filter_thread(void *arg) {
         		}
         	}
         	index_update(s->features, sr->id);
+        	free_segment_recipe(sr);
         }
 
         if(index_lock.wait_flag == 1 && full == 0){
@@ -238,7 +250,7 @@ static void* filter_thread(void *arg) {
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
         		r = new_recipe(c->data);
         		free_chunk(c);
-        	}else if(CHECK_CHUNK(c,CHUNK_FILE_END)){
+        	}else if(!CHECK_CHUNK(c,CHUNK_FILE_END)){
         		struct chunkPointer* cp = (struct chunkPointer*)malloc(sizeof(struct chunkPointer));
         		cp->id = c->id;
         		memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
@@ -246,6 +258,8 @@ static void* filter_thread(void *arg) {
         		append_n_chunk_pointers(jcr.bv, cp ,1);
         		free(cp);
         		free_chunk(c);
+        		r->chunknum++;
+        		r->filesize += c->size;
         	}else{
         		append_recipe_meta(jcr.bv, r);
         		free_recipe(r);
