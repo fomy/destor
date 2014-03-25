@@ -123,7 +123,7 @@ void make_trace(char* path) {
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
 			destor_log(DESTOR_NOTICE, c->data);
-			fprintf(fp, "file start %d\n", strlen(c->data));
+			fprintf(fp, "file start %zd\n", strlen(c->data));
 			fprintf(fp, "%s\n", c->data);
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {

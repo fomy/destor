@@ -23,10 +23,10 @@ AC_CHECK_LIB([crypto],[SHA_Update],[found_crypto=yes],[found_crypto=no])
     if test "$found_crypto" = "no"; then
     AC_MSG_ERROR([*** Working crypto library not found ***])
     fi
-AC_CHECK_LIB([mysqlclient],[mysql_init],[found_mysql=yes],[found_mysql=no])
-    if test "$found_mysql" = "no"; then
-    AC_MSG_ERROR([*** Working mysql library not found ***])
-    fi
+#AC_CHECK_LIB([mysqlclient],[mysql_init],[found_mysql=yes],[found_mysql=no])
+    #if test "$found_mysql" = "no"; then
+    #AC_MSG_ERROR([*** Working mysql library not found ***])
+    #fi
 AC_PROG_RANLIB
 
 # Checks for header files.
@@ -39,10 +39,10 @@ AC_CHECK_HEADERS([openssl/sha.h], [found_sha_h=yes],[found_sha_h=no])
     if test "$found_sha_h" = "no"; then
     AC_MSG_ERROR([*** Working sha.h header not found ***])
     fi
-AC_CHECK_HEADERS([mysql/mysql.h], [found_mysql_h=yes],[found_mysql_h=no])
-    if test "$found_mysql_h" = "no"; then
-    AC_MSG_ERROR([*** Working mysql/mysql.h header not found ***])
-    fi
+#AC_CHECK_HEADERS([mysql/mysql.h], [found_mysql_h=yes],[found_mysql_h=no])
+    #if test "$found_mysql_h" = "no"; then
+    #AC_MSG_ERROR([*** Working mysql/mysql.h header not found ***])
+    #fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE

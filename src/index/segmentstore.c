@@ -88,6 +88,128 @@ void close_segment_management() {
 	pthread_mutex_destroy(&mutex);
 }
 
+struct segmentRecipe* new_segment_recipe() {
+	struct segmentRecipe* sr = (struct segmentRecipe*) malloc(
+			sizeof(struct segmentRecipe));
+	sr->id = TEMPORARY_ID;
+	sr->kvpairs = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
+			NULL, free);
+	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal, free, NULL);
+	sr->reference_count = 1;
+	pthread_mutex_init(&sr->mutex, NULL);
+	return sr;
+}
+
+/* Transform a segment into a segmentRecipe */
+struct segmentRecipe* new_segment_recipe_full(struct segment* s) {
+	struct segmentRecipe* sr = (struct segmentRecipe*) malloc(
+			sizeof(struct segmentRecipe));
+	sr->id = TEMPORARY_ID;
+	sr->kvpairs = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
+	NULL, free);
+	sr->reference_count = 1;
+	pthread_mutex_init(&sr->mutex, NULL);
+
+	int len = g_queue_get_length(s->chunks), i;
+	for(i=0; i<len; i++){
+		struct chunk* c = g_queue_peek_nth(s->chunks, i);
+		if(CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+			continue;
+		struct indexElem* elem = (struct indexElem*) malloc(
+				sizeof(struct indexElem));
+		memcpy(&elem->fp, &c->fp, sizeof(fingerprint));
+		elem->id = c->id;
+		g_hash_table_insert(sr->kvpairs, &elem->fp, elem);
+	}
+	return sr;
+}
+
+/* For simple, ref and unref cannot be called concurrently */
+struct segmentRecipe* ref_segment_recipe(struct segmentRecipe* sr) {
+	pthread_mutex_lock(&sr->mutex);
+
+	sr->reference_count++;
+
+	pthread_mutex_unlock(&sr->mutex);
+	return sr;
+}
+
+void unref_segment_recipe(struct segmentRecipe* sr) {
+	pthread_mutex_lock(&sr->mutex);
+	sr->reference_count++;
+	if (sr->reference_count == 0) {
+		free_segment_recipe(sr);
+		return;
+	}
+	pthread_mutex_unlock(&sr->mutex);
+}
+
+void free_segment_recipe(struct segmentRecipe* sr) {
+	g_hash_table_destroy(sr->kvpairs);
+	pthread_mutex_destroy(&sr->mutex);
+	free(sr);
+}
+
+int lookup_fingerprint_in_segment_recipe(struct segmentRecipe* sr,
+		fingerprint *fp) {
+	return g_hash_table_lookup(sr->kvpairs, fp) == NULL ? 0 : 1;
+}
+
+int segment_recipe_check_id(struct segmentRecipe* sr, segmentid *id) {
+	return sr->id == *id;
+}
+
+/*
+ * Duplicate a segmentRecipe.
+ */
+struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
+	struct segmentRecipe* dup = new_segment_recipe();
+
+	dup->id = sr->id;
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, sr->kvpairs);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct indexElem* elem = (struct indexElem*) malloc(
+				sizeof(struct indexElem));
+		memcpy(elem, value, sizeof(struct indexElem));
+		g_hash_table_insert(dup->kvpairs, &elem->fp, elem);
+	}
+	return dup;
+}
+
+/*
+ * Merge a segmentRecipe into a base segmentRecipe.
+ * Only AIO will call the function.
+ */
+struct segmentRecipe* segment_recipe_merge(struct segmentRecipe* base,
+		struct segmentRecipe* delta) {
+	/*
+	 * Select the larger id,
+	 * which indicating a later or larger segment.
+	 */
+	base->id = base->id > delta->id ? base->id : delta->id;
+
+	GHashTableIter iter;
+	gpointer key, value;
+	/* Iterate fingerprints in delta */
+	g_hash_table_iter_init(&iter, delta->kvpairs);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct indexElem* base_elem = g_hash_table_lookup(base->kvpairs, key);
+		if (!base_elem) {
+			base_elem = (struct indexElem*) malloc(sizeof(struct indexElem));
+			memcpy(base_elem, value, sizeof(struct indexElem));
+			g_hash_table_insert(base->kvpairs, &base_elem->fp, base_elem);
+		} else {
+			/* Select the newer id. More discussions are required. */
+			struct indexElem* ie = (struct indexElem*) value;
+			base_elem->id = base_elem->id >= ie->id ? base_elem->id : ie->id;
+		}
+	}
+
+	return base;
+}
+
 struct segmentRecipe* retrieve_segment(segmentid id) {
 	if (id == TEMPORARY_ID)
 		return NULL;
@@ -119,18 +241,11 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 	int num, i;
 	unser_int32(num);
 	for (i = 0; i < num; i++) {
-		fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
-		unser_bytes(feature, sizeof(fingerprint));
-		g_hash_table_insert(sr->features, feature, feature);
-	}
-
-	unser_int32(num);
-	for (i = 0; i < num; i++) {
 		struct indexElem* e = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
 		unser_int64(e->id);
 		unser_bytes(&e->fp, sizeof(fingerprint));
-		g_hash_table_insert(sr->index, &e->fp, e);
+		g_hash_table_insert(sr->kvpairs, &e->fp, e);
 	}
 
 	unser_end(buf, length);
@@ -164,8 +279,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 			return segments;
 		}
 		int64_t length = id_to_length(rid);
-		VERBOSE(
-				"Dedup phase: Prefetch %dth segment of %lld offset and %lld length",
+		VERBOSE("Dedup phase: Prefetch %dth segment of %lld offset and %lld length",
 				j, id_to_offset(rid), length);
 
 		char buf[length];
@@ -184,18 +298,11 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		int num, i;
 		unser_int32(num);
 		for (i = 0; i < num; i++) {
-			fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
-			unser_bytes(feature, sizeof(fingerprint));
-			g_hash_table_insert(sr->features, feature, feature);
-		}
-
-		unser_int32(num);
-		for (i = 0; i < num; i++) {
 			struct indexElem* e = (struct indexElem*) malloc(
 					sizeof(struct indexElem));
 			unser_int64(e->id);
 			unser_bytes(&e->fp, sizeof(fingerprint));
-			g_hash_table_insert(sr->index, &e->fp, e);
+			g_hash_table_insert(sr->kvpairs, &e->fp, e);
 		}
 
 		unser_end(buf, length);
@@ -210,9 +317,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	int64_t offset = segment_volume.current_length;
-	int64_t length = 8 + 4
-			+ g_hash_table_size(sr->features) * sizeof(fingerprint) + 4
-			+ g_hash_table_size(sr->index)
+	int64_t length = 8 + 4 + g_hash_table_size(sr->kvpairs)
 					* (sizeof(fingerprint) + sizeof(containerid));
 	sr->id = make_segment_id(offset, length);
 
@@ -221,20 +326,13 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	ser_begin(buf, length);
 
 	ser_bytes(&sr->id, sizeof(segmentid));
-	int num = g_hash_table_size(sr->features);
+
+	int num = g_hash_table_size(sr->kvpairs);
 	ser_int32(num);
 
 	GHashTableIter iter;
 	gpointer key, value;
-	g_hash_table_iter_init(&iter, sr->features);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		ser_bytes(key, sizeof(fingerprint));
-	}
-
-	num = g_hash_table_size(sr->index);
-	ser_int32(num);
-
-	g_hash_table_iter_init(&iter, sr->index);
+	g_hash_table_iter_init(&iter, sr->kvpairs);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct indexElem* e = (struct indexElem*) value;
 		ser_int64(e->id);

@@ -115,41 +115,54 @@ void load_config_from_string(sds config) {
 
 			if (argc > 3) {
 				if (strcasecmp(argv[3], "ddfs") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_EXACT && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_DDFS;
 				} else if (strcasecmp(argv[3], "sampled index") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_SAMPLED;
 				} else if (strcasecmp(argv[3], "block locality caching") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific =
 					INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING;
 				} else if (strcasecmp(argv[3], "extreme binning") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_EXTREME_BINNING;
 				} else if (strcasecmp(argv[3], "sparse index") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_SPARSE;
 				} else if (strcasecmp(argv[3], "silo") == 0) {
-					assert(
-							destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
+					assert(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT 
+                            && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
 					destor.index_specific = INDEX_SPECIFIC_SILO;
 				} else {
 					err = "Invalid index specific";
 					goto loaderr;
 				}
 			}
-		} else if (strcasecmp(argv[0], "fingerprint-index-container-cache-size")
+		} else if (strcasecmp(argv[0], "fingerprint-index-cache-size")
 				== 0 && argc == 2) {
-			destor.index_container_cache_size = atoi(argv[1]);
-		} else if (strcasecmp(argv[0], "fingerprint-index-partial-key") == 0
+			destor.index_cache_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-key-value") == 0
 				&& argc == 2) {
-			destor.index_partial_key_size = atoi(argv[1]);
+			if (strcasecmp(argv[1], "htable") == 0) {
+				destor.index_category[0] = INDEX_KEY_VALUE_HTABLE;
+			} else if (strcasecmp(argv[1], "mysql") == 0) {
+				destor.index_category[0] = INDEX_KEY_VALUE_MYSQL;
+			} else {
+				err = "Invalid key-value store";
+				goto loaderr;
+			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-key-size") == 0
+				&& argc == 2) {
+			destor.index_key_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "fingerprint-index-value-length") == 0
+				&& argc == 2) {
+			destor.index_value_length = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-bloom-filter") == 0
 				&& argc == 2) {
 			destor.index_bloom_filter_size = atoi(argv[1]);
@@ -173,9 +186,6 @@ void load_config_from_string(sds config) {
 			} else {
 				destor.index_sampling_method[1] = 0;
 			}
-		} else if (strcasecmp(argv[0],
-				"fingerprint-index-value-length") == 0 && argc == 2) {
-			destor.index_value_length = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-algorithm")
 				== 0 && argc >= 2) {
 			if (strcasecmp(argv[1], "fixed") == 0)
@@ -210,9 +220,6 @@ void load_config_from_string(sds config) {
 			}
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-prefetching")	== 0 && argc == 2) {
 			destor.index_segment_prefech = atoi(argv[1]);
-		} else if (strcasecmp(argv[0], "fingerprint-index-segment-caching") == 0
-				&& argc == 2) {
-			destor.index_segment_cache_size = atoi(argv[1]);
 		} else if (strcasecmp(argv[0], "rewrite-algorithm") == 0 && argc >= 2) {
 			if (strcasecmp(argv[1], "no") == 0)
 				destor.rewrite_algorithm[0] = REWRITE_NO;

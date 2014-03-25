@@ -39,8 +39,9 @@ void *cfl_rewrite(void* arg) {
 
 			struct chunk* bc;
 			while ((bc = rewrite_buffer_pop())) {
-				if (CHECK_CHUNK(bc,
-						CHUNK_FILE_START) || CHECK_CHUNK(bc, CHUNK_FILE_END)) {
+				if (CHECK_CHUNK(bc,	CHUNK_FILE_START) || CHECK_CHUNK(bc, CHUNK_FILE_END)
+						|| CHECK_CHUNK(bc, CHUNK_SEGMENT_START)
+						|| CHECK_CHUNK(bc, CHUNK_SEGMENT_END)) {
 					sync_queue_push(rewrite_queue, bc);
 					continue;
 				}
@@ -69,8 +70,9 @@ void *cfl_rewrite(void* arg) {
 
 	struct chunk* bc;
 	while ((bc = rewrite_buffer_pop())) {
-		if (CHECK_CHUNK(bc,
-				CHUNK_FILE_START) || CHECK_CHUNK(bc, CHUNK_FILE_END)) {
+		if (CHECK_CHUNK(bc,	CHUNK_FILE_START) || CHECK_CHUNK(bc, CHUNK_FILE_END)
+				|| CHECK_CHUNK(bc, CHUNK_SEGMENT_START)
+				|| CHECK_CHUNK(bc, CHUNK_SEGMENT_END)) {
 			sync_queue_push(rewrite_queue, bc);
 			continue;
 		}
@@ -78,8 +80,7 @@ void *cfl_rewrite(void* arg) {
 		if (out_of_order && bc->id != TEMPORARY_ID) {
 			assert(CHECK_CHUNK(bc, CHUNK_DUPLICATE));
 			SET_CHUNK(bc, CHUNK_OUT_OF_ORDER);
-			VERBOSE(
-					"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+			VERBOSE("Rewrite phase: %lldth chunk is in out-of-order container %lld",
 					chunk_num, bc->id);
 		}
 		chunk_num++;

@@ -14,8 +14,7 @@ static void cap_segment_get_top() {
 			g_record_descmp_by_length, NULL);
 
 	int length = g_sequence_get_length(rewrite_buffer.container_record_seq);
-	int32_t num =
-			length > destor.rewrite_capping_level ?
+	int32_t num = length > destor.rewrite_capping_level ?
 					destor.rewrite_capping_level : length, i;
 	GSequenceIter *iter = g_sequence_get_begin_iter(
 			rewrite_buffer.container_record_seq);
@@ -32,8 +31,7 @@ static void cap_segment_get_top() {
 
 	VERBOSE("Rewrite phase: Select Top-%d in %d containers", num, length);
 
-	g_sequence_sort(rewrite_buffer.container_record_seq, g_record_cmp_by_id,
-	NULL);
+	g_sequence_sort(rewrite_buffer.container_record_seq, g_record_cmp_by_id, NULL);
 }
 
 /*
@@ -62,14 +60,12 @@ void *cap_rewrite(void* arg) {
 		cap_segment_get_top();
 
 		while ((c = rewrite_buffer_pop())) {
-			if (!CHECK_CHUNK(c,
-					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
-					) {
+			if (!CHECK_CHUNK(c,	CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+					&& !CHECK_CHUNK(c, CHUNK_SEGMENT_START) && !CHECK_CHUNK(c, CHUNK_SEGMENT_END)) {
 				if (g_hash_table_lookup(top, &c->id) == NULL) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
-					VERBOSE(
-							"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+					VERBOSE("Rewrite phase: %lldth chunk is in out-of-order container %lld",
 							chunk_num, c->id);
 				}
 				chunk_num++;
@@ -87,12 +83,12 @@ void *cap_rewrite(void* arg) {
 
 	struct chunk *c;
 	while ((c = rewrite_buffer_pop())) {
-		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+		if (!CHECK_CHUNK(c,	CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+				&& !CHECK_CHUNK(c, CHUNK_SEGMENT_START) && !CHECK_CHUNK(c, CHUNK_SEGMENT_END)) {
 			if (g_hash_table_lookup(top, &c->id) == NULL) {
 				/* not in TOP */
 				SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
-				VERBOSE(
-						"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+				VERBOSE("Rewrite phase: %lldth chunk is in out-of-order container %lld",
 						chunk_num, c->id);
 			}
 			chunk_num++;

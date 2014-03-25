@@ -94,6 +94,12 @@
 #define INDEX_CATEGORY_SIMILARITY 3
 
 /*
+ * Supported key-value store,
+ * including hash table, MySQL.
+ */
+#define INDEX_KEY_VALUE_HTABLE 0
+#define INDEX_KEY_VALUE_MYSQL 1
+/*
  * Feature is used for prefetching segments (similarity) or containers (locality).
  * For example, when we find a duplicate chunk,
  * its feature is mapped to a container or a segment.
@@ -152,17 +158,20 @@
 #define DEFAULT_BLOCK_SIZE 1048576 //1MB
 
 /* states of normal chunks. */
-#define CHUNK_UNIQUE (0x00)
-#define CHUNK_DUPLICATE (0x01)
-#define CHUNK_SPARSE (0x02)
-#define CHUNK_OUT_OF_ORDER (0x04)
-#define CHUNK_IN_CACHE (0x08)
+#define CHUNK_UNIQUE (0x0000)
+#define CHUNK_DUPLICATE (0x0100)
+#define CHUNK_SPARSE (0x0200)
+#define CHUNK_OUT_OF_ORDER (0x0400)
+/* IN_CACHE will deny rewriting an out-of-order chunk */
+#define CHUNK_IN_CACHE (0x0800)
+/* This flag will deny all rewriting, including a sparse chunk */
+#define CHUNK_REWRITE_DENIED (0x1000)
 
 /* signal chunk */
-#define CHUNK_FILE_START (0x10)
-#define CHUNK_FILE_END (0x20)
-#define SEGMENT_START (0x40)
-#define SEGMENT_END (0x80)
+#define CHUNK_FILE_START (0x0010)
+#define CHUNK_FILE_END (0x0020)
+#define CHUNK_SEGMENT_START (0x0040)
+#define CHUNK_SEGMENT_END (0x0080)
 
 #define SET_CHUNK(c, f) (c->flag |= f)
 #define UNSET_CHUNK(c, f) (c->flag &= ~f)
@@ -190,10 +199,8 @@ struct destor {
 	/* optional */
 	int index_specific;
 
-	int index_partial_key_size;
-
 	/* in number of containers, for DDFS/ChunkStash/Sampled Index. */
-	int index_container_cache_size;
+	int index_cache_size;
 	int index_bloom_filter_size;
 
 	/*
@@ -201,7 +208,9 @@ struct destor {
 	 * and we select one feature every [1].
 	 */
 	int index_sampling_method[2];
+	int index_key_value_store;
 	int index_value_length;
+	int index_key_size;
 
 	/*
 	 * [0] specifies the algorithm,
@@ -210,7 +219,6 @@ struct destor {
 	int index_segment_algorithm[2];
 	int index_segment_selection_method[2];
 	int index_segment_prefech;
-	int index_segment_cache_size;
 
 	int rewrite_algorithm[2];
 	int rewrite_enable_cfl_switch;

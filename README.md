@@ -37,7 +37,7 @@ Related papers
     >
     > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
 
-3. Garbage collection (to be continued):
+3. Garbage collection (available in first release, but to be continue in new version):
     > a) Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
     > b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
@@ -78,10 +78,10 @@ Run rebuild script to clean data.
 destor can run as follows:
 
 1. start a backup task,
-   > destor /path/to/data -p"a line in config file"
+   > destor /path/to/data -p"a line as in config file"
 
 2. start a restore task,
-   > destor -r<jobid> /path/to/restore -p"a line in config file"
+   > destor -r<jobid> /path/to/restore -p"a line as in config file"
 
 3. start a delete job,
    > destor -d<jobid>
@@ -103,7 +103,7 @@ Bugs
 ----
 1. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
 2. Does NOT support concurrent backup/restore.
-3. If working path in destor.config is modified, the rebuild script in scripts folder must be modified too.
+3. If working path in destor.config is modified, the rebuild script must be modified too.
 
 Author
 ------

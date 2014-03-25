@@ -343,6 +343,8 @@ static struct metaEntry* get_metaentry_in_container_meta(
 struct chunk* get_chunk_in_container(struct container* c, fingerprint *fp) {
 	struct metaEntry* me = get_metaentry_in_container_meta(&c->meta, fp);
 
+	assert(me);
+
 	struct chunk* ck = new_chunk(me->len);
 
 	if (destor.simulation_level < SIMULATION_RESTORE)
