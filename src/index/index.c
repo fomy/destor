@@ -114,7 +114,7 @@ static void index_lookup_base(struct segment *s){
 		memcpy(&ne->fp, &c->fp, sizeof(fingerprint));
 
 		g_queue_push_tail(tq, ne);
-		g_hash_table_insert(index_buffer.buffered_fingerprints, &ne->fp, tq);
+		g_hash_table_replace(index_buffer.buffered_fingerprints, &ne->fp, tq);
 
 		index_buffer.num++;
 	}
