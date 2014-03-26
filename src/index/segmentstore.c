@@ -175,7 +175,7 @@ struct segmentRecipe* segment_recipe_dup(struct segmentRecipe* sr) {
 		struct indexElem* elem = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
 		memcpy(elem, value, sizeof(struct indexElem));
-		g_hash_table_insert(dup->kvpairs, &elem->fp, elem);
+		g_hash_table_replace(dup->kvpairs, &elem->fp, elem);
 	}
 	return dup;
 }
@@ -247,7 +247,7 @@ struct segmentRecipe* retrieve_segment(segmentid id) {
 				sizeof(struct indexElem));
 		unser_int64(e->id);
 		unser_bytes(&e->fp, sizeof(fingerprint));
-		g_hash_table_insert(sr->kvpairs, &e->fp, e);
+		g_hash_table_replace(sr->kvpairs, &e->fp, e);
 	}
 
 	unser_end(buf, length);
@@ -305,7 +305,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 					sizeof(struct indexElem));
 			unser_int64(e->id);
 			unser_bytes(&e->fp, sizeof(fingerprint));
-			g_hash_table_insert(sr->kvpairs, &e->fp, e);
+			g_hash_table_replace(sr->kvpairs, &e->fp, e);
 		}
 
 		unser_end(buf, length);

@@ -85,18 +85,23 @@ static void index_lookup_base(struct segment *s){
 			/* Searching in key-value store */
 			int64_t* ids = kvstore_lookup((char*)&c->fp);
 			if(ids){
-				/* prefetch the target unit */
-				fingerprint_cache_prefetch(ids[0]);
-				int64_t id = fingerprint_cache_lookup(&c->fp);
-				if(id != TEMPORARY_ID){
-					/*
-					 * It can be not cached,
-					 * since a partial key is possible in near-exact deduplication.
-					 */
-					c->id = id;
-					SET_CHUNK(c, CHUNK_DUPLICATE);
-				}else{
-					NOTICE("Filter phase: A key collision occurs");
+				int j;
+				for(j = 0;j<destor.index_value_length; j++){
+					if(ids[j] == TEMPORARY_ID)
+						break;
+					/* prefetch the target unit */
+					fingerprint_cache_prefetch(ids[j]);
+					int64_t id = fingerprint_cache_lookup(&c->fp);
+					if(id != TEMPORARY_ID){
+						/*
+						 * It can be not cached,
+						 * since a partial key is possible in near-exact deduplication.
+						 */
+						c->id = id;
+						SET_CHUNK(c, CHUNK_DUPLICATE);
+					}else{
+						NOTICE("Filter phase: A key collision occurs");
+					}
 				}
 			}else{
 				VERBOSE("Dedup phase: non-existing fingerprint");
@@ -109,7 +114,7 @@ static void index_lookup_base(struct segment *s){
 		memcpy(&ne->fp, &c->fp, sizeof(fingerprint));
 
 		g_queue_push_tail(tq, ne);
-		g_hash_table_replace(index_buffer.buffered_fingerprints, &ne->fp, tq);
+		g_hash_table_insert(index_buffer.buffered_fingerprints, &ne->fp, tq);
 
 		index_buffer.num++;
 	}
