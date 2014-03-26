@@ -43,6 +43,9 @@ void init_index() {
 }
 
 void close_index() {
+	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
+		close_segment_management();
+	}
 	close_kvstore();
 }
 

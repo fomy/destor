@@ -16,12 +16,6 @@ static pthread_t dedup_t;
 static int64_t chunk_num;
 static int64_t segment_num;
 
-/* defined in filter_phase.c */
-extern struct {
-	GMutex mutex;
-	struct container *container_buffer;
-} storage_buffer;
-
 struct {
 	/* g_mutex_init() is unnecessary if in static storage. */
 	GMutex mutex;

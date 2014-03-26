@@ -268,7 +268,8 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 	fseek(segment_volume.fp, offset, SEEK_SET);
 
-	VERBOSE("Dedup phase: Read similar segment of %lld offset", offset);
+	VERBOSE("Dedup phase: Read similar segment of %lld offset and %lld length", offset,
+			id_to_length(id));
 
 	int j;
 	for (j = 0; j < prefetch_num; j++) {
@@ -285,7 +286,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		char buf[length];
 		if (fread(buf, length - sizeof(rid), 1, segment_volume.fp) != 1) {
 			WARNING("Dedup phase: Prefetch an unready segment of %lld offset",
-					id_to_offset(id));
+					id_to_offset(rid));
 			exit(1);
 		}
 
