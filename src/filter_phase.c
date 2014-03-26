@@ -33,6 +33,7 @@ static void* filter_thread(void *arg) {
     int enable_rewrite = 1;
     struct recipe* r = NULL;
 
+
     while (1) {
         struct chunk* c = sync_queue_pop(rewrite_queue);
 
@@ -164,6 +165,8 @@ static void* filter_thread(void *arg) {
                 		jcr.unique_chunk_num++;
                 		jcr.unique_data_size += c->size;
                 		g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
+                    	VERBOSE("Filter phase: %dth chunk is recently unique, size %d", chunk_num,
+                    			g_hash_table_size(recently_unique_chunks));
                 	} else {
                 		jcr.rewritten_chunk_num++;
                 		jcr.rewritten_chunk_size += c->size;
@@ -215,12 +218,17 @@ static void* filter_thread(void *arg) {
              * Update_index for logical locality
              */
         	struct segmentRecipe* sr = new_segment_recipe_full(s);
+
         	sr = update_segment(sr);
             s->features = sampling(s->chunks, s->chunk_num);
         	if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
-        		/* For exact deduplication,
+        		/*
+        		 * For exact deduplication,
         		 * unique fingerprints are inserted.
         		 */
+        		VERBOSE("Filter phase: add %d unique fingerprints to %d features",
+        				g_hash_table_size(recently_unique_chunks),
+        				g_hash_table_size(s->features));
         		GHashTableIter iter;
         		gpointer key, value;
         		g_hash_table_iter_init(&iter, recently_unique_chunks);

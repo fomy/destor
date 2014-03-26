@@ -75,7 +75,7 @@ void *dedup_thread(void *arg) {
 			continue;
 		/* segmenting success */
 		if (s->chunk_num > 0) {
-			NOTICE("Dedup phase: the %lldth segment of %lld", segment_num++,
+			NOTICE("Dedup phase: the %lldth segment of %lld chunks", segment_num++,
 					s->chunk_num);
 			/* Each duplicate chunk will be marked. */
 			g_mutex_lock(&index_lock.mutex);

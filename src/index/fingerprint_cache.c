@@ -70,6 +70,9 @@ void fingerprint_cache_prefetch(int64_t id){
 			number_of_read_prefetch_unit++;
 			GQueue* segments = prefetch_segments(id,
 					destor.index_segment_prefech);
+			VERBOSE("Dedup phase: prefetch %d segments into %d cache",
+					g_queue_get_length(segments),
+					destor.index_cache_size);
 			struct segmentRecipe* sr;
 			while ((sr = g_queue_pop_tail(segments))) {
 				/* From tail to head */
@@ -77,7 +80,7 @@ void fingerprint_cache_prefetch(int64_t id){
 						segment_recipe_check_id)) {
 					lru_cache_insert(lru_queue, sr, NULL, NULL);
 				} else {
-					/* Already in cache */
+					 /* Already in cache */
 					free_segment_recipe(sr);
 				}
 			}

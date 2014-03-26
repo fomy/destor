@@ -95,7 +95,11 @@ static void index_lookup_base(struct segment *s){
 					 */
 					c->id = id;
 					SET_CHUNK(c, CHUNK_DUPLICATE);
+				}else{
+					NOTICE("Filter phase: A key collision occurs");
 				}
+			}else{
+				VERBOSE("Dedup phase: non-existing fingerprint");
 			}
 		}
 
@@ -145,6 +149,7 @@ int index_lookup(struct segment* s) {
  * Input features with an ID.
  */
 void index_update(GHashTable *features, int64_t id){
+	NOTICE("Filter phase: update %d features", g_hash_table_size(features));
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, features);
@@ -210,9 +215,9 @@ int index_update_buffer(struct segment *s){
 			g_hash_table_remove(index_buffer.buffered_fingerprints, &c->fp);
 			g_queue_free(bq);
 		}else{
-			int num = g_queue_get_length(bq), i;
-			for(i=0; i<num; i++){
-				struct indexElem* ie = g_queue_peek_nth(bq, i);
+			int num = g_queue_get_length(bq), j;
+			for(j=0; j<num; j++){
+				struct indexElem* ie = g_queue_peek_nth(bq, j);
 				ie->id = c->id;
 			}
 		}

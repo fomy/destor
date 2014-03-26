@@ -106,20 +106,22 @@ struct segmentRecipe* new_segment_recipe_full(struct segment* s) {
 			sizeof(struct segmentRecipe));
 	sr->id = TEMPORARY_ID;
 	sr->kvpairs = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-	NULL, free);
+			NULL, free);
 	sr->reference_count = 1;
 	pthread_mutex_init(&sr->mutex, NULL);
 
 	int len = g_queue_get_length(s->chunks), i;
 	for(i=0; i<len; i++){
 		struct chunk* c = g_queue_peek_nth(s->chunks, i);
+
 		if(CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
+
 		struct indexElem* elem = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
 		memcpy(&elem->fp, &c->fp, sizeof(fingerprint));
 		elem->id = c->id;
-		g_hash_table_insert(sr->kvpairs, &elem->fp, elem);
+		g_hash_table_replace(sr->kvpairs, &elem->fp, elem);
 	}
 	return sr;
 }
@@ -268,7 +270,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 	fseek(segment_volume.fp, offset, SEEK_SET);
 
-	VERBOSE("Dedup phase: Read similar segment of %lld offset and %lld length", offset,
+	VERBOSE("Dedup phase: Read similar segment %lld of %lld offset and %lld length", id, offset,
 			id_to_length(id));
 
 	int j;
@@ -321,6 +323,9 @@ struct segmentRecipe* update_segment(struct segmentRecipe* sr) {
 	int64_t length = 8 + 4 + g_hash_table_size(sr->kvpairs)
 					* (sizeof(fingerprint) + sizeof(containerid));
 	sr->id = make_segment_id(offset, length);
+
+	VERBOSE("Filter phase: write %lld segment of %lld offset, %d fps",
+			sr->id, id_to_offset(sr->id), g_hash_table_size(sr->kvpairs));
 
 	char buf[length];
 	ser_declare;

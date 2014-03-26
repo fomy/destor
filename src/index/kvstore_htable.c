@@ -5,7 +5,12 @@
  *      Author: fumin
  */
 
-#include "kvstore.h"
+#include "../destor.h"
+
+typedef char* kvpair;
+
+#define get_key(kv) (kv)
+#define get_value(kv) ((int64_t*)(kv+destor.index_key_size))
 
 static GHashTable *htable;
 
@@ -13,7 +18,46 @@ static gboolean g_key_equal(char* a, char* b){
 	return !memcmp(a, b, destor.index_key_size);
 }
 
+static int32_t kvpair_size;
+
+/*
+ * Create a new kv pair.
+ */
+static kvpair new_kvpair_full(char* key){
+    kvpair kvp = malloc(kvpair_size);
+    memcpy(get_key(kvp), key, destor.index_key_size);
+    int64_t* values = get_value(kvp);
+    int i;
+    for(i = 0; i<destor.index_value_length; i++){
+    	values[i] = TEMPORARY_ID;
+    }
+    return kvp;
+}
+
+static kvpair new_kvpair(){
+	 kvpair kvp = malloc(kvpair_size);
+	 int64_t* values = get_value(kvp);
+	 int i;
+	 for(i = 0; i<destor.index_value_length; i++){
+		 values[i] = TEMPORARY_ID;
+	 }
+	 return kvp;
+}
+
+static void kv_update(kvpair kv, int64_t id){
+    int64_t* value = get_value(kv);
+	memmove(&value[1], value,
+			(destor.index_value_length - 1) * sizeof(int64_t));
+	value[0] = id;
+}
+
+static void free_kvpair(kvpair kvp){
+	free(kvp);
+}
+
 void init_kvstore_htable(){
+    kvpair_size = destor.index_key_size + destor.index_value_length * 8;
+
 	htable = g_hash_table_new_full(g_int64_hash, g_key_equal,
 			free_kvpair, NULL);
 
