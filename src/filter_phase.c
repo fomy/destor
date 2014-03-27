@@ -18,7 +18,6 @@ struct{
 	GQueue *chunks;
 } storage_buffer;
 
-
 extern struct {
 	/* g_mutex_init() is unnecessary if in static storage. */
 	GMutex mutex;
@@ -32,7 +31,6 @@ extern struct {
 static void* filter_thread(void *arg) {
     int enable_rewrite = 1;
     struct recipe* r = NULL;
-
 
     while (1) {
         struct chunk* c = sync_queue_pop(rewrite_queue);
@@ -52,12 +50,9 @@ static void* filter_thread(void *arg) {
         while (!(CHECK_CHUNK(c, CHUNK_SEGMENT_END))) {
             g_queue_push_tail(s->chunks, c);
             if (!CHECK_CHUNK(c, CHUNK_FILE_START)
-                    && !CHECK_CHUNK(c, CHUNK_FILE_END)){
-            	/* History-Aware Rewriting */
-                if (destor.rewrite_enable_har && CHECK_CHUNK(c, CHUNK_DUPLICATE))
-                    har_check(c);
+                    && !CHECK_CHUNK(c, CHUNK_FILE_END))
                 s->chunk_num++;
-            }
+
             c = sync_queue_pop(rewrite_queue);
         }
         free_chunk(c);
@@ -181,15 +176,9 @@ static void* filter_thread(void *arg) {
 
                 	VERBOSE("Filter phase: Write %dth chunk to container %lld",
                 			chunk_num, c->id);
-                }else{
-                	VERBOSE("Filter phase: Deny writing %dth chunk to container %lld",
-                			chunk_num, c->id);
-                	struct chunk* wc = new_chunk(0);
-                	memcpy(&wc->fp, &c->fp, sizeof(fingerprint));
-                	wc->id = c->id;
-                	/* a fake unique chunk */
-                	g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
-                }
+                }else
+                	VERBOSE("Filter phase: container %lld already has this chunk", c->id);
+
             }else{
                 if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
                     VERBOSE("Filter phase: %lldth chunk in out-of-order container %lld is already cached",
@@ -302,8 +291,6 @@ static void* filter_thread(void *arg) {
 void start_filter_phase() {
 
 	storage_buffer.container_buffer = NULL;
-
-    init_har();
 
     init_restore_aware();
 

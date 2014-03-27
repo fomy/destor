@@ -127,6 +127,14 @@ static void top_segment_select(GHashTable* features) {
 	g_hash_table_destroy(similar_segments);
 }
 
+extern struct{
+	/* accessed in dedup phase */
+	struct container *container_buffer;
+	/* In order to facilitate sampling in container,
+	 * we keep a queue for chunks in container buffer. */
+	GQueue *chunks;
+} storage_buffer;
+
 void index_lookup_similarity_detection(struct segment *s){
 	assert(s->features);
 	top_segment_select(s->features);
@@ -138,6 +146,12 @@ void index_lookup_similarity_detection(struct segment *s){
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
 
+		/* First check it in the storage buffer */
+		if(storage_buffer.container_buffer
+				&& lookup_fingerprint_in_container(storage_buffer.container_buffer, &c->fp)){
+			c->id = get_container_id(storage_buffer.container_buffer);
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+		}
 		/*
 		 * First check the buffered fingerprints,
 		 * recently backup fingerprints.

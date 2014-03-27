@@ -49,6 +49,14 @@ void close_index() {
 	close_kvstore();
 }
 
+extern struct{
+	/* accessed in dedup phase */
+	struct container *container_buffer;
+	/* In order to facilitate sampling in container,
+	 * we keep a queue for chunks in container buffer. */
+	GQueue *chunks;
+} storage_buffer;
+
 static void index_lookup_base(struct segment *s){
 	int len = g_queue_get_length(s->chunks), i;
 
@@ -57,6 +65,13 @@ static void index_lookup_base(struct segment *s){
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;
+
+		/* First check it in the storage buffer */
+		if(storage_buffer.container_buffer
+				&& lookup_fingerprint_in_container(storage_buffer.container_buffer, &c->fp)){
+			c->id = get_container_id(storage_buffer.container_buffer);
+			SET_CHUNK(c, CHUNK_DUPLICATE);
+		}
 
 		/*
 		 * First check the buffered fingerprints,

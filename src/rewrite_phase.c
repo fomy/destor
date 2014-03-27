@@ -88,6 +88,10 @@ struct chunk* rewrite_buffer_pop() {
 			record->size -= c->size;
 			if (record->size == 0)
 				g_sequence_remove(iter);
+
+        	/* History-Aware Rewriting */
+            if (destor.rewrite_enable_har && CHECK_CHUNK(c, CHUNK_DUPLICATE))
+                har_check(c);
 		}
 		rewrite_buffer.num--;
 		rewrite_buffer.size -= c->size;
@@ -117,7 +121,10 @@ static void* no_rewrite(void* arg) {
 
 void start_rewrite_phase() {
 	rewrite_queue = sync_queue_new(1000);
+
 	init_rewrite_buffer();
+
+    init_har();
 
 	if (destor.rewrite_algorithm[0] == REWRITE_NO) {
 		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
