@@ -218,6 +218,9 @@ struct destor {
 	 * and [1] specifies the segment size.
 	 */
 	int index_segment_algorithm[2];
+	int index_segment_min;
+	int index_segment_max;
+
 	int index_segment_selection_method[2];
 	int index_segment_prefech;
 

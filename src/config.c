@@ -201,6 +201,10 @@ void load_config_from_string(sds config) {
 				assert(destor.index_segment_algorithm[0] != INDEX_SEGMENT_FILE_DEFINED);
 				destor.index_segment_algorithm[1] = atoi(argv[2]);
 			}
+		} else if (strcasecmp(argv[0], "fingerprint-index-segment-boundary") == 0
+				&& argc == 3) {
+			destor.index_segment_min = atoi(argv[1]);
+			destor.index_segment_max = atoi(argv[2]);
 		} else if (strcasecmp(argv[0], "fingerprint-index-segment-selection")
 				== 0 && argc >= 2) {
 			destor.index_segment_selection_method[1] = 1;

@@ -19,12 +19,13 @@ static int64_t segment_num;
 struct {
 	/* g_mutex_init() is unnecessary if in static storage. */
 	GMutex mutex;
-	GCond not_full_cond; // index buffer is not full
-	int wait_flag; // index buffer is full, waiting
+	GCond cond; // index buffer is not full
+	// index buffer is full, waiting
+	// if threshold < 0, it indicates no threshold.
+	int wait_threshold;
 } index_lock;
 
 void send_segment(struct segment* s) {
-
 	/*
 	 * CHUNK_SEGMENT_START and _END are used for
 	 * reconstructing the segment in filter phase.
@@ -80,8 +81,7 @@ void *dedup_thread(void *arg) {
 			/* Each duplicate chunk will be marked. */
 			g_mutex_lock(&index_lock.mutex);
 			while (index_lookup(s) == 0) {
-				index_lock.wait_flag = 1;
-				g_cond_wait(&index_lock.not_full_cond, &index_lock.mutex);
+				g_cond_wait(&index_lock.cond, &index_lock.mutex);
 			}
 			g_mutex_unlock(&index_lock.mutex);
 		} else {
@@ -104,6 +104,14 @@ void *dedup_thread(void *arg) {
 }
 
 void start_dedup_phase() {
+
+	if(destor.index_segment_algorithm[0] == INDEX_SEGMENT_CONTENT_DEFINED)
+		index_lock.wait_threshold = destor.rewrite_algorithm[1] + destor.index_segment_max - 1;
+	else if(destor.index_segment_algorithm[0] == INDEX_SEGMENT_FIXED)
+		index_lock.wait_threshold = destor.rewrite_algorithm[1] + destor.index_segment_algorithm[1] - 1;
+	else
+		index_lock.wait_threshold = -1; // file-defined segmenting has no threshold.
+
 	dedup_queue = sync_queue_new(1000);
 
 	pthread_create(&dedup_t, NULL, dedup_thread, NULL);

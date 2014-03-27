@@ -21,8 +21,8 @@ struct{
 extern struct {
 	/* g_mutex_init() is unnecessary if in static storage. */
 	GMutex mutex;
-	GCond not_full_cond; // index buffer is not full
-	int wait_flag;
+	GCond cond; // index buffer is not full
+	int wait_threshold;
 } index_lock;
 
 /*
@@ -232,9 +232,8 @@ static void* filter_thread(void *arg) {
         	free_segment_recipe(sr);
         }
 
-        if(index_lock.wait_flag == 1 && full == 0){
-        	index_lock.wait_flag = 0;
-        	g_cond_broadcast(&index_lock.not_full_cond);
+        if(index_lock.wait_threshold > 0 && full == 0){
+        	g_cond_broadcast(&index_lock.cond);
         }
         g_hash_table_destroy(recently_rewritten_chunks);
         g_hash_table_destroy(recently_unique_chunks);
