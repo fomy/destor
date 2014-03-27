@@ -126,10 +126,11 @@
 /*
  * Many eligible segments may be found via looking up in feature index.
  * Further select champion segments in the eligible segments.
+ * MIX indicates a mix of base and top.
  */
 #define INDEX_SEGMENT_SELECT_BASE 0
 #define INDEX_SEGMENT_SELECT_TOP 1
-#define INDEX_SEGMENT_SELECT_ALL 2
+#define INDEX_SEGMENT_SELECT_MIX 2
 
 /*
  * A specific fingerprint index,

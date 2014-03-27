@@ -151,8 +151,7 @@ int index_lookup(struct segment* s) {
 		return 0;
 	}
 
-	if(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT
-			&& destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
+	if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
 			&& destor.index_segment_selection_method[1] == INDEX_SEGMENT_SELECT_TOP){
 		/* Similarity-based */
 		s->features = sampling(s->chunks, s->chunk_num);

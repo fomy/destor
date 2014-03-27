@@ -210,8 +210,8 @@ void load_config_from_string(sds config) {
 				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
 				if (argc > 2)
 					destor.index_segment_selection_method[1] = atoi(argv[2]);
-			} else if (strcasecmp(argv[1], "all") == 0)
-				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_ALL;
+			} else if (strcasecmp(argv[1], "mix") == 0)
+				destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_MIX;
 			else {
 				err = "Invalid selection method!";
 				goto loaderr;

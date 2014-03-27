@@ -175,6 +175,31 @@ void index_lookup_similarity_detection(struct segment *s){
 			}
 		}
 
+		if(destor.index_category[0] == INDEX_CATEGORY_EXACT
+				|| destor.index_category[0] == INDEX_SEGMENT_SELECT_MIX){
+			if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
+				/* Searching in key-value store */
+				int64_t* ids = kvstore_lookup((char*)&c->fp);
+				if(ids){
+					/* prefetch the target unit */
+					fingerprint_cache_prefetch(ids[0]);
+					int64_t id = fingerprint_cache_lookup(&c->fp);
+					if(id != TEMPORARY_ID){
+						/*
+						 * It can be not cached,
+						 * since a partial key is possible in near-exact deduplication.
+						 */
+						c->id = id;
+						SET_CHUNK(c, CHUNK_DUPLICATE);
+					}else{
+						NOTICE("Filter phase: A key collision occurs");
+					}
+				}else{
+					VERBOSE("Dedup phase: non-existing fingerprint");
+				}
+			}
+		}
+
 		/* Insert it into the index buffer */
 		struct indexElem *ne = (struct indexElem*) malloc(
 				sizeof(struct indexElem));
