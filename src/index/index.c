@@ -100,23 +100,18 @@ static void index_lookup_base(struct segment *s){
             /* Searching in key-value store */
             int64_t* ids = kvstore_lookup((char*)&c->fp);
             if(ids){
-                int j;
-                for(j = 0;j<destor.index_value_length; j++){
-                    if(ids[j] == TEMPORARY_ID)
-                        break;
-                    /* prefetch the target unit */
-                    fingerprint_cache_prefetch(ids[j]);
-                    int64_t id = fingerprint_cache_lookup(&c->fp);
-                    if(id != TEMPORARY_ID){
-                        /*
-                         * It can be not cached,
-                         * since a partial key is possible in near-exact deduplication.
-                         */
-                        c->id = id;
-                        SET_CHUNK(c, CHUNK_DUPLICATE);
-                    }else{
-                        NOTICE("Filter phase: A key collision occurs");
-                    }
+                /* prefetch the target unit */
+                fingerprint_cache_prefetch(ids[0]);
+                int64_t id = fingerprint_cache_lookup(&c->fp);
+                if(id != TEMPORARY_ID){
+                    /*
+                     * It can be not cached,
+                     * since a partial key is possible in near-exact deduplication.
+                     */
+                    c->id = id;
+                    SET_CHUNK(c, CHUNK_DUPLICATE);
+                }else{
+                    NOTICE("Filter phase: A key collision occurs");
                 }
             }else{
                 VERBOSE("Dedup phase: non-existing fingerprint");
@@ -162,7 +157,7 @@ int index_lookup(struct segment* s) {
     }
 
     if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
-            && destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_TOP){
+            && destor.index_segment_selection_method[0] != INDEX_SEGMENT_SELECT_BASE){
         /* Similarity-based */
         s->features = sampling(s->chunks, s->chunk_num);
         index_lookup_similarity_detection(s);

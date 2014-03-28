@@ -176,15 +176,18 @@ static void* filter_thread(void *arg) {
 
                 	VERBOSE("Filter phase: Write %dth chunk to container %lld",
                 			chunk_num, c->id);
-                }else
+                }else{
                 	VERBOSE("Filter phase: container %lld already has this chunk", c->id);
+            		assert(destor.index_category[0] != INDEX_CATEGORY_EXACT
+            				|| destor.rewrite_algorithm[0]!=REWRITE_NO);
+                }
 
             }else{
-                if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
+                if(CHECK_CHUNK(c, CHUNK_REWRITE_DENIED)){
+                    VERBOSE("Filter phase: %lldth fragmented chunk is denied", chunk_num);
+                }else if (CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)) {
                     VERBOSE("Filter phase: %lldth chunk in out-of-order container %lld is already cached",
                             chunk_num, c->id);
-                }else if(CHECK_CHUNK(c, CHUNK_REWRITE_DENIED)){
-                    VERBOSE("Filter phase: %lldth fragmented chunk is denied", chunk_num);
                 }
             }
 
@@ -235,9 +238,10 @@ static void* filter_thread(void *arg) {
         if(index_lock.wait_threshold > 0 && full == 0){
         	g_cond_broadcast(&index_lock.cond);
         }
+        g_mutex_unlock(&index_lock.mutex);
+
         g_hash_table_destroy(recently_rewritten_chunks);
         g_hash_table_destroy(recently_unique_chunks);
-        g_mutex_unlock(&index_lock.mutex);
 
         /* Write recipe */
        	while((c = g_queue_pop_head(s->chunks))){
