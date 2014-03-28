@@ -162,7 +162,7 @@ int index_lookup(struct segment* s) {
     }
 
     if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
-            && destor.index_segment_selection_method[1] == INDEX_SEGMENT_SELECT_TOP){
+            && destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_TOP){
         /* Similarity-based */
         s->features = sampling(s->chunks, s->chunk_num);
         index_lookup_similarity_detection(s);
