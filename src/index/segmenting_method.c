@@ -104,8 +104,11 @@ static struct segment* segment_content_defined(struct chunk *c) {
 
     g_queue_push_tail(tmp->chunks, c);
     tmp->chunk_num++;
-    if (tmp->chunk_num >= destor.index_segment_max)
-        return tmp;
+    if (tmp->chunk_num >= destor.index_segment_max){
+        struct segment* ret = tmp;
+        tmp = new_segment();
+        return ret;
+    }
 
     return NULL;
 }
