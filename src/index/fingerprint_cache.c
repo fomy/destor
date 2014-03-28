@@ -12,8 +12,6 @@
 
 static struct lruCache* lru_queue;
 
-int number_of_read_prefetch_unit;
-
 void init_fingerprint_cache(){
 	switch(destor.index_category[1]){
 	case INDEX_CATEGORY_PHYSICAL_LOCALITY:
@@ -28,8 +26,6 @@ void init_fingerprint_cache(){
 		WARNING("Invalid index category!");
 		exit(1);
 	}
-
-	number_of_read_prefetch_unit = 0;
 }
 
 int64_t fingerprint_cache_lookup(fingerprint *fp){
@@ -58,7 +54,6 @@ void fingerprint_cache_prefetch(int64_t id){
 		case INDEX_CATEGORY_PHYSICAL_LOCALITY:{
 			struct containerMeta * cm = retrieve_container_meta_by_id(id);
 			if (cm) {
-				number_of_read_prefetch_unit++;
 				lru_cache_insert(lru_queue, cm, NULL, NULL);
 			} else{
 				WARNING("Error! The container %lld has not been written!", id);
@@ -67,7 +62,6 @@ void fingerprint_cache_prefetch(int64_t id){
 			break;
 		}
 		case INDEX_CATEGORY_LOGICAL_LOCALITY:{
-			number_of_read_prefetch_unit++;
 			GQueue* segments = prefetch_segments(id,
 					destor.index_segment_prefech);
 			VERBOSE("Dedup phase: prefetch %d segments into %d cache",

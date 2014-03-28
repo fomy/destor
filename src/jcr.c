@@ -36,9 +36,6 @@ void init_jcr(char *path) {
 	jcr.inherited_sparse_num = 0;
 	jcr.total_container_num = 0;
 
-	jcr.index_lookup_io = 0;
-	jcr.index_update_io = 0;
-
 	jcr.total_time = 0;
 	/*
 	 * the time consuming of seven backup phase
@@ -50,8 +47,6 @@ void init_jcr(char *path) {
 	jcr.rewrite_time = 0;
 	jcr.filter_time = 0;
 	jcr.write_time = 0;
-	jcr.index_lookup_time = 0;
-	jcr.index_update_time = 0;
 
 	/*
 	 * the time consuming of three restore phase

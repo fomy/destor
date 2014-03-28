@@ -57,8 +57,6 @@ static void* filter_thread(void *arg) {
         }
         free_chunk(c);
 
-        g_mutex_lock(&index_lock.mutex);
-
         /* For self-references in a segment.
          * If we find there is an early copy of the chunk in this segment,
          * has been rewritten,
@@ -68,6 +66,10 @@ static void* filter_thread(void *arg) {
         GHashTable *recently_unique_chunks = g_hash_table_new_full(g_int64_hash,
         			g_fingerprint_equal, NULL, free_chunk);
 
+        g_mutex_lock(&index_lock.mutex);
+
+        TIMER_DECLARE(1);
+        TIMER_BEGIN(1);
         /* This function will check the fragmented chunks
          * that would be rewritten later.
          * If we find an early copy of the chunk in earlier segments,
@@ -147,7 +149,9 @@ static void* filter_thread(void *arg) {
                         g_queue_free_full(storage_buffer.chunks, free_chunk);
                         storage_buffer.chunks = g_queue_new();
                     }
+                    TIMER_END(1, jcr.filter_time);
                     write_container_async(storage_buffer.container_buffer);
+                    TIMER_BEGIN(1);
                     storage_buffer.container_buffer = create_container();
                 }
 
@@ -238,6 +242,7 @@ static void* filter_thread(void *arg) {
         if(index_lock.wait_threshold > 0 && full == 0){
         	g_cond_broadcast(&index_lock.cond);
         }
+        TIMER_END(1, jcr.filter_time);
         g_mutex_unlock(&index_lock.mutex);
 
         g_hash_table_destroy(recently_rewritten_chunks);

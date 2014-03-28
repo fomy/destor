@@ -29,9 +29,6 @@ struct {
 	int32_t rewritten_chunk_num;
 	int64_t rewritten_chunk_size;
 
-	int64_t index_lookup_io;
-	int64_t index_update_io;
-
 	int32_t sparse_container_num;
 	int32_t inherited_sparse_num;
 	int32_t total_container_num;
@@ -49,8 +46,6 @@ struct {
 	double rewrite_time;
 	double filter_time;
 	double write_time;
-	double index_lookup_time;
-	double index_update_time;
 
 	double read_recipe_time;
 	double read_chunk_time;

@@ -8,6 +8,8 @@
 #include "kvstore.h"
 #include "fingerprint_cache.h"
 #include "segmentstore.h"
+#include "../storage/containerstore.h"
+#include "../jcr.h"
 
 /* defined in index.c */
 extern struct {
@@ -17,6 +19,16 @@ extern struct {
 	/* The number of buffered chunks */
 	int num;
 } index_buffer;
+
+/* defined in index.c */
+extern struct {
+	/* Requests to the key-value store */
+	int lookup_requests;
+	int update_requests;
+	int lookup_requests_for_unique;
+	/* Overheads of prefetching module */
+	int read_prefetching_units;
+}index_overhead;
 
 /*
  * Larger one comes before smaller one.
@@ -64,6 +76,7 @@ static void top_segment_select(GHashTable* features) {
 		/* Each feature is mapped to several segment IDs. */
 		segmentid *ids = kvstore_lookup((fingerprint*) key);
 		if (ids) {
+			index_overhead.lookup_requests++;
 			int i;
 			for (i = 0; i < destor.index_value_length; i++) {
 				if (ids[i] == TEMPORARY_ID)
@@ -80,6 +93,8 @@ static void top_segment_select(GHashTable* features) {
 				assert(!g_hash_table_contains(sr->features, feature));
 				g_hash_table_insert(sr->features, feature, NULL);
 			}
+		}else{
+			index_overhead.lookup_requests_for_unique++;
 		}
 	}
 
@@ -114,6 +129,7 @@ static void top_segment_select(GHashTable* features) {
 					g_sequence_get_begin_iter(seq));
 			NOTICE("read segment %ld", top->id >> 24);
 
+			index_overhead.read_prefetching_units++;
 			fingerprint_cache_prefetch(top->id);
 
 			g_sequence_remove(g_sequence_get_begin_iter(seq));
@@ -176,12 +192,14 @@ void index_lookup_similarity_detection(struct segment *s){
 		}
 
 		if(destor.index_category[0] == INDEX_CATEGORY_EXACT
-				|| destor.index_category[0] == INDEX_SEGMENT_SELECT_MIX){
+				|| destor.index_segment_selection_method[0] == INDEX_SEGMENT_SELECT_MIX){
 			if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 				/* Searching in key-value store */
 				int64_t* ids = kvstore_lookup((char*)&c->fp);
 				if(ids){
+					index_overhead.lookup_requests++;
 					/* prefetch the target unit */
+					index_overhead.read_prefetching_units++;
 					fingerprint_cache_prefetch(ids[0]);
 					int64_t id = fingerprint_cache_lookup(&c->fp);
 					if(id != TEMPORARY_ID){
@@ -194,7 +212,7 @@ void index_lookup_similarity_detection(struct segment *s){
 					}else{
 						NOTICE("Filter phase: A key collision occurs");
 					}
-				}else{
+				}else{index_overhead.lookup_requests_for_unique++;
 					VERBOSE("Dedup phase: non-existing fingerprint");
 				}
 			}

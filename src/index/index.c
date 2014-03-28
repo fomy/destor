@@ -2,6 +2,8 @@
 #include "kvstore.h"
 #include "fingerprint_cache.h"
 #include "segmentstore.h"
+#include "../storage/containerstore.h"
+#include "../jcr.h"
 
 /* The buffer size > 2 * destor.rewrite_buffer_size */
 /* All fingerprints that have been looked up in the index
@@ -13,6 +15,16 @@ struct {
     /* The number of buffered chunks */
     int chunk_num;
 } index_buffer;
+
+struct {
+	/* Requests to the key-value store */
+	int lookup_requests;
+	int update_requests;
+	int lookup_requests_for_unique;
+	/* Overheads of prefetching module */
+	int read_prefetching_units;
+}index_overhead;
+
 
 extern void init_segmenting_method();
 extern void init_sampling_method();
@@ -39,6 +51,11 @@ void init_index() {
     init_kvstore();
 
     init_fingerprint_cache();
+
+    index_overhead.lookup_requests = 0;
+    index_overhead.update_requests = 0;
+    index_overhead.lookup_requests_for_unique = 0;
+    index_overhead.read_prefetching_units = 0;
 
 }
 
@@ -100,7 +117,9 @@ static void index_lookup_base(struct segment *s){
             /* Searching in key-value store */
             int64_t* ids = kvstore_lookup((char*)&c->fp);
             if(ids){
+            	index_overhead.lookup_requests++;
                 /* prefetch the target unit */
+            	index_overhead.read_prefetching_units++;
                 fingerprint_cache_prefetch(ids[0]);
                 int64_t id = fingerprint_cache_lookup(&c->fp);
                 if(id != TEMPORARY_ID){
@@ -114,6 +133,7 @@ static void index_lookup_base(struct segment *s){
                     NOTICE("Filter phase: A key collision occurs");
                 }
             }else{
+            	index_overhead.lookup_requests_for_unique++;
                 VERBOSE("Dedup phase: non-existing fingerprint");
             }
         }
@@ -156,6 +176,8 @@ int index_lookup(struct segment* s) {
         return 0;
     }
 
+    TIMER_DECLARE(1);
+    TIMER_BEGIN(1);
     if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY
             && destor.index_segment_selection_method[0] != INDEX_SEGMENT_SELECT_BASE){
         /* Similarity-based */
@@ -165,6 +187,7 @@ int index_lookup(struct segment* s) {
         /* Base */
         index_lookup_base(s);
     }
+    TIMER_END(1, jcr.dedup_time);
 
     return 1;
 }
@@ -178,6 +201,7 @@ void index_update(GHashTable *features, int64_t id){
     gpointer key, value;
     g_hash_table_iter_init(&iter, features);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
+    	index_overhead.update_requests++;
         kvstore_update(key, id);
     }
 }
