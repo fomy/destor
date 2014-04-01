@@ -22,8 +22,11 @@ extern void load_config_from_string(sds config);
  */
 const char * const short_options = "sr::d::t::p::h";
 
-struct option long_options[] = { { "state", 0,
-NULL, 's' }, { "help", 0, NULL, 'h' }, { NULL, 0, NULL, 0 } };
+struct option long_options[] = {
+		{ "state", 0, NULL, 's' },
+		{ "help", 0, NULL, 'h' },
+		{ NULL, 0, NULL, 0 }
+};
 
 void usage() {
 	puts("GENERAL USAGE");
@@ -91,20 +94,23 @@ void destor_start() {
 
 	destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
 	destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
-	destor.index_specific = INDEX_SPECIFIC_SAMPLED;
-	destor.index_partial_key_size = 20;
-	/* in number of containers, for DDFS/ChunkStash/BLC/Sampled Index. */
-	destor.index_container_cache_size = 4096;
+	destor.index_specific = INDEX_SPECIFIC_NO;
+	destor.index_key_value_store = INDEX_KEY_VALUE_HTABLE;
+	destor.index_key_size = 20;
+    destor.index_value_length = 1;
+    
+	destor.index_cache_size = 4096;
 
 	destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
 	destor.index_segment_algorithm[1] = 1024;
+	destor.index_segment_min = 128;
+	destor.index_segment_max = 10240;
 	destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
 	destor.index_sampling_method[1] = 1;
 	destor.index_value_length = 1;
 	destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
 	destor.index_segment_selection_method[1] = 1;
 	destor.index_segment_prefech = 0;
-	destor.index_segment_cache_size = 0;
 
 	destor.rewrite_algorithm[0] = REWRITE_NO;
 	destor.rewrite_algorithm[1] = 1024;

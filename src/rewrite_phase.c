@@ -30,7 +30,8 @@ static void init_rewrite_buffer() {
 int rewrite_buffer_push(struct chunk* c) {
 	g_queue_push_tail(rewrite_buffer.chunk_queue, c);
 
-	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
+	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)
+			|| CHECK_CHUNK(c, CHUNK_SEGMENT_START) || CHECK_CHUNK(c, CHUNK_SEGMENT_END))
 		return 0;
 
 	if (c->id != TEMPORARY_ID) {
@@ -75,9 +76,8 @@ struct chunk* rewrite_buffer_top() {
 struct chunk* rewrite_buffer_pop() {
 	struct chunk* c = g_queue_pop_head(rewrite_buffer.chunk_queue);
 
-	if (c
-			&& !CHECK_CHUNK(c,
-					CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
+	if (c && !CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
+			&& !CHECK_CHUNK(c, CHUNK_SEGMENT_START) && !CHECK_CHUNK(c, CHUNK_SEGMENT_END)) {
 		/* A normal chunk */
 		if (CHECK_CHUNK(c, CHUNK_DUPLICATE) && c->id != TEMPORARY_ID) {
 			GSequenceIter *iter = g_sequence_lookup(
@@ -88,6 +88,10 @@ struct chunk* rewrite_buffer_pop() {
 			record->size -= c->size;
 			if (record->size == 0)
 				g_sequence_remove(iter);
+
+        	/* History-Aware Rewriting */
+            if (destor.rewrite_enable_har && CHECK_CHUNK(c, CHUNK_DUPLICATE))
+                har_check(c);
 		}
 		rewrite_buffer.num--;
 		rewrite_buffer.size -= c->size;
@@ -117,7 +121,10 @@ static void* no_rewrite(void* arg) {
 
 void start_rewrite_phase() {
 	rewrite_queue = sync_queue_new(1000);
+
 	init_rewrite_buffer();
+
+    init_har();
 
 	if (destor.rewrite_algorithm[0] == REWRITE_NO) {
 		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);

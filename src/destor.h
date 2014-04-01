@@ -94,6 +94,12 @@
 #define INDEX_CATEGORY_SIMILARITY 3
 
 /*
+ * Supported key-value store,
+ * including hash table, MySQL.
+ */
+#define INDEX_KEY_VALUE_HTABLE 0
+#define INDEX_KEY_VALUE_MYSQL 1
+/*
  * Feature is used for prefetching segments (similarity) or containers (locality).
  * For example, when we find a duplicate chunk,
  * its feature is mapped to a container or a segment.
@@ -120,22 +126,23 @@
 /*
  * Many eligible segments may be found via looking up in feature index.
  * Further select champion segments in the eligible segments.
+ * MIX indicates a mix of base and top.
  */
 #define INDEX_SEGMENT_SELECT_BASE 0
 #define INDEX_SEGMENT_SELECT_TOP 1
-#define INDEX_SEGMENT_SELECT_ALL 2
+#define INDEX_SEGMENT_SELECT_MIX 2
 
 /*
  * A specific fingerprint index,
  * similar with a combo.
  */
+#define INDEX_SPECIFIC_NO 0
 #define INDEX_SPECIFIC_DDFS 1
 #define INDEX_SPECIFIC_EXTREME_BINNING 2
 #define INDEX_SPECIFIC_SILO 3
 #define INDEX_SPECIFIC_SPARSE 4
 #define INDEX_SPECIFIC_SAMPLED 5
-#define INDEX_SPECIFIC_SEGMENT_BINNING 6
-#define INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING 7
+#define INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING 6
 
 #define RESTORE_CACHE_LRU 0
 #define RESTORE_CACHE_OPT 1
@@ -152,17 +159,20 @@
 #define DEFAULT_BLOCK_SIZE 1048576 //1MB
 
 /* states of normal chunks. */
-#define CHUNK_UNIQUE (0x00)
-#define CHUNK_DUPLICATE (0x01)
-#define CHUNK_SPARSE (0x02)
-#define CHUNK_OUT_OF_ORDER (0x04)
-#define CHUNK_IN_CACHE (0x08)
+#define CHUNK_UNIQUE (0x0000)
+#define CHUNK_DUPLICATE (0x0100)
+#define CHUNK_SPARSE (0x0200)
+#define CHUNK_OUT_OF_ORDER (0x0400)
+/* IN_CACHE will deny rewriting an out-of-order chunk */
+#define CHUNK_IN_CACHE (0x0800)
+/* This flag will deny all rewriting, including a sparse chunk */
+#define CHUNK_REWRITE_DENIED (0x1000)
 
 /* signal chunk */
-#define CHUNK_FILE_START (0x10)
-#define CHUNK_FILE_END (0x20)
-#define SEGMENT_START (0x40)
-#define SEGMENT_END (0x80)
+#define CHUNK_FILE_START (0x0001)
+#define CHUNK_FILE_END (0x0002)
+#define CHUNK_SEGMENT_START (0x0004)
+#define CHUNK_SEGMENT_END (0x0008)
 
 #define SET_CHUNK(c, f) (c->flag |= f)
 #define UNSET_CHUNK(c, f) (c->flag &= ~f)
@@ -182,35 +192,43 @@ struct destor {
 	int chunk_min_size;
 	int chunk_avg_size;
 
+	/* the cache type and size */
 	int restore_cache[2];
 	int restore_opt_window_size;
 
-	/* Specify fingerprint index */
+	/* Specify fingerprint index,
+	 * exact or near-exact,
+	 * physical logical locality */
 	int index_category[2];
 	/* optional */
 	int index_specific;
 
-	int index_partial_key_size;
-
 	/* in number of containers, for DDFS/ChunkStash/Sampled Index. */
-	int index_container_cache_size;
+	int index_cache_size;
 	int index_bloom_filter_size;
 
 	/*
-	 * [0] specifies the feature method,
-	 * and we select one feature every [1].
+	 * [0] specifies the sampling method, and
+	 * [1] specifies the sampling ratio.
 	 */
 	int index_sampling_method[2];
+	/* Specify the key-value store. */
+	int index_key_value_store;
+	/* The max number of prefetching units a key can refer to */
 	int index_value_length;
+	/* the size of the key in byte */
+	int index_key_size;
 
 	/*
 	 * [0] specifies the algorithm,
-	 * and [1] specifies the segment size.
+	 * and [1] specifies the average segment size.
 	 */
 	int index_segment_algorithm[2];
+	int index_segment_min;
+	int index_segment_max;
+
 	int index_segment_selection_method[2];
 	int index_segment_prefech;
-	int index_segment_cache_size;
 
 	int rewrite_algorithm[2];
 	int rewrite_enable_cfl_switch;

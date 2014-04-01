@@ -28,8 +28,7 @@ struct {
 /* init utility buckets */
 void init_utility_buckets() {
 	utility_buckets.chunk_num = 0;
-	utility_buckets.min_index =
-			destor.rewrite_cbr_minimal_utility == 1 ?
+	utility_buckets.min_index =	destor.rewrite_cbr_minimal_utility == 1 ?
 					9999 : destor.rewrite_cbr_minimal_utility * 10000;
 	utility_buckets.current_utility_threshold =
 			destor.rewrite_cbr_minimal_utility;
@@ -92,8 +91,10 @@ void *cbr_rewrite(void* arg) {
 
 		TIMER_BEGIN(1);
 		struct chunk *decision_chunk = rewrite_buffer_top();
-		while (CHECK_CHUNK(decision_chunk,
-				CHUNK_FILE_START) || CHECK_CHUNK(decision_chunk, CHUNK_FILE_END)) {
+		while (CHECK_CHUNK(decision_chunk, CHUNK_FILE_START)
+				|| CHECK_CHUNK(decision_chunk, CHUNK_FILE_END)
+				|| CHECK_CHUNK(decision_chunk, CHUNK_SEGMENT_START)
+				|| CHECK_CHUNK(decision_chunk, CHUNK_SEGMENT_END)) {
 			rewrite_buffer_pop();
 			TIMER_END(1, jcr.rewrite_time);
 			sync_queue_push(rewrite_queue, decision_chunk);
@@ -117,12 +118,10 @@ void *cbr_rewrite(void* arg) {
 			if (record->out_of_order == 1) {
 				rewrite_utility = get_rewrite_utility(decision_chunk);
 				if (rewrite_utility < destor.rewrite_cbr_minimal_utility
-						|| rewrite_utility
-								< utility_buckets.current_utility_threshold) {
+						|| rewrite_utility < utility_buckets.current_utility_threshold) {
 					record->out_of_order = 0;
 				} else {
-					VERBOSE(
-							"Rewrite phase: %lldth chunk is in out-of-order container %lld",
+					VERBOSE("Rewrite phase: %lldth chunk is in out-of-order container %lld",
 							chunk_num, decision_chunk->id);
 					SET_CHUNK(decision_chunk, CHUNK_OUT_OF_ORDER);
 				}

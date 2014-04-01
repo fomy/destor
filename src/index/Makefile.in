@@ -46,12 +46,10 @@ AR = ar
 ARFLAGS = cru
 libindex_a_AR = $(AR) $(ARFLAGS)
 libindex_a_LIBADD =
-am_libindex_a_OBJECTS = index.$(OBJEXT) aio_segmentstore.$(OBJEXT) \
-	exact_locality_index.$(OBJEXT) \
-	exact_similarity_index.$(OBJEXT) feature_index.$(OBJEXT) \
-	global_fingerprint_index.$(OBJEXT) \
-	near_exact_locality_index.$(OBJEXT) \
-	near_exact_similarity_index.$(OBJEXT) segmentstore.$(OBJEXT)
+am_libindex_a_OBJECTS = index.$(OBJEXT) fingerprint_cache.$(OBJEXT) \
+	kvstore.$(OBJEXT) kvstore_htable.$(OBJEXT) \
+	sampling_method.$(OBJEXT) segmenting_method.$(OBJEXT) \
+	segmentstore.$(OBJEXT) similarity_detection.$(OBJEXT)
 libindex_a_OBJECTS = $(am_libindex_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -154,7 +152,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libindex.a
-libindex_a_SOURCES = index.c aio_segmentstore.c exact_locality_index.c exact_similarity_index.c feature_index.c global_fingerprint_index.c near_exact_locality_index.c near_exact_similarity_index.c segmentstore.c 
+libindex_a_SOURCES = index.c fingerprint_cache.c kvstore.c kvstore_htable.c kvstore-c sampling_method.c segmenting_method.c segmentstore.c similarity_detection.c
 all: all-am
 
 .SUFFIXES:
@@ -203,15 +201,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aio_segmentstore.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exact_locality_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/exact_similarity_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/feature_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/global_fingerprint_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fingerprint_cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/near_exact_locality_index.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/near_exact_similarity_index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvstore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvstore_htable.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sampling_method.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segmenting_method.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segmentstore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/similarity_detection.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

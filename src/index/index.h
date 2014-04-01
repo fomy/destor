@@ -10,31 +10,6 @@
 #define INDEX_H_
 
 #include "../destor.h"
-#include "../jcr.h"
-
-struct indexElem {
-	containerid id;
-	fingerprint fp;
-};
-
-/* The buffer size > 2 * destor.rewrite_buffer_size */
-/* All fingerprints that have been looked up in the index
- * but not been updated. */
-struct {
-	/* Queue of buffered segments and their features. */
-	GQueue *segment_queue;
-	/* map a fingerprint to a queue of indexElem */
-	/* Index all fingerprints in the segment_queue. */
-	GHashTable *table;
-	/* The number of buffered chunks */
-	int num;
-
-	/* Buffer candidate features in the current open container. */
-	GQueue* feature_buffer;
-	GHashTable* feature_index;
-	/* If cid == TEMPORARY_ID, features are for segment. */
-	containerid cid;
-} index_buffer;
 
 /*
  * The function is used to initialize memory structures of a fingerprint index.
@@ -47,37 +22,18 @@ void close_index();
 /*
  * lookup fingerprints in a segment in index.
  */
-void index_lookup(struct segment*);
+int index_lookup(struct segment*);
 /*
- * Insert fingerprint into Index for new fingerprint or new ContainerId.
+ * Insert/update fingerprints.
  */
-int index_update(fingerprint *fp, containerid from, containerid to);
+void index_update(GHashTable *features, int64_t id);
 
-void index_delete(fingerprint *);
+void index_check_buffer(struct segment *s);
+int index_update_buffer(struct segment *s);
 
-GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
+//void index_delete(fingerprint *);
 
-/*
- * Each prefetched segment is organized as a hash table for optimizing lookup.
- * It is the basic unit of segment store.
- * */
-struct segmentRecipe {
-	segmentid id;
-	GHashTable* features;
-	/* Map fingerprints in the segment to their container IDs.*/
-	GHashTable *index;
-	pthread_mutex_t mutex;
-	int reference_count;
-};
-
-struct segmentRecipe* new_segment_recipe();
-struct segmentRecipe* ref_segment_recipe(struct segmentRecipe*);
-void unref_segment_recipe(struct segmentRecipe*);
-void free_segment_recipe(struct segmentRecipe*);
-int lookup_fingerprint_in_segment_recipe(struct segmentRecipe*, fingerprint *);
-int segment_recipe_check_id(struct segmentRecipe*, segmentid *id);
-struct segmentRecipe* segment_recipe_dup(struct segmentRecipe*);
-struct segmentRecipe* segment_recipe_merge(struct segmentRecipe*,
-		struct segmentRecipe*);
+extern GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
+extern struct segment* (*segmenting)(struct chunk *c);
 
 #endif

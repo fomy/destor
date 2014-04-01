@@ -3901,51 +3901,10 @@ fi
     if test "$found_crypto" = "no"; then
     as_fn_error $? "*** Working crypto library not found ***" "$LINENO" 5
     fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for mysql_init in -lmysqlclient" >&5
-$as_echo_n "checking for mysql_init in -lmysqlclient... " >&6; }
-if ${ac_cv_lib_mysqlclient_mysql_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lmysqlclient  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char mysql_init ();
-int
-main ()
-{
-return mysql_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_mysqlclient_mysql_init=yes
-else
-  ac_cv_lib_mysqlclient_mysql_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_mysqlclient_mysql_init" >&5
-$as_echo "$ac_cv_lib_mysqlclient_mysql_init" >&6; }
-if test "x$ac_cv_lib_mysqlclient_mysql_init" = xyes; then :
-  found_mysql=yes
-else
-  found_mysql=no
-fi
-
-    if test "$found_mysql" = "no"; then
-    as_fn_error $? "*** Working mysql library not found ***" "$LINENO" 5
-    fi
+#AC_CHECK_LIB([mysqlclient],[mysql_init],[found_mysql=yes],[found_mysql=no])
+    #if test "$found_mysql" = "no"; then
+    #AC_MSG_ERROR([*** Working mysql library not found ***])
+    #fi
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2
@@ -4484,23 +4443,10 @@ done
     if test "$found_sha_h" = "no"; then
     as_fn_error $? "*** Working sha.h header not found ***" "$LINENO" 5
     fi
-for ac_header in mysql/mysql.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "mysql/mysql.h" "ac_cv_header_mysql_mysql_h" "$ac_includes_default"
-if test "x$ac_cv_header_mysql_mysql_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_MYSQL_MYSQL_H 1
-_ACEOF
- found_mysql_h=yes
-else
-  found_mysql_h=no
-fi
-
-done
-
-    if test "$found_mysql_h" = "no"; then
-    as_fn_error $? "*** Working mysql/mysql.h header not found ***" "$LINENO" 5
-    fi
+#AC_CHECK_HEADERS([mysql/mysql.h], [found_mysql_h=yes],[found_mysql_h=no])
+    #if test "$found_mysql_h" = "no"; then
+    #AC_MSG_ERROR([*** Working mysql/mysql.h header not found ***])
+    #fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inline" >&5

@@ -4,6 +4,16 @@
 #include "index/index.h"
 #include "backup.h"
 
+/* defined in index.c */
+extern struct {
+	/* Requests to the key-value store */
+	int lookup_requests;
+	int update_requests;
+	int lookup_requests_for_unique;
+	/* Overheads of prefetching module */
+	int read_prefetching_units;
+}index_overhead;
+
 void do_backup(char *path) {
 
 	init_backup_jcr(path);
@@ -84,8 +94,6 @@ void do_backup(char *path) {
 	destor.rewritten_chunk_num += jcr.rewritten_chunk_num;
 	destor.rewritten_chunk_size += jcr.rewritten_chunk_size;
 
-	printf("number of index lookup IO: %lld\n", jcr.index_lookup_io);
-	printf("number of index update IO: %lld\n", jcr.index_update_io);
 	printf("read_time : %.3fs, %.2fMB/s\n", jcr.read_time / 1000000,
 			jcr.data_size * 1000000 / jcr.read_time / 1024 / 1024);
 	printf("chunk_time : %.3fs, %.2fMB/s\n", jcr.chunk_time / 1000000,
@@ -93,22 +101,16 @@ void do_backup(char *path) {
 	printf("hash_time : %.3fs, %.2fMB/s\n", jcr.hash_time / 1000000,
 			jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024);
 
-	printf(
-			"dedup_time : %.3fs, %.2fMB/s, with index_lookup_time %.3fs, %.2fMB/s\n",
+	printf("dedup_time : %.3fs, %.2fMB/s\n",
 			jcr.dedup_time / 1000000,
-			jcr.data_size * 1000000 / jcr.dedup_time / 1024 / 1024,
-			jcr.index_lookup_time / 1000000,
-			jcr.data_size * 1000000 / jcr.index_lookup_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.dedup_time / 1024 / 1024);
 
 	printf("rewrite_time : %.3fs, %.2fMB/s\n", jcr.rewrite_time / 1000000,
 			jcr.data_size * 1000000 / jcr.rewrite_time / 1024 / 1024);
 
-	printf(
-			"filter_time : %.3fs, %.2fMB/s, with index_update_time %.3fs, %.2fMB/s\n",
+	printf("filter_time : %.3fs, %.2fMB/s\n",
 			jcr.filter_time / 1000000,
-			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024,
-			jcr.index_update_time / 1000000,
-			jcr.data_size * 1000000 / jcr.index_update_time / 1024 / 1024);
+			jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024);
 
 	printf("write_time : %.3fs, %.2fMB/s\n", jcr.write_time / 1000000,
 			jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024);
@@ -145,18 +147,19 @@ void do_backup(char *path) {
 	 * total container number,
 	 * sparse container number,
 	 * inherited container number,
-	 * index lookups,
-	 * index updates,
+	 * index overhead (4 * int)
 	 * throughput,
 	 */
-	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %lld %lld %.2f\n", jcr.id,
+	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %d %d %d %d %.2f\n", jcr.id,
 			jcr.data_size, destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.rewritten_chunk_size - jcr.unique_data_size)/(double) (jcr.data_size)
 					: 0,
 			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
 			jcr.total_container_num, jcr.sparse_container_num,
-			jcr.inherited_sparse_num, jcr.index_lookup_io, jcr.index_update_io,
+			jcr.inherited_sparse_num,
+			index_overhead.lookup_requests, index_overhead.lookup_requests_for_unique,
+			index_overhead.update_requests, index_overhead.read_prefetching_units,
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);

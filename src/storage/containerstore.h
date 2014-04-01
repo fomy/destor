@@ -41,7 +41,7 @@ struct containerMeta* retrieve_container_meta_by_id(containerid);
 struct containerMeta* retrieve_container_meta_by_id_async(containerid);
 
 struct chunk* get_chunk_in_container(struct container*, fingerprint*);
-void add_chunk_to_container(struct container*, struct chunk*);
+int add_chunk_to_container(struct container*, struct chunk*);
 int container_overflow(struct container*, int32_t size);
 void free_container(struct container*);
 void free_container_meta(struct containerMeta*);
