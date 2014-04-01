@@ -125,8 +125,7 @@ void load_config_from_string(sds config) {
 				} else if (strcasecmp(argv[3], "block locality caching") == 0) {
 					assert(destor.index_category[0] == INDEX_CATEGORY_EXACT 
                             && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);
-					destor.index_specific =
-					INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING;
+					destor.index_specific =	INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING;
 				} else if (strcasecmp(argv[3], "extreme binning") == 0) {
 					assert(destor.index_category[0] == INDEX_CATEGORY_NEAR_EXACT 
                             && destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY);

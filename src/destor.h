@@ -136,13 +136,13 @@
  * A specific fingerprint index,
  * similar with a combo.
  */
+#define INDEX_SPECIFIC_NO 0
 #define INDEX_SPECIFIC_DDFS 1
 #define INDEX_SPECIFIC_EXTREME_BINNING 2
 #define INDEX_SPECIFIC_SILO 3
 #define INDEX_SPECIFIC_SPARSE 4
 #define INDEX_SPECIFIC_SAMPLED 5
-#define INDEX_SPECIFIC_SEGMENT_BINNING 6
-#define INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING 7
+#define INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING 6
 
 #define RESTORE_CACHE_LRU 0
 #define RESTORE_CACHE_OPT 1
@@ -192,10 +192,13 @@ struct destor {
 	int chunk_min_size;
 	int chunk_avg_size;
 
+	/* the cache type and size */
 	int restore_cache[2];
 	int restore_opt_window_size;
 
-	/* Specify fingerprint index */
+	/* Specify fingerprint index,
+	 * exact or near-exact,
+	 * physical logical locality */
 	int index_category[2];
 	/* optional */
 	int index_specific;
@@ -205,17 +208,20 @@ struct destor {
 	int index_bloom_filter_size;
 
 	/*
-	 * [0] specifies the feature method,
-	 * and we select one feature every [1].
+	 * [0] specifies the sampling method, and
+	 * [1] specifies the sampling ratio.
 	 */
 	int index_sampling_method[2];
+	/* Specify the key-value store. */
 	int index_key_value_store;
+	/* The max number of prefetching units a key can refer to */
 	int index_value_length;
+	/* the size of the key in byte */
 	int index_key_size;
 
 	/*
 	 * [0] specifies the algorithm,
-	 * and [1] specifies the segment size.
+	 * and [1] specifies the average segment size.
 	 */
 	int index_segment_algorithm[2];
 	int index_segment_min;

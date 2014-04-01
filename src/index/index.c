@@ -17,12 +17,12 @@ struct {
 } index_buffer;
 
 struct {
-	/* Requests to the key-value store */
-	int lookup_requests;
-	int update_requests;
-	int lookup_requests_for_unique;
-	/* Overheads of prefetching module */
-	int read_prefetching_units;
+    /* Requests to the key-value store */
+    int lookup_requests;
+    int update_requests;
+    int lookup_requests_for_unique;
+    /* Overheads of prefetching module */
+    int read_prefetching_units;
 }index_overhead;
 
 
@@ -34,6 +34,75 @@ void init_index() {
     index_buffer.buffered_fingerprints = g_hash_table_new_full(g_int64_hash,
             g_fingerprint_equal, NULL, NULL);
     index_buffer.chunk_num = 0;
+
+    if(destor.index_specific != INDEX_SPECIFIC_NO){
+        destor.index_key_size = sizeof(fingerprint);
+        switch(destor.index_specific){
+            case INDEX_SPECIFIC_DDFS:{
+                destor.index_category[0] = INDEX_CATEGORY_EXACT;
+                destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
+                break;
+            }
+            case INDEX_SPECIFIC_BLOCK_LOCALITY_CACHING:{
+                destor.index_category[0] = INDEX_CATEGORY_EXACT;
+                destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
+                destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
+                destor.index_sampling_method[1] = 1;
+
+                destor.index_segment_prefech = destor.index_segment_prefech > 1 ?
+                destor.index_segment_prefech : 16;
+                break;
+            }
+            case INDEX_SPECIFIC_SAMPLED:{
+                destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
+                destor.index_category[1] = INDEX_CATEGORY_PHYSICAL_LOCALITY;
+
+                destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
+                destor.index_sampling_method[1] = destor.index_sampling_method[1] > 1 ?
+                destor.index_sampling_method[1] : 128;
+                break;
+            }
+            case INDEX_SPECIFIC_SPARSE:{
+                destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
+                destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
+
+                destor.index_segment_algorithm[0] = INDEX_SEGMENT_CONTENT_DEFINED;
+
+                destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
+
+                destor.index_sampling_method[0] = INDEX_SAMPLING_RANDOM;
+                destor.index_sampling_method[1] = destor.index_sampling_method[1] > 1 ?
+                destor.index_sampling_method[1] : 128;
+
+                destor.index_segment_prefech = 1;
+                break;
+            }
+            case INDEX_SPECIFIC_SILO:{
+                destor.index_category[0] = INDEX_CATEGORY_NEAR_EXACT;
+                destor.index_category[1] = INDEX_CATEGORY_LOGICAL_LOCALITY;
+
+                destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
+
+                destor.index_segment_selection_method[0] = INDEX_SEGMENT_SELECT_TOP;
+                destor.index_segment_selection_method[1] = 1;
+
+                destor.index_sampling_method[0] = INDEX_SAMPLING_MIN;
+                destor.index_sampling_method[1] = 0;
+
+                destor.index_segment_prefech = destor.index_segment_prefech > 1 ?
+                destor.index_segment_prefech : 16;
+                break;
+            }
+            default:{
+                WARNING("Invalid index specific!");
+                exit(1);
+            }
+        }
+    }
+
+    if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
+        destor.index_key_size = sizeof(fingerprint);
+    }
 
     if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
         destor.index_segment_algorithm[0] = INDEX_SEGMENT_FIXED;
@@ -117,9 +186,9 @@ static void index_lookup_base(struct segment *s){
             /* Searching in key-value store */
             int64_t* ids = kvstore_lookup((char*)&c->fp);
             if(ids){
-            	index_overhead.lookup_requests++;
+                index_overhead.lookup_requests++;
                 /* prefetch the target unit */
-            	index_overhead.read_prefetching_units++;
+                index_overhead.read_prefetching_units++;
                 fingerprint_cache_prefetch(ids[0]);
                 int64_t id = fingerprint_cache_lookup(&c->fp);
                 if(id != TEMPORARY_ID){
@@ -133,7 +202,7 @@ static void index_lookup_base(struct segment *s){
                     NOTICE("Filter phase: A key collision occurs");
                 }
             }else{
-            	index_overhead.lookup_requests_for_unique++;
+                index_overhead.lookup_requests_for_unique++;
                 VERBOSE("Dedup phase: non-existing fingerprint");
             }
         }
@@ -154,12 +223,12 @@ static void index_lookup_base(struct segment *s){
 extern void index_lookup_similarity_detection(struct segment *s);
 
 extern struct {
-	/* g_mutex_init() is unnecessary if in static storage. */
-	GMutex mutex;
-	GCond cond; // index buffer is not full
-	// index buffer is full, waiting
-	// if threshold < 0, it indicates no threshold.
-	int wait_threshold;
+    /* g_mutex_init() is unnecessary if in static storage. */
+    GMutex mutex;
+    GCond cond; // index buffer is not full
+    // index buffer is full, waiting
+    // if threshold < 0, it indicates no threshold.
+    int wait_threshold;
 } index_lock;
 
 /*
@@ -170,7 +239,7 @@ int index_lookup(struct segment* s) {
 
     /* Ensure the next phase not be blocked. */
     if (index_lock.wait_threshold > 0
-    		&& index_buffer.chunk_num >= index_lock.wait_threshold) {
+            && index_buffer.chunk_num >= index_lock.wait_threshold) {
         DEBUG("The index buffer is full (%d chunks in buffer)",
                 index_buffer.chunk_num);
         return 0;
@@ -201,7 +270,7 @@ void index_update(GHashTable *features, int64_t id){
     gpointer key, value;
     g_hash_table_iter_init(&iter, features);
     while (g_hash_table_iter_next(&iter, &key, &value)) {
-    	index_overhead.update_requests++;
+        index_overhead.update_requests++;
         kvstore_update(key, id);
     }
 }
@@ -274,7 +343,7 @@ int index_update_buffer(struct segment *s){
     }
 
     if (index_lock.wait_threshold <= 0
-    		|| index_buffer.chunk_num < index_lock.wait_threshold) {
+            || index_buffer.chunk_num < index_lock.wait_threshold) {
         DEBUG("The index buffer is ready for more chunks (%d chunks in buffer)",
                 index_buffer.chunk_num);
         return 0;
