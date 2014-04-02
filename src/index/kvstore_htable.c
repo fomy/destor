@@ -80,9 +80,9 @@ void init_kvstore_htable(){
 	FILE *fp;
 	if ((fp = fopen(indexpath, "r"))) {
 		/* The number of features */
-		int feature_num;
-		fread(&feature_num, sizeof(int), 1, fp);
-		for (; feature_num > 0; feature_num--) {
+		int key_num;
+		fread(&key_num, sizeof(int), 1, fp);
+		for (; key_num > 0; key_num--) {
 			/* Read a feature */
 			kvpair kv = new_kvpair();
 			fread(get_key(kv), destor.index_key_size, 1, fp);
@@ -114,8 +114,8 @@ void close_kvstore_htable() {
 		exit(1);
 	}
 
-	int feature_num = g_hash_table_size(htable);
-	fwrite(&feature_num, sizeof(int), 1, fp);
+	int key_num = g_hash_table_size(htable);
+	fwrite(&key_num, sizeof(int), 1, fp);
 
 	GHashTableIter iter;
 	gpointer key, value;
@@ -134,7 +134,7 @@ void close_kvstore_htable() {
 
 	}
 
-	/* It is not accurate */
+	/* It is a rough estimation */
 	destor.index_memory_footprint = g_hash_table_size(htable)
 			* (destor.index_key_size + sizeof(int64_t) * destor.index_value_length);
 

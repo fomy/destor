@@ -167,6 +167,7 @@ void index_lookup_similarity_detection(struct segment *s){
 				&& lookup_fingerprint_in_container(storage_buffer.container_buffer, &c->fp)){
 			c->id = get_container_id(storage_buffer.container_buffer);
 			SET_CHUNK(c, CHUNK_DUPLICATE);
+			SET_CHUNK(c, CHUNK_REWRITE_DENIED);
 		}
 		/*
 		 * First check the buffered fingerprints,
