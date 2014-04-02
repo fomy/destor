@@ -114,6 +114,8 @@ void init_index() {
         init_segment_management();
     }
 
+    assert(destor.index_key_size > 0 && destor.index_key_size <= sizeof(fingerprint));
+
     init_sampling_method();
     init_segmenting_method();
 

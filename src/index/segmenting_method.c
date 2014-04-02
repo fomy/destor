@@ -80,8 +80,7 @@ static struct segment* segment_content_defined(struct chunk *c) {
         /* The end of stream */
         return tmp;
 
-    if (CHECK_CHUNK(c,
-                CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
+    if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
         g_queue_push_tail(tmp->chunks, c);
         return NULL;
     }
@@ -93,7 +92,7 @@ static struct segment* segment_content_defined(struct chunk *c) {
         return NULL;
     }
 
-    int *head = (int*)&c->fp;
+    int *head = (int*)&c->fp[16];
     if ((*head) % destor.index_segment_algorithm[1] == 0) {
         struct segment* ret = tmp;
         tmp = new_segment();

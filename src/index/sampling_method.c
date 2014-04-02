@@ -184,7 +184,7 @@ static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
         if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
             continue;
 
-        int *head = (int*)&c->fp;
+        int *head = (int*)&c->fp[16];
         if ((*head) % destor.index_sampling_method[1] == 0) {
             if (!g_hash_table_contains(features, &c->fp)) {
                 fingerprint *new_feature = (fingerprint*) malloc(sizeof(fingerprint));

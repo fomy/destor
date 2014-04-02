@@ -18,6 +18,14 @@ static gboolean g_key_equal(char* a, char* b){
 	return !memcmp(a, b, destor.index_key_size);
 }
 
+static guint g_key_hash(char *key){
+	int i, hash = 0;
+	for(i=0; i<destor.index_key_size; i++){
+		hash += key[i] << (8*i);
+	}
+	return hash;
+}
+
 static int32_t kvpair_size;
 
 /*
@@ -58,7 +66,11 @@ static void free_kvpair(kvpair kvp){
 void init_kvstore_htable(){
     kvpair_size = destor.index_key_size + destor.index_value_length * 8;
 
-	htable = g_hash_table_new_full(g_int64_hash, g_key_equal,
+    if(destor.index_key_size >=4)
+    	htable = g_hash_table_new_full(g_int_hash, g_key_equal,
+			free_kvpair, NULL);
+    else
+    	htable = g_hash_table_new_full(g_key_hash, g_key_equal,
 			free_kvpair, NULL);
 
 	sds indexpath = sdsdup(destor.working_directory);
@@ -145,7 +157,7 @@ void kvstore_htable_update(char* key, int64_t id) {
 	kvpair kv = g_hash_table_lookup(htable, key);
 	if (!kv) {
 		kv = new_kvpair_full(key);
-		g_hash_table_insert(htable, get_key(kv), kv);
+		g_hash_table_replace(htable, get_key(kv), kv);
 	}
 	kv_update(kv, id);
 }
