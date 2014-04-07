@@ -114,11 +114,6 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	sdsfree(fname);
 
-	/*set deleted until backup is completed.*/
-	b->deleted = 1;
-	b->number_of_chunks = 0;
-	b->number_of_files = 0;
-
 	return b;
 }
 
@@ -278,6 +273,7 @@ static inline int64_t id_to_bnum(segmentid id) {
 segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_size){
 	assert(flag == CHUNK_SEGMENT_START || flag == CHUNK_SEGMENT_END);
 	struct chunkPointer* cp = (struct chunkPointer*) malloc(sizeof(struct chunkPointer));
+	// Set to a negative number for being distinguished from container ID.
 	cp->id = 0 - flag;
 	cp->size = segment_size;
 
@@ -362,7 +358,7 @@ struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		fread(&(cp[i].fp), sizeof(fingerprint), 1, b->recipe_fp);
 		fread(&(cp[i].id), sizeof(containerid), 1, b->recipe_fp);
 		fread(&(cp[i].size), sizeof(int32_t), 1, b->recipe_fp);
-		/* Ignore segment boundary */
+		/* Ignore segment boundaries */
 		if(cp[i].id == 0 - CHUNK_SEGMENT_START || cp[i].id == 0 - CHUNK_SEGMENT_END)
 			i--;
 

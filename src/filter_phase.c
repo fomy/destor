@@ -211,12 +211,13 @@ static void* filter_thread(void *arg) {
         segmentid sid = append_segment_flag(jcr.bv, CHUNK_SEGMENT_START, s->chunk_num);
 
         /* Write recipe */
-       	while((c = g_queue_pop_head(s->chunks))){
+        int qlen = g_queue_get_length(s->chunks);
+        for(i=0; i< qlen; i++){
+        	c = g_queue_peek_nth(s->chunks, i);
 
         	if(r == NULL){
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
         		r = new_recipe_meta(c->data);
-        		free_chunk(c);
         	}else if(!CHECK_CHUNK(c,CHUNK_FILE_END)){
         		struct chunkPointer* cp = (struct chunkPointer*)malloc(sizeof(struct chunkPointer));
         		cp->id = c->id;
@@ -224,14 +225,12 @@ static void* filter_thread(void *arg) {
         		cp->size = c->size;
         		append_n_chunk_pointers(jcr.bv, cp ,1);
         		free(cp);
-        		free_chunk(c);
         		r->chunknum++;
         		r->filesize += c->size;
         	}else{
         		append_recipe_meta(jcr.bv, r);
         		free_recipe_meta(r);
         		r = NULL;
-        		free_chunk(c);
         	}
         }
 
