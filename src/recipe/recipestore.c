@@ -69,7 +69,7 @@ struct backupVersion* create_backup_version(const char *path) {
 	}
 	sdsupdatelen(b->path);
 
-	b->deleted = 1;
+	b->deleted = 0;
 	b->number_of_chunks = 0;
 	b->number_of_files = 0;
 
@@ -210,8 +210,6 @@ struct backupVersion* open_backup_version(int number) {
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
-	b->deleted = 0;
-
 	fseek(b->metadata_fp, 0, SEEK_SET);
 	fwrite(&b->bv_num, sizeof(b->bv_num), 1, b->metadata_fp);
 	fwrite(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
@@ -280,7 +278,7 @@ static inline int64_t id_to_bnum(segmentid id) {
 segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_size){
 	assert(flag == CHUNK_SEGMENT_START || flag == CHUNK_SEGMENT_END);
 	struct chunkPointer* cp = (struct chunkPointer*) malloc(sizeof(struct chunkPointer));
-	cp->id = flag;
+	cp->id = 0 - flag;
 	cp->size = segment_size;
 
 	int64_t off = ftell(b->recipe_fp);
@@ -365,7 +363,7 @@ struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		fread(&(cp[i].id), sizeof(containerid), 1, b->recipe_fp);
 		fread(&(cp[i].size), sizeof(int32_t), 1, b->recipe_fp);
 		/* Ignore segment boundary */
-		if(cp[i].id == CHUNK_SEGMENT_START || cp[i].id == CHUNK_SEGMENT_END)
+		if(cp[i].id == 0 - CHUNK_SEGMENT_START || cp[i].id == 0 - CHUNK_SEGMENT_END)
 			i--;
 
 	}
@@ -448,6 +446,8 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	GQueue *segments = g_queue_new();
 
 	if(opened_bv == NULL || opened_bv->bv_num != bnum){
+		if(opened_bv)
+			free_backup_version(opened_bv);
 		opened_bv = open_backup_version(bnum);
 		assert(opened_bv);
 	}
@@ -466,7 +466,11 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		fread(&flag.fp, sizeof(flag.fp), 1, opened_bv->recipe_fp);
 		fread(&flag.id, sizeof(flag.id), 1, opened_bv->recipe_fp);
 		fread(&flag.size, sizeof(flag.size), 1, opened_bv->recipe_fp);
-		assert(flag.id == CHUNK_SEGMENT_START);
+		if(flag.id != -CHUNK_SEGMENT_START){
+			assert(j!=0);
+			NOTICE("Dedup phase: no more segment can be prefetched!");
+			break;
+		}
 
 		struct segmentRecipe* sr = new_segment_recipe();
 		sr->id = make_segment_id(opened_bv->bv_num, current_off, flag.size);
@@ -484,7 +488,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		fread(&flag.fp, sizeof(flag.fp), 1, opened_bv->recipe_fp);
 		fread(&flag.id, sizeof(flag.id), 1, opened_bv->recipe_fp);
 		fread(&flag.size, sizeof(flag.size), 1, opened_bv->recipe_fp);
-		assert(flag.id == CHUNK_SEGMENT_END);
+		assert(flag.id == 0 - CHUNK_SEGMENT_END);
 
 		g_queue_push_tail(segments, sr);
 	}
