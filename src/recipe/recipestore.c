@@ -98,6 +98,8 @@ struct backupVersion* create_backup_version(const char *path) {
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
+	fflush(b->metadata_fp);
+
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
 	if ((b->recipe_fp = fopen(fname, "w")) <= 0) {
@@ -283,7 +285,11 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	fwrite(&cp->id, sizeof(containerid), 1, b->recipe_fp);
 	fwrite(&cp->size, sizeof(int32_t), 1, b->recipe_fp);
 
-	return flag == CHUNK_SEGMENT_START ? make_segment_id(b->bv_num, off, segment_size) : TEMPORARY_ID;
+	if(flag == CHUNK_SEGMENT_END){
+		fflush(b->recipe_fp);
+		return TEMPORARY_ID;
+	}else
+		return make_segment_id(b->bv_num, off, segment_size);
 }
 
 /*
