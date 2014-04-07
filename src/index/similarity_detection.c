@@ -7,7 +7,7 @@
 #include "index.h"
 #include "kvstore.h"
 #include "fingerprint_cache.h"
-#include "segmentstore.h"
+#include "../recipe/recipestore.h"
 #include "../storage/containerstore.h"
 #include "../jcr.h"
 

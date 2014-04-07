@@ -5,7 +5,6 @@
 #include "rewrite_phase.h"
 #include "backup.h"
 #include "index/index.h"
-#include "index/segmentstore.h"
 
 static pthread_t filter_t;
 static int64_t chunk_num;
@@ -30,7 +29,7 @@ extern struct {
  */
 static void* filter_thread(void *arg) {
     int enable_rewrite = 1;
-    struct recipe* r = NULL;
+    struct recipeMeta* r = NULL;
 
     while (1) {
         struct chunk* c = sync_queue_pop(rewrite_queue);
@@ -208,52 +207,15 @@ static void* filter_thread(void *arg) {
 
         int full = index_update_buffer(s);
 
-        if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
-            /*
-             * TO-DO
-             * Update_index for logical locality
-             */
-        	struct segmentRecipe* sr = new_segment_recipe_full(s);
-
-        	sr = update_segment(sr);
-            s->features = sampling(s->chunks, s->chunk_num);
-        	if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
-        		/*
-        		 * For exact deduplication,
-        		 * unique fingerprints are inserted.
-        		 */
-        		VERBOSE("Filter phase: add %d unique fingerprints to %d features",
-        				g_hash_table_size(recently_unique_chunks),
-        				g_hash_table_size(s->features));
-        		GHashTableIter iter;
-        		gpointer key, value;
-        		g_hash_table_iter_init(&iter, recently_unique_chunks);
-        		while(g_hash_table_iter_next(&iter, &key, &value)){
-        			struct chunk* uc = value;
-        			fingerprint *ft = malloc(sizeof(fingerprint));
-        			memcpy(ft, &uc->fp, sizeof(fingerprint));
-        			g_hash_table_insert(s->features, ft, NULL);
-        		}
-        	}
-        	index_update(s->features, sr->id);
-        	free_segment_recipe(sr);
-        }
-
-        if(index_lock.wait_threshold > 0 && full == 0){
-        	g_cond_broadcast(&index_lock.cond);
-        }
-        TIMER_END(1, jcr.filter_time);
-        g_mutex_unlock(&index_lock.mutex);
-
-        g_hash_table_destroy(recently_rewritten_chunks);
-        g_hash_table_destroy(recently_unique_chunks);
+        /* Write a SEGMENT_BEGIN */
+        segmentid sid = append_segment_flag(jcr.bv, CHUNK_SEGMENT_START, s->chunk_num);
 
         /* Write recipe */
        	while((c = g_queue_pop_head(s->chunks))){
 
         	if(r == NULL){
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
-        		r = new_recipe(c->data);
+        		r = new_recipe_meta(c->data);
         		free_chunk(c);
         	}else if(!CHECK_CHUNK(c,CHUNK_FILE_END)){
         		struct chunkPointer* cp = (struct chunkPointer*)malloc(sizeof(struct chunkPointer));
@@ -267,13 +229,52 @@ static void* filter_thread(void *arg) {
         		r->filesize += c->size;
         	}else{
         		append_recipe_meta(jcr.bv, r);
-        		free_recipe(r);
+        		free_recipe_meta(r);
         		r = NULL;
         		free_chunk(c);
         	}
         }
 
+       	/* Write a SEGMENT_END */
+       	append_segment_flag(jcr.bv, CHUNK_SEGMENT_END, 0);
+
+        if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
+             /*
+              * TO-DO
+              * Update_index for logical locality
+              */
+            s->features = sampling(s->chunks, s->chunk_num);
+         	if(destor.index_category[0] == INDEX_CATEGORY_EXACT){
+         		/*
+         		 * For exact deduplication,
+         		 * unique fingerprints are inserted.
+         		 */
+         		VERBOSE("Filter phase: add %d unique fingerprints to %d features",
+         				g_hash_table_size(recently_unique_chunks),
+         				g_hash_table_size(s->features));
+         		GHashTableIter iter;
+         		gpointer key, value;
+         		g_hash_table_iter_init(&iter, recently_unique_chunks);
+         		while(g_hash_table_iter_next(&iter, &key, &value)){
+         			struct chunk* uc = value;
+         			fingerprint *ft = malloc(sizeof(fingerprint));
+         			memcpy(ft, &uc->fp, sizeof(fingerprint));
+         			g_hash_table_insert(s->features, ft, NULL);
+         		}
+         	}
+         	index_update(s->features, sid);
+         }
+
         free_segment(s, free_chunk);
+
+        if(index_lock.wait_threshold > 0 && full == 0){
+        	g_cond_broadcast(&index_lock.cond);
+        }
+        TIMER_END(1, jcr.filter_time);
+        g_mutex_unlock(&index_lock.mutex);
+
+        g_hash_table_destroy(recently_rewritten_chunks);
+        g_hash_table_destroy(recently_unique_chunks);
 
     }
 

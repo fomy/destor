@@ -7,7 +7,7 @@
 #include "../destor.h"
 #include "index.h"
 #include "../storage/containerstore.h"
-#include "segmentstore.h"
+#include "../recipe/recipestore.h"
 #include "../tools/lru_cache.h"
 
 static struct lruCache* lru_queue;

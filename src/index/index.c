@@ -1,8 +1,8 @@
 #include "index.h"
 #include "kvstore.h"
 #include "fingerprint_cache.h"
-#include "segmentstore.h"
 #include "../storage/containerstore.h"
+#include "../recipe/recipestore.h"
 #include "../jcr.h"
 
 /* The buffer size > 2 * destor.rewrite_buffer_size */
@@ -110,8 +110,6 @@ void init_index() {
             destor.index_sampling_method[0] = INDEX_SAMPLING_UNIFORM;
             destor.index_sampling_method[1] = 1;
         }
-    }else{
-        init_segment_management();
     }
 
     assert(destor.index_key_size > 0 && destor.index_key_size <= sizeof(fingerprint));
@@ -131,9 +129,6 @@ void init_index() {
 }
 
 void close_index() {
-    if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
-        close_segment_management();
-    }
     close_kvstore();
 }
 

@@ -67,7 +67,7 @@ static void* read_recipe_thread(void *arg) {
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
 
-		struct recipe *r = read_next_recipe_meta(jcr.bv);
+		struct recipeMeta *r = read_next_recipe_meta(jcr.bv);
 
 		struct chunk *c = new_chunk(sdslen(r->filename) + 1);
 		strcpy(c->data, r->filename);
@@ -102,7 +102,7 @@ static void* read_recipe_thread(void *arg) {
 		SET_CHUNK(c, CHUNK_FILE_END);
 		sync_queue_push(restore_recipe_queue, c);
 
-		free_recipe(r);
+		free_recipe_meta(r);
 	}
 
 	sync_queue_term(restore_recipe_queue);

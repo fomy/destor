@@ -49,7 +49,7 @@ libindex_a_LIBADD =
 am_libindex_a_OBJECTS = index.$(OBJEXT) fingerprint_cache.$(OBJEXT) \
 	kvstore.$(OBJEXT) kvstore_htable.$(OBJEXT) \
 	sampling_method.$(OBJEXT) segmenting_method.$(OBJEXT) \
-	segmentstore.$(OBJEXT) similarity_detection.$(OBJEXT)
+	similarity_detection.$(OBJEXT)
 libindex_a_OBJECTS = $(am_libindex_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -152,7 +152,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libindex.a
-libindex_a_SOURCES = index.c fingerprint_cache.c kvstore.c kvstore_htable.c kvstore-c sampling_method.c segmenting_method.c segmentstore.c similarity_detection.c
+libindex_a_SOURCES = index.c fingerprint_cache.c kvstore.c kvstore_htable.c sampling_method.c segmenting_method.c similarity_detection.c
 all: all-am
 
 .SUFFIXES:
@@ -207,7 +207,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvstore_htable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sampling_method.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segmenting_method.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segmentstore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/similarity_detection.Po@am__quote@
 
 .c.o:
