@@ -286,7 +286,8 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	fwrite(&cp->size, sizeof(int32_t), 1, b->recipe_fp);
 
 	if(flag == CHUNK_SEGMENT_END){
-		fflush(b->recipe_fp);
+		if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
+			fflush(b->recipe_fp);
 		return TEMPORARY_ID;
 	}else
 		return make_segment_id(b->bv_num, off, segment_size);
