@@ -264,7 +264,7 @@ static void* filter_thread(void *arg) {
          	index_update(s->features, sid);
          }
 
-        free_segment(s, free_chunk);
+        free_segment(s);
 
         if(index_lock.wait_threshold > 0 && full == 0){
         	g_cond_broadcast(&index_lock.cond);

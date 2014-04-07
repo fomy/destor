@@ -34,8 +34,8 @@ extern struct {
  * Larger one comes before smaller one.
  * Descending order.
  */
-static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
-		struct segmentRecipe* b, gpointer user_data) {
+static gint g_segment_cmp_feature_num(struct segment* a,
+		struct segment* b, gpointer user_data) {
 	gint ret = g_hash_table_size(b->features) - g_hash_table_size(a->features);
 	if (ret == 0) {
 		ret = b->id > a->id ? 1 : -1;
@@ -47,8 +47,8 @@ static gint g_segment_cmp_feature_num(struct segmentRecipe* a,
 /*
  * Remove the features that are common with top from target.
  */
-static void features_trim(struct segmentRecipe *target,
-		struct segmentRecipe *top) {
+static void features_trim(struct segment *target,
+		struct segment *top) {
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, top->features);
@@ -66,7 +66,7 @@ static void top_segment_select(GHashTable* features) {
 	 * Mapping segment IDs to similar segments that hold at least one of features.
 	 */
 	GHashTable *similar_segments = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL,
-			free_segment_recipe);
+			free_segment);
 
 	GHashTableIter iter;
 	gpointer key, value;
@@ -81,17 +81,16 @@ static void top_segment_select(GHashTable* features) {
 			for (i = 0; i < destor.index_value_length; i++) {
 				if (ids[i] == TEMPORARY_ID)
 					break;
-				struct segmentRecipe* sr = g_hash_table_lookup(similar_segments, &ids[i]);
-				if (!sr) {
-					sr = new_segment_recipe();
-					sr->id = ids[i];
-					g_hash_table_insert(similar_segments, &sr->id, sr);
+				struct segment* s = g_hash_table_lookup(similar_segments, &ids[i]);
+				if (!s) {
+					s = new_segment_full();
+					s->id = ids[i];
+					g_hash_table_insert(similar_segments, &s->id, s);
 				}
-				fingerprint *feature = (fingerprint*) malloc(
-						sizeof(fingerprint));
-				memcpy(feature, key, sizeof(fingerprint));
-				assert(!g_hash_table_contains(sr->features, feature));
-				g_hash_table_insert(sr->features, feature, NULL);
+				char* feature = malloc(destor.index_key_size);
+				memcpy(feature, key, destor.index_key_size);
+				assert(!g_hash_table_contains(s->features, feature));
+				g_hash_table_insert(s->features, feature, NULL);
 			}
 		}else{
 			index_overhead.lookup_requests_for_unique++;
@@ -107,11 +106,10 @@ static void top_segment_select(GHashTable* features) {
 		g_hash_table_iter_init(&iter, similar_segments);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			/* Insert similar segments into GSequence. */
-			struct segmentRecipe* sr = value;
-			NOTICE("candidate segment %ld with %d shared features", sr->id >> 24,
-					g_hash_table_size(sr->features));
-			g_sequence_insert_sorted(seq, (struct segmentRecipe*) value,
-					g_segment_cmp_feature_num, NULL);
+			struct segment* s = value;
+			NOTICE("candidate segment %lld with %d shared features", s->id,
+					g_hash_table_size(s->features));
+			g_sequence_insert_sorted(seq, s, g_segment_cmp_feature_num, NULL);
 		}
 
 		/* The number of selected similar segments */
@@ -125,9 +123,9 @@ static void top_segment_select(GHashTable* features) {
 		/* Prefetched top similar segments are pushed into the queue. */
 		for (i = 0; i < num; i++) {
 			/* Get the top segment */
-			struct segmentRecipe *top = g_sequence_get(
+			struct segment *top = g_sequence_get(
 					g_sequence_get_begin_iter(seq));
-			NOTICE("read segment %ld", top->id >> 24);
+			NOTICE("read segment %lld", top->id);
 
 			index_overhead.read_prefetching_units++;
 			fingerprint_cache_prefetch(top->id);

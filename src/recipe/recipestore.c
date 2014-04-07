@@ -421,15 +421,11 @@ struct segmentRecipe* new_segment_recipe() {
 	sr->id = TEMPORARY_ID;
 	sr->kvpairs = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
 			NULL, free);
-	sr->features = g_hash_table_new_full(g_int64_hash, g_fingerprint_equal,
-			free, NULL);
 	return sr;
 }
 
 void free_segment_recipe(struct segmentRecipe* sr) {
 	g_hash_table_destroy(sr->kvpairs);
-	if(sr->features)
-		g_hash_table_destroy(sr->features);
 	free(sr);
 }
 

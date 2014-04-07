@@ -279,6 +279,7 @@ struct chunk {
 
 /* struct segment only makes sense for index. */
 struct segment {
+	segmentid id;
 	/* The actual number because there are signal chunks. */
 	int32_t chunk_num;
 	GQueue *chunks;
@@ -289,7 +290,8 @@ struct chunk* new_chunk(int32_t);
 void free_chunk(struct chunk*);
 
 struct segment* new_segment();
-void free_segment(struct segment* s, void (*free_data)(void *));
+struct segment* new_segment_full();
+void free_segment(struct segment* s);
 
 gboolean g_fingerprint_equal(fingerprint* fp1, fingerprint* fp2);
 gint g_fingerprint_cmp(fingerprint* fp1, fingerprint* fp2, gpointer user_data);

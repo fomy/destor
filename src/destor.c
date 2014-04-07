@@ -7,6 +7,7 @@
 
 #include "destor.h"
 #include "jcr.h"
+#include "index/index.h"
 #include "storage/containerstore.h"
 
 extern void do_backup(char *path);
@@ -376,14 +377,21 @@ void free_chunk(struct chunk* ck) {
 
 struct segment* new_segment() {
 	struct segment * s = (struct segment*) malloc(sizeof(struct segment));
+	s->id = TEMPORARY_ID;
 	s->chunk_num = 0;
 	s->chunks = g_queue_new();
 	s->features = NULL;
 	return s;
 }
 
-void free_segment(struct segment* s, void (*free_data)(void *)) {
-	g_queue_free_full(s->chunks, free_data);
+struct segment* new_segment_full(){
+	struct segment* s = new_segment();
+	s->features = g_hash_table_new_full(g_feature_hash, g_feature_equal, free, NULL);
+	return s;
+}
+
+void free_segment(struct segment* s) {
+	g_queue_free_full(s->chunks, free_chunk);
 
 	if (s->features)
 		g_hash_table_destroy(s->features);

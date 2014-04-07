@@ -41,4 +41,7 @@ int index_update_buffer(struct segment *s);
 extern GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
 extern struct segment* (*segmenting)(struct chunk *c);
 
+gboolean g_feature_equal(char* a, char* b);
+guint g_feature_hash(char *feature);
+
 #endif

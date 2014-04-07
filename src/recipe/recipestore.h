@@ -44,7 +44,6 @@ struct segmentRecipe {
 	segmentid id;
 	/* Map fingerprints in the segment to their container IDs.*/
 	GHashTable *kvpairs;
-	GHashTable *features;
 };
 
 /*

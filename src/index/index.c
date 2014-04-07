@@ -25,6 +25,17 @@ struct {
     int read_prefetching_units;
 }index_overhead;
 
+gboolean g_feature_equal(char* a, char* b){
+	return !memcmp(a, b, destor.index_key_size);
+}
+
+guint g_feature_hash(char *feature){
+	int i, hash = 0;
+	for(i=0; i<destor.index_key_size; i++){
+		hash += feature[i] << (8*i);
+	}
+	return hash;
+}
 
 extern void init_segmenting_method();
 extern void init_sampling_method();

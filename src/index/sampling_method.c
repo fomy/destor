@@ -1,4 +1,5 @@
 #include "../destor.h"
+#include "index.h"
 
 /*
  * Sampling features for a chunk sequence.
@@ -21,7 +22,7 @@ static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
             feature_num + 1 : feature_num;
     }
 
-    GSequence *candidates = g_sequence_new(NULL);
+    GSequence *candidates = g_sequence_new(free);
     int queue_len = g_queue_get_length(chunks), i;
     for (i = 0; i < queue_len; i++) {
         /* iterate the queue */
@@ -54,22 +55,24 @@ static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
         }
     }
 
-    GHashTable * features = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_equal, free, NULL);
+    GHashTable * features = g_hash_table_new_full(g_feature_hash,
+            g_feature_equal, free, NULL);
 
     while (g_sequence_get_length(candidates) > 0) {
-        fingerprint *feature = g_sequence_get(
+        fingerprint *candidate = g_sequence_get(
                 g_sequence_get_begin_iter(candidates));
-        g_hash_table_replace(features, feature, NULL);
+        char* feature = malloc(destor.index_key_size);
+        memcpy(feature, candidate, destor.index_key_size);
+        g_hash_table_insert(features, feature, NULL);
         g_sequence_remove(g_sequence_get_begin_iter(candidates));
     }
     g_sequence_free(candidates);
 
     if (g_hash_table_size(features) == 0) {
         WARNING("Dedup phase: An empty segment and thus no min-feature is selected!");
-        fingerprint* fp = malloc(sizeof(fingerprint));
-        memset(fp, 0xff, sizeof(fingerprint));
-        g_hash_table_insert(features, fp, NULL);
+        char* feature = malloc(destor.index_key_size);
+        memset(feature, 0xff, destor.index_key_size);
+        g_hash_table_insert(features, feature, NULL);
     }
 
     return features;
@@ -143,26 +146,25 @@ static GHashTable* index_sampling_optimized_min(GQueue *chunks,
         count++;
     }
 
-    GHashTable * features = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_equal, free, NULL);
+    GHashTable * features = g_hash_table_new_full(g_feature_hash,
+            g_feature_equal, free, NULL);
 
     while (g_sequence_get_length(anchors) > 0) {
         struct anchor *a = g_sequence_get(g_sequence_get_begin_iter(anchors));
 
-        fingerprint *feature = (fingerprint*) malloc(sizeof(fingerprint));
-        memcpy(feature, &a->candidate, sizeof(fingerprint));
+        char* feature = malloc(destor.index_key_size);
+        memcpy(feature, &a->candidate, destor.index_key_size);
 
-        g_hash_table_replace(features, feature, NULL);
+        g_hash_table_insert(features, feature, NULL);
         g_sequence_remove(g_sequence_get_begin_iter(anchors));
     }
     g_sequence_free(anchors);
 
     if (g_hash_table_size(features) == 0) {
-        WARNING(
-                "Dedup phase: An empty segment and thus no min-feature is selected!");
-        fingerprint* fp = malloc(sizeof(fingerprint));
-        memset(fp, 0xff, sizeof(fingerprint));
-        g_hash_table_insert(features, fp, NULL);
+        WARNING("Dedup phase: An empty segment and thus no min-feature is selected!");
+        char* feature = malloc(destor.index_key_size);
+        memset(feature, 0xff, destor.index_key_size);
+        g_hash_table_insert(features, feature, NULL);
     }
 
     return features;
@@ -173,8 +175,8 @@ static GHashTable* index_sampling_optimized_min(GQueue *chunks,
  */
 static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
     assert(destor.index_sampling_method[1] != 0);
-    GHashTable * features = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_equal, free, NULL);
+    GHashTable * features = g_hash_table_new_full(g_feature_hash,
+            g_feature_equal, free, NULL);
 
     int queue_len = g_queue_get_length(chunks), i;
     for (i = 0; i < queue_len; i++) {
@@ -187,10 +189,9 @@ static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
         int *head = (int*)&c->fp[16];
         if ((*head) % destor.index_sampling_method[1] == 0) {
             if (!g_hash_table_contains(features, &c->fp)) {
-                fingerprint *new_feature = (fingerprint*) malloc(sizeof(fingerprint));
-                memcpy(new_feature, &c->fp, sizeof(fingerprint));
-                g_hash_table_insert(features, new_feature,
-                        NULL);
+                char *new_feature = malloc(destor.index_key_size);
+                memcpy(new_feature, &c->fp, destor.index_key_size);
+                g_hash_table_insert(features, new_feature, NULL);
             }
         }
     }
@@ -198,8 +199,8 @@ static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
     if (g_hash_table_size(features) == 0) {
         /* No feature? */
         WARNING("Dedup phase: no features are sampled");
-        fingerprint *new_feature = (fingerprint*) malloc(sizeof(fingerprint));
-        memset(new_feature, 0x00, sizeof(fingerprint));
+        char *new_feature = malloc(destor.index_key_size);
+        memset(new_feature, 0x00, destor.index_key_size);
         g_hash_table_insert(features, new_feature, NULL);
     }
     return features;
@@ -208,8 +209,8 @@ static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
 
 static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
     assert(destor.index_sampling_method[1] != 0);
-    GHashTable * features = g_hash_table_new_full(g_int64_hash,
-            g_fingerprint_equal, free, NULL);
+    GHashTable * features = g_hash_table_new_full(g_feature_hash,
+            g_feature_equal, free, NULL);
     int count = 0;
     int queue_len = g_queue_get_length(chunks), i;
     for (i = 0; i < queue_len; i++) {
@@ -217,11 +218,9 @@ static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
         /* Examine whether fp is a feature */
         if (count % destor.index_sampling_method[1] == 0) {
             if (!g_hash_table_contains(features, &c->fp)) {
-                fingerprint *new_feature = (fingerprint*) malloc(
-                        sizeof(fingerprint));
-                memcpy(new_feature, &c->fp, sizeof(fingerprint));
-                g_hash_table_insert(features, new_feature,
-                        NULL);
+                char *new_feature = malloc(destor.index_key_size);
+                memcpy(new_feature, &c->fp, destor.index_key_size);
+                g_hash_table_insert(features, new_feature, NULL);
             }
         }
         count++;
@@ -231,10 +230,9 @@ static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
         /* No feature? Empty segment.*/
         assert(chunk_num == 0);
         WARNING("Dedup phase: An empty segment and thus no uniform-feature is selected!");
-        fingerprint *new_feature = (fingerprint*) malloc(sizeof(fingerprint));
-        memset(new_feature, 0x00, sizeof(fingerprint));
-        g_hash_table_insert(features, new_feature,
-                NULL);
+        char *new_feature = malloc(destor.index_key_size);
+        memset(new_feature, 0x00, destor.index_key_size);
+        g_hash_table_insert(features, new_feature, NULL);
     }
     return features;
 }

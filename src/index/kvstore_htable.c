@@ -6,6 +6,7 @@
  */
 
 #include "../destor.h"
+#include "index.h"
 
 typedef char* kvpair;
 
@@ -13,18 +14,6 @@ typedef char* kvpair;
 #define get_value(kv) ((int64_t*)(kv+destor.index_key_size))
 
 static GHashTable *htable;
-
-static gboolean g_key_equal(char* a, char* b){
-	return !memcmp(a, b, destor.index_key_size);
-}
-
-static guint g_key_hash(char *key){
-	int i, hash = 0;
-	for(i=0; i<destor.index_key_size; i++){
-		hash += key[i] << (8*i);
-	}
-	return hash;
-}
 
 static int32_t kvpair_size;
 
@@ -67,10 +56,10 @@ void init_kvstore_htable(){
     kvpair_size = destor.index_key_size + destor.index_value_length * 8;
 
     if(destor.index_key_size >=4)
-    	htable = g_hash_table_new_full(g_int_hash, g_key_equal,
+    	htable = g_hash_table_new_full(g_int_hash, g_feature_equal,
 			free_kvpair, NULL);
     else
-    	htable = g_hash_table_new_full(g_key_hash, g_key_equal,
+    	htable = g_hash_table_new_full(g_feature_hash, g_feature_equal,
 			free_kvpair, NULL);
 
 	sds indexpath = sdsdup(destor.working_directory);
