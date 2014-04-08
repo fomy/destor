@@ -281,6 +281,8 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	fseek(b->recipe_fp, 0, SEEK_END);
 	int64_t off = ftell(b->recipe_fp);
 
+	NOTICE("Filter phase: write segment at %lld offset!", off);
+
 	fwrite(&cp->fp, sizeof(fingerprint), 1, b->recipe_fp);
 	fwrite(&cp->id, sizeof(containerid), 1, b->recipe_fp);
 	fwrite(&cp->size, sizeof(int32_t), 1, b->recipe_fp);
@@ -457,7 +459,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 	fseek(opened_bv->recipe_fp, off, SEEK_SET);
 
-	VERBOSE("Dedup phase: Read segment %lld in backup %lld of %lld offset and %lld size",
+	NOTICE("Dedup phase: Read segment %lld in backup %lld of %lld offset and %lld size",
 			id, bnum, off, size);
 
 	struct chunkPointer flag;
