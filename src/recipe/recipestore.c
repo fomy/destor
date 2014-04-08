@@ -6,6 +6,7 @@
  */
 
 #include "recipestore.h"
+#include "../jcr.h"
 
 static int32_t backup_version_count;
 static sds recipepath;
@@ -97,8 +98,6 @@ struct backupVersion* create_backup_version(const char *path) {
 	int pathlen = sdslen(b->path);
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
-
-	fflush(b->metadata_fp);
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
@@ -279,6 +278,7 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	cp->id = 0 - flag;
 	cp->size = segment_size;
 
+	fseek(b->recipe_fp, 0, SEEK_END);
 	int64_t off = ftell(b->recipe_fp);
 
 	fwrite(&cp->fp, sizeof(fingerprint), 1, b->recipe_fp);
@@ -286,8 +286,6 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	fwrite(&cp->size, sizeof(int32_t), 1, b->recipe_fp);
 
 	if(flag == CHUNK_SEGMENT_END){
-		if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY)
-			fflush(b->recipe_fp);
 		return TEMPORARY_ID;
 	}else
 		return make_segment_id(b->bv_num, off, segment_size);
@@ -445,10 +443,16 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	GQueue *segments = g_queue_new();
 
 	if(opened_bv == NULL || opened_bv->bv_num != bnum){
-		if(opened_bv)
+
+		if(opened_bv && opened_bv->bv_num != jcr.bv->bv_num)
 			free_backup_version(opened_bv);
-		opened_bv = open_backup_version(bnum);
-		assert(opened_bv);
+
+		if(bnum == jcr.bv->bv_num)
+			opened_bv = jcr.bv;
+		else{
+			opened_bv = open_backup_version(bnum);
+			assert(opened_bv);
+		}
 	}
 
 	fseek(opened_bv->recipe_fp, off, SEEK_SET);

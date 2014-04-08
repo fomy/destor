@@ -8,7 +8,7 @@ Features
 2. Chunk-level pipeline;
 3. Fixed-sized chunking and Content-Defined Chunking (CDC);
 4. A variety of fingerprint indexes, including DDFS, Extreme Binning, Sparse Index, SiLo, etc.
-5. A variety of rewriting algorithms, including CFL, CBR, CAP, etc.
+5. A variety of rewriting algorithms, including CFL, CBR, CAP, HAR etc.
 6. A variety of restore algorithms, including LRU, optimal replacement algorithm, rolling forward assembly.
 
 Related papers
