@@ -36,11 +36,19 @@ Related papers
     > c) Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
     >
     > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+    >
+    > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
 
-3. Garbage collection (available in first release, but to be continue in new version):
+3. Garbage collection (available in first release (Mouse), but to be continue in new version):
     > a) Building a High-Performance Deduplication System, @USENIX ATC'11.
     >
     > b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
+    >
+    > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
+
+Recent publications using Destor
+-----------------------------
+1. Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
 
 Environment
 -----------

@@ -66,8 +66,7 @@ static void* chunk_thread(void *arg) {
 					|| destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN)
 				chunk_size = rabin_chunk_data(leftbuf + leftoff, leftlen);
 			else
-				chunk_size =
-						destor.chunk_avg_size > leftlen ?
+				chunk_size = destor.chunk_avg_size > leftlen ?
 								leftlen : destor.chunk_avg_size;
 
 			TIMER_END(1, jcr.chunk_time);
