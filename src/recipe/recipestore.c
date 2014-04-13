@@ -101,7 +101,7 @@ struct backupVersion* create_backup_version(const char *path) {
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
-	if ((b->recipe_fp = fopen(fname, "w")) <= 0) {
+	if ((b->recipe_fp = fopen(fname, "w+")) <= 0) {
 		fprintf(stderr, "Can not create bv%d.recipe!\n", b->bv_num);
 		exit(1);
 	}
@@ -281,7 +281,8 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	fseek(b->recipe_fp, 0, SEEK_END);
 	int64_t off = ftell(b->recipe_fp);
 
-	NOTICE("Filter phase: write segment at %lld offset!", off);
+	if(flag == CHUNK_SEGMENT_START)
+		NOTICE("Filter phase: write a segment at %lld offset!", off);
 
 	fwrite(&cp->fp, sizeof(fingerprint), 1, b->recipe_fp);
 	fwrite(&cp->id, sizeof(containerid), 1, b->recipe_fp);
@@ -472,8 +473,8 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		fread(&flag.id, sizeof(flag.id), 1, opened_bv->recipe_fp);
 		fread(&flag.size, sizeof(flag.size), 1, opened_bv->recipe_fp);
 		if(flag.id != -CHUNK_SEGMENT_START){
+			NOTICE("Dedup phase: no more segment can be prefetched at offset %lld!", current_off);
 			assert(j!=0);
-			NOTICE("Dedup phase: no more segment can be prefetched!");
 			break;
 		}
 
