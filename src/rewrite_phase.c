@@ -27,6 +27,10 @@ static void init_rewrite_buffer() {
 	rewrite_buffer.size = 0;
 }
 
+/*
+ * return 1 if buffer is full;
+ * return 0 if buffer is not full.
+ */
 int rewrite_buffer_push(struct chunk* c) {
 	g_queue_push_tail(rewrite_buffer.chunk_queue, c);
 

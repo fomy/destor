@@ -60,7 +60,7 @@ void *cfl_rewrite(void* arg) {
 		}
 
 		last_id = c->id;
-		if (!rewrite_buffer_push(c)) {
+		if (rewrite_buffer_push(c)) {
 			buffer_full = 1;
 		}
 	}
