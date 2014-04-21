@@ -242,7 +242,10 @@ struct container* retrieve_container_by_id(containerid id) {
 	unser_int32(c->meta.chunk_num);
 	unser_int32(c->meta.data_size);
 
-	assert(c->meta.id == id);
+	if(c->meta.id != id){
+		WARNING("expect %lld, but read %lld", id, c->meta.id);
+		assert(c->meta.id == id);
+	}
 
 	int i;
 	for (i = 0; i < c->meta.chunk_num; i++) {
@@ -320,7 +323,10 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 	unser_int32(cm->chunk_num);
 	unser_int32(cm->data_size);
 
-	assert(cm->id == id);
+	if(cm->id != id){
+		WARNING("expect %lld, but read %lld", id, cm->id);
+		assert(cm->id == id);
+	}
 
 	int i;
 	for (i = 0; i < cm->chunk_num; i++) {

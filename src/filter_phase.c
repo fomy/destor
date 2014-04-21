@@ -219,15 +219,16 @@ static void* filter_thread(void *arg) {
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
         		r = new_recipe_meta(c->data);
         	}else if(!CHECK_CHUNK(c,CHUNK_FILE_END)){
-        		struct chunkPointer* cp = (struct chunkPointer*)malloc(sizeof(struct chunkPointer));
-        		cp->id = c->id;
-        		memcpy(&cp->fp, &c->fp, sizeof(fingerprint));
-        		cp->size = c->size;
-        		append_n_chunk_pointers(jcr.bv, cp ,1);
-        		free(cp);
+        		struct chunkPointer cp;
+        		cp.id = c->id;
+        		assert(cp.id>=0);
+        		memcpy(&cp.fp, &c->fp, sizeof(fingerprint));
+        		cp.size = c->size;
+        		append_n_chunk_pointers(jcr.bv, &cp ,1);
         		r->chunknum++;
         		r->filesize += c->size;
         	}else{
+        		assert(CHECK_CHUNK(c,CHUNK_FILE_END));
         		append_recipe_meta(jcr.bv, r);
         		free_recipe_meta(r);
         		r = NULL;

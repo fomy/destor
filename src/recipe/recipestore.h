@@ -25,7 +25,7 @@ struct backupVersion {
 
 	FILE *metadata_fp;
 	FILE *recipe_fp;
-	FILE *seed_fp;
+	FILE *record_fp;
 };
 
 /* Point to the meta of a recipe */
@@ -73,8 +73,7 @@ void append_n_chunk_pointers(struct backupVersion* b,
 struct recipeMeta* read_next_recipe_meta(struct backupVersion* b);
 struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		int *k);
-void append_seed(struct backupVersion* b, containerid id, int32_t size);
-containerid* read_next_n_seeds(struct backupVersion* b, int n, int *k);
+containerid* read_next_n_records(struct backupVersion* b, int n, int *k);
 struct recipeMeta* new_recipe_meta(char* name);
 void free_recipe_meta(struct recipeMeta* r);
 

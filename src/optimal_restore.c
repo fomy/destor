@@ -11,35 +11,37 @@
 #include "restore.h"
 #include "tools/lru_cache.h"
 
-struct accessRecord {
+/* Consisting of a sequence of access records with an identical ID */
+struct accessRecords {
 	containerid cid;
-	GQueue *distance_queue;
+	/* A queue of sequence numbers */
+	GQueue *seqno_queue;
 };
 
-static struct accessRecord* new_access_record(containerid id) {
-	struct accessRecord* r = (struct accessRecord*) malloc(
-			sizeof(struct accessRecord));
+static struct accessRecords* new_access_records(containerid id) {
+	struct accessRecords* r = (struct accessRecords*) malloc(
+			sizeof(struct accessRecords));
 	r->cid = id;
-	r->distance_queue = g_queue_new();
+	r->seqno_queue = g_queue_new();
 	return r;
 }
 
-/*static void free_access_record(struct accessRecord* r) {
- assert(g_queue_get_length(r->distance_queue) == 0);
- g_queue_free_full(r->distance_queue, free);
- free(r);
- }*/
+static void free_access_records(struct accessRecords* r) {
+	assert(g_queue_get_length(r->seqno_queue) == 0);
+	g_queue_free_full(r->seqno_queue, free);
+	free(r);
+}
 
 /*
  * Ascending order.
  */
-static gint g_access_record_cmp_by_distance(struct accessRecord *a,
-		struct accessRecord *b, gpointer data) {
-	int *da = g_queue_peek_head(a->distance_queue);
+static gint g_access_records_cmp_by_first_seqno(struct accessRecords *a,
+		struct accessRecords *b, gpointer data) {
+	int *da = g_queue_peek_head(a->seqno_queue);
 	if (da == NULL)
 		return 1;
 
-	int *db = g_queue_peek_head(b->distance_queue);
+	int *db = g_queue_peek_head(b->seqno_queue);
 	if (db == NULL)
 		return -1;
 
@@ -48,18 +50,15 @@ static gint g_access_record_cmp_by_distance(struct accessRecord *a,
 
 struct {
 
-	/* the distance of next access record */
-	int seed_count;
+	/* the seqno of next read access record */
+	int current_sequence_number;
 
-	/* buffered seeds */
-	int win_size;
-	GQueue *window;
-
-	/* Index bufferred seeds by id. */
-	GHashTable *seed_table;
+	/* Index buffered access records by id. */
+	GHashTable *access_record_table;
+	int buffered_access_record_num;
 
 	/* Access records of cached containers. */
-	GSequence *distance_seq;
+	GSequence *sorted_records_of_cached_containers;
 
 	/* Container queue. */
 	struct lruCache *lru_queue;
@@ -67,40 +66,41 @@ struct {
 } optimal_cache;
 
 static void optimal_cache_window_fill() {
-	int n = destor.restore_opt_window_size - optimal_cache.win_size, k;
-	containerid *ids = read_next_n_seeds(jcr.bv, n, &k);
+	int n = destor.restore_opt_window_size - optimal_cache.buffered_access_record_num, k;
+	containerid *ids = read_next_n_records(jcr.bv, n, &k);
 	if (ids) {
-		g_queue_push_tail(optimal_cache.window, ids);
-		optimal_cache.win_size += k;
+		optimal_cache.buffered_access_record_num += k;
 
 		/* update distance_seq */
 		int i;
 		for (i = 1; i <= k; i++) {
 
-			struct accessRecord* r = g_hash_table_lookup(
-					optimal_cache.seed_table, &ids[i]);
+			struct accessRecords* r = g_hash_table_lookup(
+					optimal_cache.access_record_table, &ids[i]);
 			if (!r) {
-				r = new_access_record(ids[i]);
-				g_hash_table_insert(optimal_cache.seed_table, &r->cid, r);
+				r = new_access_records(ids[i]);
+				g_hash_table_insert(optimal_cache.access_record_table, &r->cid, r);
 			}
 
-			int *d = (int*) malloc(sizeof(int));
-			*d = optimal_cache.seed_count++;
-			g_queue_push_tail(r->distance_queue, d);
+			int *no = (int*) malloc(sizeof(int));
+			*no = optimal_cache.current_sequence_number++;
+			g_queue_push_tail(r->seqno_queue, no);
 
 		}
 	}
 }
 
+/*
+ * Init the optimal cache.
+ */
 void init_optimal_cache() {
-	optimal_cache.seed_count = 0;
+	optimal_cache.current_sequence_number = 0;
 
-	optimal_cache.window = g_queue_new();
-	optimal_cache.win_size = 0;
+	optimal_cache.access_record_table = g_hash_table_new_full(g_int64_hash, g_int64_equal,
+			NULL, free_access_records);
+	optimal_cache.buffered_access_record_num = 0;
 
-	optimal_cache.seed_table = g_hash_table_new(g_int64_hash, g_int64_equal);
-
-	optimal_cache.distance_seq = g_sequence_new(NULL);
+	optimal_cache.sorted_records_of_cached_containers = g_sequence_new(NULL);
 
 	if (destor.simulation_level == SIMULATION_NO)
 		optimal_cache.lru_queue = new_lru_cache(destor.restore_cache[1],
@@ -112,35 +112,21 @@ void init_optimal_cache() {
 	optimal_cache_window_fill();
 }
 
-static containerid optimal_cache_window_slides() {
-	/* The position of the current seed */
-	static int cur = 1;
+static void optimal_cache_window_slides(containerid id) {
 
-	if (optimal_cache.win_size * 2 <= destor.restore_opt_window_size)
+	if (optimal_cache.buffered_access_record_num  * 2 <= destor.restore_opt_window_size)
 		optimal_cache_window_fill();
 
-	containerid *ids = g_queue_peek_head(optimal_cache.window);
-	containerid id = ids[cur++];
-	optimal_cache.win_size--;
-	if (cur > ids[0]) {
-		g_queue_pop_head(optimal_cache.window);
-		free(ids);
-		cur = 1;
-	}
-
-	struct accessRecord *r = g_hash_table_lookup(optimal_cache.seed_table, &id);
+	struct accessRecords *r = g_hash_table_lookup(optimal_cache.access_record_table, &id);
 	assert(r);
-	int *d = g_queue_pop_head(r->distance_queue);
+	int *d = g_queue_pop_head(r->seqno_queue);
 	free(d);
 
 	/*
-	 * Because many accessRecords are updated,
-	 * we sort the sequence.
+	 * re-sort the sequence.
 	 */
-	g_sequence_sort(optimal_cache.distance_seq, g_access_record_cmp_by_distance,
-	NULL);
-
-	return id;
+	g_sequence_sort(optimal_cache.sorted_records_of_cached_containers,
+			g_access_records_cmp_by_first_seqno, NULL);
 }
 
 /*
@@ -149,11 +135,10 @@ static containerid optimal_cache_window_slides() {
  * the target container is in the cache.
  */
 static int optimal_cache_hits(containerid id) {
-	static containerid current_seed = TEMPORARY_ID;
-	if (current_seed != id) {
-		if (current_seed != TEMPORARY_ID)
-			optimal_cache_window_slides();
-		current_seed = id;
+	static containerid last_id = TEMPORARY_ID;
+	if (last_id != id) {
+		optimal_cache_window_slides(id);
+		last_id = id;
 	}
 
 	if (destor.simulation_level == SIMULATION_NO)
@@ -179,7 +164,7 @@ static struct chunk* optimal_cache_lookup(fingerprint *fp) {
 static int find_kicked_container(struct container* con, GQueue *q) {
 	int i, n = g_queue_get_length(q);
 	for (i = 0; i < n; i++) {
-		struct accessRecord* r = g_queue_peek_nth(q, i);
+		struct accessRecords* r = g_queue_peek_nth(q, i);
 		if (container_check_id(con, &r->cid)) {
 			g_queue_clear(q);
 			g_queue_push_tail(q, r);
@@ -192,7 +177,7 @@ static int find_kicked_container(struct container* con, GQueue *q) {
 static int find_kicked_container_meta(struct containerMeta* cm, GQueue *q) {
 	int i, n = g_queue_get_length(q);
 	for (i = 0; i < n; i++) {
-		struct accessRecord* r = g_queue_peek_nth(q, i);
+		struct accessRecords* r = g_queue_peek_nth(q, i);
 		if (container_meta_check_id(cm, &r->cid)) {
 			g_queue_clear(q);
 			g_queue_push_tail(q, r);
@@ -208,14 +193,14 @@ static void optimal_cache_insert(containerid id) {
 		GQueue *q = g_queue_new();
 
 		GSequenceIter *iter = g_sequence_iter_prev(
-				g_sequence_get_end_iter(optimal_cache.distance_seq));
-		struct accessRecord* r = g_sequence_get(iter);
+				g_sequence_get_end_iter(optimal_cache.sorted_records_of_cached_containers));
+		struct accessRecords* r = g_sequence_get(iter);
 		g_queue_push_tail(q, r);
 
-		while (iter != g_sequence_get_begin_iter(optimal_cache.distance_seq)) {
+		while (iter != g_sequence_get_begin_iter(optimal_cache.sorted_records_of_cached_containers)) {
 			iter = g_sequence_iter_prev(iter);
 			r = g_sequence_get(iter);
-			if (g_queue_get_length(r->distance_queue) == 0)
+			if (g_queue_get_length(r->seqno_queue) == 0)
 				g_queue_push_tail(q, r);
 			else
 				break;
@@ -227,16 +212,22 @@ static void optimal_cache_insert(containerid id) {
 			lru_cache_kicks(optimal_cache.lru_queue, q,
 					find_kicked_container_meta);
 
-		struct accessRecord* victim = g_queue_pop_head(q);
+		struct accessRecords* victim = g_queue_pop_head(q);
 		assert(g_queue_get_length(q) == 0);
 		g_queue_free(q);
 
 		iter = g_sequence_iter_prev(
-				g_sequence_get_end_iter(optimal_cache.distance_seq));
+				g_sequence_get_end_iter(optimal_cache.sorted_records_of_cached_containers));
 		r = g_sequence_get(iter);
 		while (r->cid != victim->cid) {
 			iter = g_sequence_iter_prev(iter);
 			r = g_sequence_get(iter);
+		}
+
+		/* iter (r) points to the evicted record */
+		if(g_queue_get_length(r->seqno_queue) == 0){
+			/* the container will not be accessed in the future */
+			g_hash_table_remove(optimal_cache.access_record_table, &r->cid);
 		}
 
 		g_sequence_remove(iter);
@@ -251,11 +242,11 @@ static void optimal_cache_insert(containerid id) {
 		lru_cache_insert(optimal_cache.lru_queue, cm, NULL, NULL);
 	}
 
-	struct accessRecord* r = g_hash_table_lookup(optimal_cache.seed_table, &id);
+	struct accessRecords* r = g_hash_table_lookup(optimal_cache.access_record_table, &id);
 	assert(r);
 
-	g_sequence_insert_sorted(optimal_cache.distance_seq, r,
-			g_access_record_cmp_by_distance, NULL);
+	g_sequence_insert_sorted(optimal_cache.sorted_records_of_cached_containers, r,
+			g_access_records_cmp_by_first_seqno, NULL);
 
 }
 

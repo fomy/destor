@@ -39,8 +39,12 @@ int64_t fingerprint_cache_lookup(fingerprint *fp){
 		case INDEX_CATEGORY_LOGICAL_LOCALITY:{
 			struct segmentRecipe* sr = lru_cache_lookup(lru_queue, fp);
 			if(sr){
-				struct indexElem* e = g_hash_table_lookup(sr->kvpairs, fp);
-				return e->id;
+				struct chunkPointer* cp = g_hash_table_lookup(sr->kvpairs, fp);
+				if(cp->id <= TEMPORARY_ID){
+					WARNING("expect > TEMPORARY_ID, but being %lld", cp->id);
+					assert(cp->id > TEMPORARY_ID);
+				}
+				return cp->id;
 			}
 			break;
 		}

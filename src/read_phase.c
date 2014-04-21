@@ -31,7 +31,7 @@ static void read_file(sds path) {
 	struct chunk *c = new_chunk(sdslen(filename) + 1);
 	strcpy(c->data, filename);
 
-	VERBOSE("Read phase: %s", filename);
+	NOTICE("Read phase: %s", filename);
 
 	SET_CHUNK(c, CHUNK_FILE_START);
 
