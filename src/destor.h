@@ -244,6 +244,7 @@ struct destor {
 	/* for History-Aware Rewriting (HAR) */
 	int rewrite_enable_har;
 	double rewrite_har_utilization_threshold;
+	double rewrite_har_rewrite_limit;
 
 	/* for Cache-Aware Filter */
 	int rewrite_enable_cache_aware;

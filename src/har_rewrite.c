@@ -10,26 +10,16 @@
 #include "storage/containerstore.h"
 #include "jcr.h"
 
-struct {
-	/* Containers of enough utilization are in this map. */
-	GHashTable *dense_map;
-	/* Containers of not enough utilization are in this map. */
-	GHashTable *sparse_map;
-
-	int64_t total_size;
-} container_utilization_monitor;
-
+static GHashTable *container_utilization_monitor;
 static GHashTable *inherited_sparse_containers;
 
 void init_har() {
 
-	container_utilization_monitor.dense_map = g_hash_table_new_full(
-			g_int64_hash, g_int64_equal, NULL, free);
-	container_utilization_monitor.sparse_map = g_hash_table_new_full(
+	/* Monitor the utilizations of containers */
+	container_utilization_monitor = g_hash_table_new_full(
 			g_int64_hash, g_int64_equal, NULL, free);
 
-	container_utilization_monitor.total_size = 0;
-
+	/* IDs of inherited sparse containers */
 	inherited_sparse_containers = g_hash_table_new_full(g_int64_hash,
 			g_int64_equal, NULL, free);
 
@@ -51,7 +41,7 @@ void init_har() {
 				struct containerRecord *record =
 						(struct containerRecord*) malloc(
 								sizeof(struct containerRecord));
-				sscanf(buf, "%ld %d", &record->cid, &record->size);
+				sscanf(buf, "%lld %d", &record->cid, &record->size);
 
 				g_hash_table_insert(inherited_sparse_containers, &record->cid,
 						record);
@@ -71,30 +61,26 @@ void har_monitor_update(containerid id, int32_t size) {
 	TIMER_DECLARE(1);
 	TIMER_BEGIN(1);
 	struct containerRecord* record = g_hash_table_lookup(
-			container_utilization_monitor.dense_map, &id);
+			container_utilization_monitor, &id);
 	if (record) {
-		record->size += size + CONTAINER_META_ENTRY;
-	} else {
-		record = g_hash_table_lookup(container_utilization_monitor.sparse_map,
-				&id);
-		if (!record) {
-			record = (struct containerRecord*) malloc(
-					sizeof(struct containerRecord));
-			record->cid = id;
-			record->size = CONTAINER_HEAD;
-			g_hash_table_insert(container_utilization_monitor.sparse_map,
-					&record->cid, record);
-		}
 		record->size += size;
-		double usage = record->size / (double) CONTAINER_SIZE;
-		if (usage > destor.rewrite_har_utilization_threshold) {
-			g_hash_table_steal(container_utilization_monitor.sparse_map,
-					&record->cid);
-			g_hash_table_insert(container_utilization_monitor.dense_map,
-					&record->cid, record);
-		}
+	} else {
+
+		record = (struct containerRecord*) malloc(
+					sizeof(struct containerRecord));
+		record->cid = id;
+		record->size = 0;
+		g_hash_table_insert(container_utilization_monitor,
+				&record->cid, record);
+
+		record->size += size;
+
 	}
 	TIMER_END(1, jcr.rewrite_time);
+}
+
+static gint g_record_cmp(struct containerRecord *a, struct containerRecord* b, gpointer user_data){
+	return a->size - b->size;
 }
 
 void close_har() {
@@ -112,29 +98,67 @@ void close_har() {
 		exit(1);
 	}
 
-	jcr.total_container_num = g_hash_table_size(
-			container_utilization_monitor.sparse_map)
-			+ g_hash_table_size(container_utilization_monitor.dense_map);
+	jcr.total_container_num = g_hash_table_size(container_utilization_monitor);
 
-	/* sparse containers */
+	GSequence *seq = g_sequence_new(NULL);
+	int64_t total_size = 0;
+	int64_t sparse_size = 0;
+
+	/* collect sparse containers */
 	GHashTableIter iter;
 	gpointer key, value;
-	g_hash_table_iter_init(&iter, container_utilization_monitor.sparse_map);
+	g_hash_table_iter_init(&iter, container_utilization_monitor);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		struct containerRecord* cr = (struct containerRecord*) value;
-		if (inherited_sparse_containers
-				&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid))
-			jcr.inherited_sparse_num++;
+		total_size += cr->size;
 
-		fprintf(fp, "%ld %d\n", cr->cid, cr->size);
-		jcr.sparse_container_num++;
+		if((1.0*cr->size/(CONTAINER_SIZE - CONTAINER_META_SIZE))
+				< destor.rewrite_har_utilization_threshold){
+			/* It is sparse */
+			if (inherited_sparse_containers
+					&& g_hash_table_lookup(inherited_sparse_containers, &cr->cid))
+				/* It is an inherited sparse container */
+				jcr.inherited_sparse_num++;
+
+			jcr.sparse_container_num++;
+			sparse_size += cr->size;
+
+			g_sequence_insert_sorted(seq, cr, g_record_cmp, NULL);
+		}
+	}
+
+	/*
+	 * If the sparse size is too large,
+	 * we need to trim the sequence to control the rewrite ratio.
+	 * We use sparse_size/total_size to estimate the rewrite ratio of next backup.
+	 * However, the estimation is inaccurate (generally over-estimating), since:
+	 * 	1. the sparse size is not an accurate indicator of utilization for next backup.
+	 * 	2. self-references.
+	 */
+	while(sparse_size*1.0/total_size > destor.rewrite_har_rewrite_limit){
+		/*
+		 * The expected rewrite ratio exceeds the limit.
+		 * We trim the last several records in the sequence.
+		 * */
+		GSequenceIter* iter = g_sequence_iter_prev(g_sequence_get_end_iter(seq));
+		struct containerRecord* r = g_sequence_get(iter);
+		NOTICE("Trim sparse container %lld", r->cid);
+		sparse_size -= r->size;
+		g_sequence_remove(iter);
+	}
+
+	GSequenceIter* sparse_iter = g_sequence_get_begin_iter(seq);
+	while(sparse_iter != g_sequence_get_end_iter(seq)){
+		struct containerRecord* r = g_sequence_get(sparse_iter);
+		fprintf(fp, "%lld %d\n", r->cid, r->size);
+		sparse_iter = g_sequence_iter_next(sparse_iter);
 	}
 	fclose(fp);
 
 	NOTICE("Record %d sparse containers, and %d of them are inherited",
-			g_hash_table_size(container_utilization_monitor.sparse_map),
-			jcr.inherited_sparse_num);
+			g_sequence_get_length(seq),	jcr.inherited_sparse_num);
 
+	g_sequence_free(seq);
 	sdsfree(fname);
 }
 

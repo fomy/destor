@@ -268,6 +268,9 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "rewrite-har-utilization-threshold") == 0
 				&& argc == 2) {
 			destor.rewrite_har_utilization_threshold = atof(argv[1]);
+		} else if (strcasecmp(argv[0], "rewrite-har-rewrite-limit") == 0
+				&& argc == 2) {
+			destor.rewrite_har_rewrite_limit = atof(argv[1]);
 		} else if (strcasecmp(argv[0], "rewrite-enable-cache-aware") == 0
 				&& argc == 2) {
 			destor.rewrite_enable_cache_aware = yesnotoi(argv[1]);

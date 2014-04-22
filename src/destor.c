@@ -119,6 +119,7 @@ void destor_start() {
 	/* for History-Aware Rewriting (HAR) */
 	destor.rewrite_enable_har = 0;
 	destor.rewrite_har_utilization_threshold = 0.5;
+	destor.rewrite_har_rewrite_limit = 0.05;
 
 	/* for Cache-Aware Filter */
 	destor.rewrite_enable_cache_aware = 0;
