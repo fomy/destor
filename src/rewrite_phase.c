@@ -116,36 +116,39 @@ static void* no_rewrite(void* arg) {
 
 		sync_queue_push(rewrite_queue, c);
 
-	}
+        /* History-Aware Rewriting */
+        if (destor.rewrite_enable_har && CHECK_CHUNK(c, CHUNK_DUPLICATE))
+            har_check(c);
+    }
 
-	sync_queue_term(rewrite_queue);
+    sync_queue_term(rewrite_queue);
 
-	return NULL;
+    return NULL;
 }
 
 void start_rewrite_phase() {
-	rewrite_queue = sync_queue_new(1000);
+    rewrite_queue = sync_queue_new(1000);
 
-	init_rewrite_buffer();
+    init_rewrite_buffer();
 
     init_har();
 
-	if (destor.rewrite_algorithm[0] == REWRITE_NO) {
-		pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
-	} else if (destor.rewrite_algorithm[0]
-			== REWRITE_CFL_SELECTIVE_DEDUPLICATION) {
-		pthread_create(&rewrite_t, NULL, cfl_rewrite, NULL);
-	} else if (destor.rewrite_algorithm[0] == REWRITE_CONTEXT_BASED) {
-		pthread_create(&rewrite_t, NULL, cbr_rewrite, NULL);
-	} else if (destor.rewrite_algorithm[0] == REWRITE_CAPPING) {
-		pthread_create(&rewrite_t, NULL, cap_rewrite, NULL);
-	} else {
-		fprintf(stderr, "Invalid rewrite algorithm\n");
-		exit(1);
-	}
+    if (destor.rewrite_algorithm[0] == REWRITE_NO) {
+        pthread_create(&rewrite_t, NULL, no_rewrite, NULL);
+    } else if (destor.rewrite_algorithm[0]
+            == REWRITE_CFL_SELECTIVE_DEDUPLICATION) {
+        pthread_create(&rewrite_t, NULL, cfl_rewrite, NULL);
+    } else if (destor.rewrite_algorithm[0] == REWRITE_CONTEXT_BASED) {
+        pthread_create(&rewrite_t, NULL, cbr_rewrite, NULL);
+    } else if (destor.rewrite_algorithm[0] == REWRITE_CAPPING) {
+        pthread_create(&rewrite_t, NULL, cap_rewrite, NULL);
+    } else {
+        fprintf(stderr, "Invalid rewrite algorithm\n");
+        exit(1);
+    }
 
 }
 
 void stop_rewrite_phase() {
-	pthread_join(rewrite_t, NULL);
+    pthread_join(rewrite_t, NULL);
 }
