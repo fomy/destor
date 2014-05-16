@@ -161,28 +161,24 @@ static struct chunk* optimal_cache_lookup(fingerprint *fp) {
 	return c;
 }
 
-static int find_kicked_container(struct container* con, GQueue *q) {
-	int i, n = g_queue_get_length(q);
-	for (i = 0; i < n; i++) {
-		struct accessRecords* r = g_queue_peek_nth(q, i);
-		if (container_check_id(con, &r->cid)) {
-			g_queue_clear(q);
-			g_queue_push_tail(q, r);
-			return 1;
-		}
+struct accessRecords* victim;
+
+static int find_kicked_container(struct container* con, GHashTable *ht) {
+
+	struct accessRecords* r = g_hash_table_lookup(ht, &con->meta.id);
+	if(r){
+		victim = r;
+		return 1;
 	}
 	return 0;
 }
 
-static int find_kicked_container_meta(struct containerMeta* cm, GQueue *q) {
-	int i, n = g_queue_get_length(q);
-	for (i = 0; i < n; i++) {
-		struct accessRecords* r = g_queue_peek_nth(q, i);
-		if (container_meta_check_id(cm, &r->cid)) {
-			g_queue_clear(q);
-			g_queue_push_tail(q, r);
-			return 1;
-		}
+static int find_kicked_container_meta(struct containerMeta* cm, GHashTable *ht) {
+
+	struct accessRecords* r = g_hash_table_lookup(ht, &cm->id);
+	if(r){
+		victim = r;
+		return 1;
 	}
 	return 0;
 }
@@ -190,31 +186,29 @@ static int find_kicked_container_meta(struct containerMeta* cm, GQueue *q) {
 static void optimal_cache_insert(containerid id) {
 
 	if (lru_cache_is_full(optimal_cache.lru_queue)) {
-		GQueue *q = g_queue_new();
+		GHashTable* ht = g_hash_table_new(g_int64_hash, g_int64_equal);
 
 		GSequenceIter *iter = g_sequence_iter_prev(
 				g_sequence_get_end_iter(optimal_cache.sorted_records_of_cached_containers));
 		struct accessRecords* r = g_sequence_get(iter);
-		g_queue_push_tail(q, r);
+		g_hash_table_insert(ht, &r->cid, r);
 
 		while (iter != g_sequence_get_begin_iter(optimal_cache.sorted_records_of_cached_containers)) {
 			iter = g_sequence_iter_prev(iter);
 			r = g_sequence_get(iter);
 			if (g_queue_get_length(r->seqno_queue) == 0)
-				g_queue_push_tail(q, r);
+				g_hash_table_insert(ht, &r->cid, r);
 			else
 				break;
 		}
 
 		if (destor.simulation_level == SIMULATION_NO)
-			lru_cache_kicks(optimal_cache.lru_queue, q, find_kicked_container);
+			lru_cache_kicks(optimal_cache.lru_queue, ht, find_kicked_container);
 		else
-			lru_cache_kicks(optimal_cache.lru_queue, q,
+			lru_cache_kicks(optimal_cache.lru_queue, ht,
 					find_kicked_container_meta);
 
-		struct accessRecords* victim = g_queue_pop_head(q);
-		assert(g_queue_get_length(q) == 0);
-		g_queue_free(q);
+		g_hash_table_destroy(ht);
 
 		iter = g_sequence_iter_prev(
 				g_sequence_get_end_iter(optimal_cache.sorted_records_of_cached_containers));
