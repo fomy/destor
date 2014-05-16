@@ -193,13 +193,15 @@ static void optimal_cache_insert(containerid id) {
 		struct accessRecords* r = g_sequence_get(iter);
 		g_hash_table_insert(ht, &r->cid, r);
 
-		while (iter != g_sequence_get_begin_iter(optimal_cache.sorted_records_of_cached_containers)) {
+		int i = 0;
+		while (i < 10 && iter != g_sequence_get_begin_iter(optimal_cache.sorted_records_of_cached_containers)) {
 			iter = g_sequence_iter_prev(iter);
 			r = g_sequence_get(iter);
 			if (g_queue_get_length(r->seqno_queue) == 0)
 				g_hash_table_insert(ht, &r->cid, r);
 			else
 				break;
+			i++;
 		}
 
 		if (destor.simulation_level == SIMULATION_NO)
