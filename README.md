@@ -87,7 +87,7 @@ Running
 If compile and install are successful, the executable file, destor, should have been moved to /usr/local/bin by default.
 You can create a config file, destor.config, in where you run destor.
 A sample destor.config is in the project directory.
-Run rebuild script to clean data.
+Run rebuild script before destor to make subdirectory and clean data.
 
 destor can run as follows:
 
