@@ -125,7 +125,7 @@ void close_kvstore_htable() {
 
 	/* It is a rough estimation */
 	destor.index_memory_footprint = g_hash_table_size(htable)
-			* (destor.index_key_size + sizeof(int64_t) * destor.index_value_length);
+			* (destor.index_key_size + sizeof(int64_t) * destor.index_value_length + 4);
 
 	fclose(fp);
 
