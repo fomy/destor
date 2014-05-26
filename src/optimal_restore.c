@@ -121,12 +121,8 @@ static void optimal_cache_window_slides(containerid id) {
 	assert(r);
 	int *d = g_queue_pop_head(r->seqno_queue);
 	free(d);
+	optimal_cache.buffered_access_record_num--;
 
-	/*
-	 * re-sort the sequence.
-	 */
-	g_sequence_sort(optimal_cache.sorted_records_of_cached_containers,
-			g_access_records_cmp_by_first_seqno, NULL);
 }
 
 /*
@@ -187,6 +183,12 @@ static void optimal_cache_insert(containerid id) {
 
 	if (lru_cache_is_full(optimal_cache.lru_queue)) {
 		GHashTable* ht = g_hash_table_new(g_int64_hash, g_int64_equal);
+
+		/*
+		 * re-sort the sequence.
+		 */
+		g_sequence_sort(optimal_cache.sorted_records_of_cached_containers,
+				g_access_records_cmp_by_first_seqno, NULL);
 
 		GSequenceIter *iter = g_sequence_iter_prev(
 				g_sequence_get_end_iter(optimal_cache.sorted_records_of_cached_containers));
