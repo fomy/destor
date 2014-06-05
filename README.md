@@ -14,49 +14,49 @@ Features
 Related papers
 --------------
 1. The design of the fingerprint index:
-    > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System, @FAST'08.
+    > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System @ FAST'08.
     >
-    > b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality, @FAST'09.
+    > b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality @ FAST'09.
     >
-    > c) Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup, @MASCOTS'09.
+    > c) Extreme Binning: Scalable, Parallel Deduplication for Chunk-based File Backup @ MASCOTS'09.
     >
-    > d) SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput, @USENIX ATC'11.
+    > d) SiLo: A Similarity-Locality based Near-Exact Deduplicatin Scheme with Low RAM Overhead and High Throughput @ USENIX ATC'11.
     >
-    > e) Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > e) Building a High-Performance Deduplication System @ USENIX ATC'11.
     >
-    > f) Block Locality Caching for Data Deduplication, @SYSTOR'13.
+    > f) Block Locality Caching for Data Deduplication @ SYSTOR'13.
     >
-    > g) The design of a similarity based deduplication system, @SYSTOR'09.
+    > g) The design of a similarity based deduplication system @ SYSTOR'09.
 
 2. The fragmentation:
-    > a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage, @HPCC'11.
+    > a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage @ HPCC'11.
     >
-    > b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets, @MASCOTS'12. 
+    > b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets @ MASCOTS'12. 
     >
-    > c) Reducing impact of data fragmentation caused by in-line deduplication, @SYSTOR'12.
+    > c) Reducing impact of data fragmentation caused by in-line deduplication @ SYSTOR'12.
     >
-    > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+    > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication @ FAST'13.
     >
-    > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
+    > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
 3. The restore cache
-    > a) A Study of Replacement Algorithms for a Virtual-Storage Computer, @IBM Systems Journal'1966.
+    > a) A Study of Replacement Algorithms for a Virtual-Storage Computer @ IBM Systems Journal'1966.
     >
-    > b) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication, @FAST'13.
+    > b) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication @ FAST'13.
     >
-    > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
+    > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
 4. Garbage collection (available in first release (Mouse), but to be continue in new version):
-    > a) Building a High-Performance Deduplication System, @USENIX ATC'11.
+    > a) Building a High-Performance Deduplication System @ USENIX ATC'11.
     >
-    > b) Cumulus: Filesystem Backup to the Cloud, @FAST'09.
+    > b) Cumulus: Filesystem Backup to the Cloud @ FAST'09.
     >
-    > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
+    > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
 Recent publications using Destor
 -----------------------------
-1. Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
-2. PLC-Cache: Endurable SSD Cache for Deduplication-based Primary Storage, @MSST'14.
+1. **Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Fangting Huang, and Qing Liu. *Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information* @ USENIX ATC'14.
+2. Jian Liu, Yunpeng Chai, Xiao Qin, and Yuan Xiao. *PLC-Cache: Endurable SSD Cache for Deduplication-based Primary Storage* @ MSST'14.
 
 Environment
 -----------
