@@ -56,6 +56,7 @@ Related papers
 Recent publications using Destor
 -----------------------------
 1. Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information, @USENIX ATC'14.
+2. PLC-Cache: Endurable SSD Cache for Deduplication-based Primary Storage, @MSST'14.
 
 Environment
 -----------
