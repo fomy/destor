@@ -124,6 +124,6 @@ Author
 ------
 Min Fu,
 
-Email : fumin@hust.edu.cn
+Email : fumin at hust.edu.cn
 
 Blog : fumin.hustbackup.cn
