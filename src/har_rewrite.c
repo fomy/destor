@@ -9,6 +9,7 @@
 #include "rewrite_phase.h"
 #include "storage/containerstore.h"
 #include "jcr.h"
+#include "cma.h"
 
 static GHashTable *container_utilization_monitor;
 static GHashTable *inherited_sparse_containers;
@@ -160,6 +161,9 @@ void close_har() {
 
 	g_sequence_free(seq);
 	sdsfree(fname);
+
+	/* CMA: update the backup times in manifest */
+	update_manifest(container_utilization_monitor);
 }
 
 void har_check(struct chunk* c) {
