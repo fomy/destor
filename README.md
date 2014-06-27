@@ -1,6 +1,6 @@
 General Information
 -------------------
-This is a prototype of a deduplication system, named destor.
+This is a prototype of a deduplication system called destor.
 
 Features
 --------
