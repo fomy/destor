@@ -264,6 +264,8 @@ struct destor {
 
 	int32_t index_memory_footprint;
 
+	int backup_retention_time;
+
 } destor;
 
 typedef unsigned char fingerprint[20];

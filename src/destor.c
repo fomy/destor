@@ -21,7 +21,7 @@ extern void load_config_from_string(sds config);
 /* : means argument is required.
  * :: means argument is required and no space.
  */
-const char * const short_options = "sr::d::t::p::h";
+const char * const short_options = "sr::t::p::h";
 
 struct option long_options[] = {
 		{ "state", 0, NULL, 's' },
@@ -36,9 +36,6 @@ void usage() {
 
 	puts("\tstart a restore job");
 	puts("\t\tdestor -r<JOB_ID> /path/to/restore -p\"a line in config file\"");
-
-	puts("\tsimulate deleting backups before JOB_ID.");
-	puts("\t\tdestor -d<JOB_ID>");
 
 	puts("\tprint state of destor");
 	puts("\t\tdestor -s");
@@ -124,6 +121,12 @@ void destor_start() {
 	/* for Cache-Aware Filter */
 	destor.rewrite_enable_cache_aware = 0;
 
+	/*
+	 * Specify how many backups are retained.
+	 * A negative value indicates all backups are retained.
+	 */
+	destor.backup_retention_time = -1;
+
 	load_config();
 
 	sds stat_file = sdsdup(destor.working_directory);
@@ -145,6 +148,10 @@ void destor_start() {
 		fread(&destor.rewritten_chunk_size, 8, 1, fp);
 
 		fread(&destor.index_memory_footprint, 4, 1, fp);
+
+		int last_retention_time;
+		fread(last_retention_time, 4, 1, fp);
+		assert(last_retention_time == destor.backup_retention_time);
 
 		int last_level;
 		fread(&last_level, 4, 1, fp);
@@ -189,6 +196,8 @@ void destor_shutdown() {
 	fwrite(&destor.rewritten_chunk_size, 8, 1, fp);
 
 	fwrite(&destor.index_memory_footprint, 4, 1, fp);
+
+	fwrite(destor.backup_retention_time, 4, 1, fp);
 
 	fwrite(&destor.simulation_level, 4, 1, fp);
 
@@ -262,10 +271,6 @@ int main(int argc, char **argv) {
 		case 't':
 			job = DESTOR_MAKE_TRACE;
 			break;
-		case 'd':
-			job = DESTOR_DELETE;
-			revision = atoi(optarg);
-			break;
 		case 'h':
 			usage();
 			break;
@@ -334,15 +339,6 @@ int main(int argc, char **argv) {
 		sdsfree(path);
 		break;
 	}
-	case DESTOR_DELETE:
-		if (revision < 0) {
-			fprintf(stderr, "Invalid job id!");
-			usage();
-		}
-		init_container_store();
-		/*do_delete(revision);*/
-		close_container_store();
-		break;
 	default:
 		fprintf(stderr, "Invalid job type!\n");
 		usage();

@@ -4,6 +4,8 @@
 #include "index/index.h"
 #include "backup.h"
 
+extern void do_delete(int jobid);
+
 /* defined in index.c */
 extern struct {
 	/* Requests to the key-value store */
@@ -163,5 +165,14 @@ void do_backup(char *path) {
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
+
+	/*
+	 * The backup concludes.
+	 * GC starts
+	 * */
+	if(destor.backup_retention_time >= 0
+			&& jcr.id >= destor.backup_retention_time){
+		do_delete(jcr.id - destor.backup_retention_time);
+	}
 
 }

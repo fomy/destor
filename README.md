@@ -98,16 +98,13 @@ destor can run as follows:
 2. start a restore task,
    > destor -r<jobid> /path/to/restore -p"a line as in config file"
 
-3. start a delete job (disabled in the latest version),
-   > destor -d<jobid>
-
-4. lookup statistics of system,
+3. lookup statistics of system,
    > destor -s
 
-5. help
+4. help
    > destor -h
 
-6. make a trace
+5. make a trace
    > destor -t /path/to/data
 
 Configuration
@@ -123,7 +120,7 @@ Bugs
 3. If working path in destor.config is modified, the rebuild script must be modified too.
 
 4. CMA assumes the backups are deleted in FIFO order.
-    > In any cases, the oldest backup is deleted.
+    > In any cases, the expired backup is deleted automatically.
 
 Author
 ------
