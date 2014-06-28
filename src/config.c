@@ -292,6 +292,9 @@ void load_config_from_string(sds config) {
 		} else if (strcasecmp(argv[0], "restore-opt-window-size") == 0
 				&& argc == 2) {
 			destor.restore_opt_window_size = atoi(argv[1]);
+		} else if (strcasecmp(argv[0], "backup-retention-time") == 0
+				&& argc == 2) {
+			destor.backup_retention_time = atoi(argv[1]);
 		} else {
 			err = "Bad directive or wrong number of arguments";
 			goto loaderr;
