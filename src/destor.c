@@ -197,7 +197,7 @@ void destor_shutdown() {
 
 	fwrite(&destor.index_memory_footprint, 4, 1, fp);
 
-	fwrite(destor.backup_retention_time, 4, 1, fp);
+	fwrite(&destor.backup_retention_time, 4, 1, fp);
 
 	fwrite(&destor.simulation_level, 4, 1, fp);
 
