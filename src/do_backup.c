@@ -18,12 +18,11 @@ extern struct {
 
 void do_backup(char *path) {
 
-
-	init_backup_jcr(path);
-
 	init_recipe_store();
 	init_container_store();
 	init_index();
+
+	init_backup_jcr(path);
 
 	puts("==== backup begin ====");
 
