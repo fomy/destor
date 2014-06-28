@@ -33,6 +33,8 @@ int index_lookup(struct segment*);
  */
 void index_update(GHashTable *features, int64_t id);
 
+void index_delete(fingerprint *fp, int64_t id);
+
 void index_check_buffer(struct segment *s);
 int index_update_buffer(struct segment *s);
 

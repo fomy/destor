@@ -85,4 +85,6 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num);
 int lookup_fingerprint_in_segment_recipe(struct segmentRecipe* sr,
         fingerprint *fp);
 
+struct segmentRecipe* read_next_segment(struct backupVersion *bv);
+
 #endif /* RECIPESTORE_H_ */

@@ -436,6 +436,15 @@ void free_segment_recipe(struct segmentRecipe* sr) {
 	free(sr);
 }
 
+void segment_recipe_foreach(struct segmentRecipe* sr, void (*func)(fingerprint*, void*), void* data){
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, sr->kvpairs);
+	while(g_hash_table_iter_next(&iter, &key, &value)){
+		func(key, data);
+	}
+}
+
 GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	static struct backupVersion *opened_bv;
 
@@ -452,7 +461,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	GQueue *segments = g_queue_new();
 
 	if(opened_bv == NULL || opened_bv->bv_num != bnum){
-
+		/* The required segment locates in another backup */
 		if(opened_bv && opened_bv->bv_num != jcr.bv->bv_num)
 			free_backup_version(opened_bv);
 
@@ -495,7 +504,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 			fread(&cp->id, sizeof(cp->id), 1, opened_bv->recipe_fp);
 			fread(&cp->size, sizeof(cp->size), 1, opened_bv->recipe_fp);
 			if(cp->id <= TEMPORARY_ID){
-				WARNING("expect > 0, but being", cp->id);
+				WARNING("expect > 0, but being %lld", cp->id);
 				assert(cp->id > TEMPORARY_ID);
 			}
 			g_hash_table_replace(sr->kvpairs, &cp->fp, cp);
@@ -510,6 +519,49 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 	}
 
 	return segments;
+}
+
+struct segmentRecipe* read_next_segment(struct backupVersion *bv){
+	if(bv == NULL)
+		return NULL;
+
+	int64_t current_off = ftell(bv->recipe_fp);
+	NOTICE("read_next_segment: current off is %lld", current_off);
+
+	struct chunkPointer flag;
+	int ret = fread(&flag.fp, sizeof(flag.fp), 1, bv->recipe_fp);
+	ret += fread(&flag.id, sizeof(flag.id), 1, bv->recipe_fp);
+	ret += fread(&flag.size, sizeof(flag.size), 1, bv->recipe_fp);
+	if(ret != 3 || flag.id != -CHUNK_SEGMENT_START){
+		/* In the end of the backup recipe */
+		NOTICE("Dedup phase: no more segment can be read at offset %lld!", current_off);
+		return NULL;
+	}
+
+	/* continue to complete the segment */
+	struct segmentRecipe* sr = new_segment_recipe();
+	sr->id = make_segment_id(bv->bv_num, current_off, flag.size);
+
+	int i;
+	for (i = 0; i < flag.size; i++) {
+		struct chunkPointer* cp = (struct chunkPointer*) malloc(
+				sizeof(struct chunkPointer));
+		fread(&cp->fp, sizeof(cp->fp), 1, bv->recipe_fp);
+		fread(&cp->id, sizeof(cp->id), 1, bv->recipe_fp);
+		fread(&cp->size, sizeof(cp->size), 1, bv->recipe_fp);
+		if(cp->id <= TEMPORARY_ID){
+			WARNING("expect > 0, but being %lld", cp->id);
+			assert(cp->id > TEMPORARY_ID);
+		}
+		g_hash_table_replace(sr->kvpairs, &cp->fp, cp);
+	}
+
+	fread(&flag.fp, sizeof(flag.fp), 1, bv->recipe_fp);
+	fread(&flag.id, sizeof(flag.id), 1, bv->recipe_fp);
+	fread(&flag.size, sizeof(flag.size), 1, bv->recipe_fp);
+	assert(flag.id == 0 - CHUNK_SEGMENT_END);
+
+	return sr;
 }
 
 int segment_recipe_check_id(struct segmentRecipe* sr, segmentid *id) {

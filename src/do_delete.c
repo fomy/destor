@@ -6,21 +6,60 @@
  */
 #include "destor.h"
 #include "storage/containerstore.h"
+#include "recipe/recipestore.h"
 #include "index/index.h"
 #include "cma.h"
 
+/* A simple wrap.
+ * Just to make the interfaces of the index module more consistent.
+ */
+static inline void delete_an_entry(fingerprint *fp, int64_t *id){
+	index_delete(fp, *id);
+}
+
 /*
- * delete all jobs before jobid, including itself.
- * Find all containers in manifest whose time is earlier than jobid.
- * These containers can be reclaimed.
- * Read the metadata part of these containers,
- * and delete entries in fingerprint index.
+ * We assume a FIFO order of deleting backup, namely the oldest backup is deleted first.
  */
 void do_delete(int jobid) {
 
 	GHashTable *invalid_containers = trunc_manifest(jobid);
 
 	init_index();
+
+	/* Delete the invalid entries in the key-value store */
+	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
+		init_container_store();
+
+		/* The entries pointing to Invalid Containers are invalid. */
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, invalid_containers);
+		while(g_hash_table_iter_next(&iter, &key, &value)){
+			containerid id = *(containerid*)key;
+			struct containerMeta* cm = retrieve_container_meta_by_id(id);
+
+			container_meta_foreach(cm, delete_an_entry, &id);
+
+			free_container_meta(cm);
+		}
+
+		close_container_store();
+	}else if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
+		/* Ideally, the entries pointing to segments in backup versions of a 'bv_num' less than 'jobid' are invalid. */
+		/* (For simplicity) Since a FIFO order is given, we only need to remove the IDs exactly matched 'bv_num'. */
+		struct backupVersion* bv = open_backup_version(jobid);
+
+		struct segmentRecipe* sr;
+		while((sr=read_next_segment(bv))){
+			segment_recipe_foreach(bv, delete_an_entry, &sr->id);
+		}
+
+		free_backup_version(bv);
+
+	}else{
+		WARNING("Invalid index type");
+		exit(1);
+	}
 
 	close_index();
 }

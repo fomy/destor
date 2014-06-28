@@ -41,6 +41,10 @@ static kvpair new_kvpair(){
 	 return kvp;
 }
 
+/*
+ * IDs in value are in FIFO order.
+ * value[0] keeps the latest ID.
+ */
 static void kv_update(kvpair kv, int64_t id){
     int64_t* value = get_value(kv);
 	memmove(&value[1], value,
@@ -48,7 +52,7 @@ static void kv_update(kvpair kv, int64_t id){
 	value[0] = id;
 }
 
-static void free_kvpair(kvpair kvp){
+static inline void free_kvpair(kvpair kvp){
 	free(kvp);
 }
 
@@ -149,4 +153,41 @@ void kvstore_htable_update(char* key, int64_t id) {
 		g_hash_table_replace(htable, get_key(kv), kv);
 	}
 	kv_update(kv, id);
+}
+
+/* Remove the 'id' from the kvpair identified by 'key' */
+void kvstore_htable_delete(char* key, int64_t id){
+	kvpair kv = g_hash_table_lookup(htable, key);
+	if(!kv)
+		return;
+
+	int64_t *value = get_value(kv);
+	int i;
+	for(i=0; i<destor.index_value_length; i++){
+		if(value[i] == id){
+			value[i] = TEMPORARY_ID;
+			/*
+			 * If index exploits physical locality,
+			 * the value length is 1. (correct)
+			 * If index exploits logical locality,
+			 * the deleted one should be in the end. (correct)
+			 */
+			/* NOTICE: If the backups are not deleted in FIFO order, this assert should be commented */
+			assert((i == destor.index_value_length - 1)
+					|| value[i+1] == TEMPORARY_ID);
+			if(i < destor.index_value_length - 1 && value[i+1] != TEMPORARY_ID){
+				/* If the next ID is not TEMPORARY_ID */
+				memmove(&value[i], &value[i+1], (destor.index_value_length - i - 1) * sizeof(int64_t));
+			}
+			break;
+		}
+	}
+
+	/*
+	 * If all IDs are deleted, the kvpair is removed.
+	 */
+	if(value[0] == TEMPORARY_ID){
+		/* This kvpair can be removed. */
+		g_hash_table_remove(htable, key);
+	}
 }

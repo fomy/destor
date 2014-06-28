@@ -284,6 +284,10 @@ void index_update(GHashTable *features, int64_t id){
     }
 }
 
+inline void index_delete(fingerprint *fp, int64_t id){
+	kvstore_delete(fp, id);
+}
+
 /* This function is designed for rewriting. */
 void index_check_buffer(struct segment *s) {
 
@@ -359,4 +363,3 @@ int index_update_buffer(struct segment *s){
     }
     return 1;
 }
-

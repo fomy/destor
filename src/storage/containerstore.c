@@ -450,3 +450,16 @@ int container_check_id(struct container* c, containerid* id) {
 int container_meta_check_id(struct containerMeta* cm, containerid* id) {
 	return cm->id == *id ? 1 : 0;
 }
+
+/*
+ * foreach the fingerprints in the container.
+ * Apply the 'func' for each fingerprint.
+ */
+void container_meta_foreach(struct containerMeta* cm, void (*func)(fingerprint*, void*), void* data){
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, cm->map);
+	while(g_hash_table_iter_next(&iter, &key, &value)){
+		func(key, data);
+	}
+}

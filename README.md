@@ -117,12 +117,17 @@ A sample configuration is shown in destor.conf
 Bugs
 ----
 1. If the running destor is crashed artificially or unexpectedly, data consistency is not guaranted and you'd better run rebuild script.
-2. Does NOT support concurrent backup/restore.
+
+2. Do NOT support concurrent backup/restore.
+
 3. If working path in destor.config is modified, the rebuild script must be modified too.
+
+4. CMA assumes the backups are deleted in FIFO order.
+    > In any cases, the oldest backup is deleted.
 
 Author
 ------
-Min Fu,
+Min Fu
 
 Email : fumin at hust.edu.cn
 
