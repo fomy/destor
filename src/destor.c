@@ -150,7 +150,7 @@ void destor_start() {
 		fread(&destor.index_memory_footprint, 4, 1, fp);
 
 		int last_retention_time;
-		fread(last_retention_time, 4, 1, fp);
+		fread(&last_retention_time, 4, 1, fp);
 		assert(last_retention_time == destor.backup_retention_time);
 
 		int last_level;
