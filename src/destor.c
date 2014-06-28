@@ -304,6 +304,7 @@ int main(int argc, char **argv) {
 		 * */
 		if(destor.backup_retention_time >= 0
 				&& jcr.id >= destor.backup_retention_time){
+			NOTICE("GC is running!");
 			do_delete(jcr.id - destor.backup_retention_time);
 		}
 
