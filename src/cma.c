@@ -88,7 +88,7 @@ GHashTable* trunc_manifest(int jobid){
     if((fp = fopen(fname, "r"))){
     	/* file exists. Reconstruct the manifest from the file. */
     	struct record tmp;
-    	while(fscanf(fp, "%lld,%d", &tmp.id, &tmp.time)){
+    	while(fscanf(fp, "%lld,%d", &tmp.id, &tmp.time) == 2){
     		struct record* rec = (struct record*) malloc(sizeof(struct record));
     		if(tmp.time <= jobid){
     			/* This record can be removed. */
