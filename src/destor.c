@@ -295,13 +295,17 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "backup job needs a protected path!\n");
 			usage();
 		}
-		init_recipe_store();
-		init_container_store();
 
 		do_backup(path);
 
-		close_container_store();
-		close_recipe_store();
+		/*
+		 * The backup concludes.
+		 * GC starts
+		 * */
+		if(destor.backup_retention_time >= 0
+				&& jcr.id >= destor.backup_retention_time){
+			do_delete(jcr.id - destor.backup_retention_time);
+		}
 
 		sdsfree(path);
 
@@ -317,13 +321,8 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "A target directory is required!\n");
 			usage();
 		}
-		init_recipe_store();
-		init_container_store();
 
 		do_restore(revision, path[0] == 0 ? 0 : path);
-
-		close_container_store();
-		close_recipe_store();
 
 		sdsfree(path);
 		break;

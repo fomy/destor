@@ -185,6 +185,9 @@ void write_restore_data() {
 
 void do_restore(int revision, char *path) {
 
+	init_recipe_store();
+	init_container_store();
+
 	init_restore_jcr(revision, path);
 
 	destor_log(DESTOR_NOTICE, "job id: %d", jcr.id);
@@ -263,5 +266,8 @@ void do_restore(int revision, char *path) {
 			jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
+
+	close_container_store();
+	close_recipe_store();
 }
 

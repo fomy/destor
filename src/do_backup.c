@@ -18,8 +18,11 @@ extern struct {
 
 void do_backup(char *path) {
 
+
 	init_backup_jcr(path);
 
+	init_recipe_store();
+	init_container_store();
 	init_index();
 
 	puts("==== backup begin ====");
@@ -52,6 +55,8 @@ void do_backup(char *path) {
 	TIMER_END(1, jcr.total_time);
 
 	close_index();
+	close_container_store();
+	close_recipe_store();
 
 	update_backup_version(jcr.bv);
 
@@ -165,14 +170,5 @@ void do_backup(char *path) {
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);
-
-	/*
-	 * The backup concludes.
-	 * GC starts
-	 * */
-	if(destor.backup_retention_time >= 0
-			&& jcr.id >= destor.backup_retention_time){
-		do_delete(jcr.id - destor.backup_retention_time);
-	}
 
 }

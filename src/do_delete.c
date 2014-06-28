@@ -25,10 +25,13 @@ void do_delete(int jobid) {
 	GHashTable *invalid_containers = trunc_manifest(jobid);
 
 	init_index();
+	init_recipe_store();
 
 	/* Delete the invalid entries in the key-value store */
 	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
 		init_container_store();
+
+		struct backupVersion* bv = open_backup_version(jobid);
 
 		/* The entries pointing to Invalid Containers are invalid. */
 		GHashTableIter iter;
@@ -43,6 +46,10 @@ void do_delete(int jobid) {
 			free_container_meta(cm);
 		}
 
+		bv->deleted = 1;
+		update_backup_version(bv);
+		free_backup_version(bv);
+
 		close_container_store();
 	}else if(destor.index_category[1] == INDEX_CATEGORY_LOGICAL_LOCALITY){
 		/* Ideally, the entries pointing to segments in backup versions of a 'bv_num' less than 'jobid' are invalid. */
@@ -54,6 +61,8 @@ void do_delete(int jobid) {
 			segment_recipe_foreach(bv, delete_an_entry, &sr->id);
 		}
 
+		bv->deleted = 1;
+		update_backup_version(bv);
 		free_backup_version(bv);
 
 	}else{
@@ -61,5 +70,6 @@ void do_delete(int jobid) {
 		exit(1);
 	}
 
+	close_recipe_store();
 	close_index();
 }

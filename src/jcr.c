@@ -73,5 +73,10 @@ void init_restore_jcr(int revision, char *path) {
 
 	jcr.bv = open_backup_version(revision);
 
+	if(jcr.bv->bv_num == 1){
+		WARNING("The backup has been deleted!");
+		exit(1);
+	}
+
 	jcr.id = revision;
 }
