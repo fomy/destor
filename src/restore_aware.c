@@ -7,7 +7,7 @@
  */
 #include "rewrite_phase.h"
 #include "storage/containerstore.h"
-#include "tools/lru_cache.h"
+#include "utils/lru_cache.h"
 
 struct {
 	int64_t total_size;

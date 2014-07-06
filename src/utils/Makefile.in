@@ -76,7 +76,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-subdir = src/tools
+subdir = src/utils
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -93,12 +93,12 @@ AM_V_AR = $(am__v_AR_@AM_V@)
 am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
-libtools_a_AR = $(AR) $(ARFLAGS)
-libtools_a_LIBADD =
-am_libtools_a_OBJECTS = lru_cache.$(OBJEXT) rabin_chunking.$(OBJEXT) \
+libutils_a_AR = $(AR) $(ARFLAGS)
+libutils_a_LIBADD =
+am_libutils_a_OBJECTS = lru_cache.$(OBJEXT) rabin_chunking.$(OBJEXT) \
 	sync_queue.$(OBJEXT) queue.$(OBJEXT) serial.$(OBJEXT) \
 	bloom_filter.$(OBJEXT) sds.$(OBJEXT)
-libtools_a_OBJECTS = $(am_libtools_a_OBJECTS)
+libutils_a_OBJECTS = $(am_libutils_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -127,8 +127,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libtools_a_SOURCES)
-DIST_SOURCES = $(libtools_a_SOURCES)
+SOURCES = $(libutils_a_SOURCES)
+DIST_SOURCES = $(libutils_a_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -242,8 +242,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-noinst_LIBRARIES = libtools.a
-libtools_a_SOURCES = lru_cache.c rabin_chunking.c sync_queue.c queue.c serial.c bloom_filter.c sds.c
+noinst_LIBRARIES = libutils.a
+libutils_a_SOURCES = lru_cache.c rabin_chunking.c sync_queue.c queue.c serial.c bloom_filter.c sds.c
 all: all-am
 
 .SUFFIXES:
@@ -257,9 +257,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/tools/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/utils/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/tools/Makefile
+	  $(AUTOMAKE) --gnu src/utils/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -282,10 +282,10 @@ $(am__aclocal_m4_deps):
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 
-libtools.a: $(libtools_a_OBJECTS) $(libtools_a_DEPENDENCIES) $(EXTRA_libtools_a_DEPENDENCIES) 
-	$(AM_V_at)-rm -f libtools.a
-	$(AM_V_AR)$(libtools_a_AR) libtools.a $(libtools_a_OBJECTS) $(libtools_a_LIBADD)
-	$(AM_V_at)$(RANLIB) libtools.a
+libutils.a: $(libutils_a_OBJECTS) $(libutils_a_DEPENDENCIES) $(EXTRA_libutils_a_DEPENDENCIES) 
+	$(AM_V_at)-rm -f libutils.a
+	$(AM_V_AR)$(libutils_a_AR) libutils.a $(libutils_a_OBJECTS) $(libutils_a_LIBADD)
+	$(AM_V_at)$(RANLIB) libutils.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

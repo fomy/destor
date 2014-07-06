@@ -1,6 +1,6 @@
 #include "destor.h"
 #include "jcr.h"
-#include "tools/rabin_chunking.h"
+#include "utils/rabin_chunking.h"
 #include "backup.h"
 
 static pthread_t chunk_t;

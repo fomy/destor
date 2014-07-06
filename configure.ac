@@ -60,7 +60,7 @@ AC_FUNC_MALLOC
 
 AC_OUTPUT(Makefile
         src/Makefile
-        src/tools/Makefile
+        src/utils/Makefile
         src/index/Makefile
         src/recipe/Makefile
         src/storage/Makefile)

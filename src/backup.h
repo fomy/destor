@@ -9,7 +9,7 @@
 #define BACKUP_H_
 
 #include "destor.h"
-#include "tools/sync_queue.h"
+#include "utils/sync_queue.h"
 
 /*
  * CHUNK_FILE_START NORMAL_CHUNK... CHUNK_FILE_END

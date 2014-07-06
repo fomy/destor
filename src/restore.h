@@ -8,7 +8,7 @@
 #ifndef RESTORE_H_
 #define RESTORE_H_
 
-#include "tools/sync_queue.h"
+#include "utils/sync_queue.h"
 
 SyncQueue *restore_chunk_queue;
 SyncQueue *restore_recipe_queue;

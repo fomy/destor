@@ -2,7 +2,7 @@
 #include "jcr.h"
 #include "recipe/recipestore.h"
 #include "storage/containerstore.h"
-#include "tools/lru_cache.h"
+#include "utils/lru_cache.h"
 #include "restore.h"
 
 static void* lru_restore_thread(void *arg) {

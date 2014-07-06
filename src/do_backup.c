@@ -1,6 +1,6 @@
 #include "destor.h"
 #include "jcr.h"
-#include "tools/sync_queue.h"
+#include "utils/sync_queue.h"
 #include "index/index.h"
 #include "backup.h"
 

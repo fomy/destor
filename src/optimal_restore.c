@@ -9,7 +9,7 @@
 #include "recipe/recipestore.h"
 #include "storage/containerstore.h"
 #include "restore.h"
-#include "tools/lru_cache.h"
+#include "utils/lru_cache.h"
 
 /* Consisting of a sequence of access records with an identical ID */
 struct accessRecords {

@@ -8,7 +8,7 @@
 #include "index.h"
 #include "../storage/containerstore.h"
 #include "../recipe/recipestore.h"
-#include "../tools/lru_cache.h"
+#include "../utils/lru_cache.h"
 
 static struct lruCache* lru_queue;
 
