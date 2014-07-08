@@ -58,7 +58,7 @@ void do_delete(int jobid) {
 
 		struct segmentRecipe* sr;
 		while((sr=read_next_segment(bv))){
-			segment_recipe_foreach(bv, delete_an_entry, &sr->id);
+			segment_recipe_foreach(sr, delete_an_entry, &sr->id);
 		}
 
 		bv->deleted = 1;

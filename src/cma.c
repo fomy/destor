@@ -95,6 +95,7 @@ GHashTable* trunc_manifest(int jobid){
     			containerid *cid = (containerid*) malloc(sizeof(containerid));
     			*cid = tmp.id;
     			g_hash_table_insert(invalid_containers, cid, NULL);
+                NOTICE("CMA: container %lld can be reclaimed.", cid);
     		}else{
     			/* This record remains valid. */
     			rec->id = tmp.id;
