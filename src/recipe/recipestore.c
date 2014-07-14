@@ -167,8 +167,9 @@ struct backupVersion* open_backup_version(int number) {
 	fread(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
 
 	if (b->deleted) {
-		fprintf(stderr, "Backup version %d has been deleted!\n", number);
-		exit(1);
+		/*fprintf(stderr, "Backup version %d has been deleted!\n", number);*/
+        NOTICE("This version has been deleted!\n");
+		/*exit(1);*/
 	}
 
 	fread(&b->number_of_files, sizeof(b->number_of_files), 1, b->metadata_fp);

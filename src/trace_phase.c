@@ -150,7 +150,8 @@ static void* read_trace_thread(void *argv) {
 
 	while (1) {
 		TIMER_DECLARE(1);
-		TIMER_BEGIN(1), fgets(line, 128, trace_file);
+		TIMER_BEGIN(1);
+		fgets(line, 128, trace_file);
 		TIMER_END(1, jcr.read_time);
 
 		if (strcmp(line, "stream end") == 0) {
@@ -178,7 +179,8 @@ static void* read_trace_thread(void *argv) {
 
 		sync_queue_push(trace_queue, c);
 
-		TIMER_BEGIN(1), fgets(line, 128, trace_file);
+		TIMER_BEGIN(1);
+		fgets(line, 128, trace_file);
 		while (strncmp(line, "file end", 8) != 0) {
 			c = new_chunk(0);
 
