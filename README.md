@@ -69,7 +69,7 @@ Dependencies
 
    > libglib.so and glib.h may not be found when you first install it.
 
-   > The header files (that originically locate in /usr/local/include/glib-2.0) are required to be moved to a searchable path, such as "/usr/local/include". 
+   > The header files (that originally locate in /usr/local/include/glib-2.0) are required to be moved to a searchable path, such as "/usr/local/include". 
 
    > Also a link named libglib.so should be created in "/usr/local/lib".
 
