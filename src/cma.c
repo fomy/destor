@@ -67,6 +67,8 @@ void update_manifest(GHashTable *monitor){
     	exit(1);
     }
 
+    destor.live_container_num = g_hash_table_size(manifest);
+
     g_hash_table_destroy(manifest);
 }
 
@@ -121,7 +123,6 @@ GHashTable* trunc_manifest(int jobid){
     		struct record* rec = value;
     		fprintf(fp, "%lld,%d\n", rec->id, rec->time);
     	}
-        NOTICE("CMA: flush %d records.", g_hash_table_size(manifest));
     	fclose(fp);
     }else{
     	WARNING("CMA: cannot create manifest!");
@@ -129,6 +130,8 @@ GHashTable* trunc_manifest(int jobid){
     }
 
     destor.live_container_num = g_hash_table_size(manifest);
+
+    g_hash_table_destroy(manifest);
 
 	return invalid_containers;
 }
