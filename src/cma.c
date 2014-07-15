@@ -128,5 +128,7 @@ GHashTable* trunc_manifest(int jobid){
     	exit(1);
     }
 
+    destor.live_container_num = g_hash_table_size(manifest);
+
 	return invalid_containers;
 }

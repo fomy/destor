@@ -136,7 +136,8 @@ void close_har() {
 	 * 	1. the sparse size is not an accurate indicator of utilization for next backup.
 	 * 	2. self-references.
 	 */
-	while(sparse_size*1.0/total_size > destor.rewrite_har_rewrite_limit){
+	while(destor.rewrite_har_rewrite_limit < 1
+			&& sparse_size*1.0/total_size > destor.rewrite_har_rewrite_limit){
 		/*
 		 * The expected rewrite ratio exceeds the limit.
 		 * We trim the last several records in the sequence.

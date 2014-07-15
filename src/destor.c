@@ -149,6 +149,8 @@ void destor_start() {
 
 		fread(&destor.index_memory_footprint, 4, 1, fp);
 
+		fread(&destor.live_container_num, 4, 1, fp);
+
 		int last_retention_time;
 		fread(&last_retention_time, 4, 1, fp);
 		assert(last_retention_time == destor.backup_retention_time);
@@ -168,6 +170,7 @@ void destor_start() {
 		destor.rewritten_chunk_num = 0;
 		destor.rewritten_chunk_size = 0;
 		destor.index_memory_footprint = 0;
+		destor.live_container_num = 0;
 	}
 
 	sdsfree(stat_file);
@@ -197,6 +200,8 @@ void destor_shutdown() {
 
 	fwrite(&destor.index_memory_footprint, 4, 1, fp);
 
+	fwrite(&destor.live_container_num, 4, 1, fp);
+
 	fwrite(&destor.backup_retention_time, 4, 1, fp);
 
 	fwrite(&destor.simulation_level, 4, 1, fp);
@@ -210,6 +215,9 @@ void destor_stat() {
 
 	printf("the index memory footprint (B): %d\n",
 			destor.index_memory_footprint);
+
+	printf("the number of live containers: %d\n",
+			destor.live_container_num);
 
 	printf("the number of chunks: %ld\n", destor.chunk_num);
 	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);

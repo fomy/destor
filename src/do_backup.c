@@ -147,25 +147,31 @@ void do_backup(char *path) {
 	FILE *fp = fopen(logfile, "a");
 	/*
 	 * job id,
+	 * the size of backup
 	 * accumulative consumed capacity,
 	 * deduplication rate,
 	 * rewritten rate,
 	 * total container number,
 	 * sparse container number,
 	 * inherited container number,
-	 * index overhead (4 * int)
+	 * 4 * index overhead (4 * int)
 	 * throughput,
 	 */
-	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %d %d %d %d %.2f\n", jcr.id,
-			jcr.data_size, destor.stored_data_size,
+	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %d %d %d %d %.2f\n",
+			jcr.id,
+			jcr.data_size,
+			destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.rewritten_chunk_size - jcr.unique_data_size)/(double) (jcr.data_size)
 					: 0,
 			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
-			jcr.total_container_num, jcr.sparse_container_num,
+			jcr.total_container_num,
+			jcr.sparse_container_num,
 			jcr.inherited_sparse_num,
-			index_overhead.lookup_requests, index_overhead.lookup_requests_for_unique,
-			index_overhead.update_requests, index_overhead.read_prefetching_units,
+			index_overhead.lookup_requests,
+			index_overhead.lookup_requests_for_unique,
+			index_overhead.update_requests,
+			index_overhead.read_prefetching_units,
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 
 	fclose(fp);

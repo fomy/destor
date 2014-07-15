@@ -264,6 +264,9 @@ struct destor {
 
 	int32_t index_memory_footprint;
 
+	/* The number of live containers */
+	int32_t live_container_num;
+
 	int backup_retention_time;
 
 } destor;
