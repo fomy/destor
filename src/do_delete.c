@@ -77,11 +77,13 @@ void do_delete(int jobid) {
 	FILE *fp = fopen(logfile, "a");
 	/*
 	 * ID of the job we delete,
-	 * number of live containers
+	 * number of live containers,
+	 * memory footprint
 	 */
-	fprintf(fp, "%d %d\n",
+	fprintf(fp, "%d %d %d\n",
 			jobid,
-			destor.live_container_num);
+			destor.live_container_num,
+			destor.index_memory_footprint);
 
 	fclose(fp);
 }
