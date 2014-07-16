@@ -39,6 +39,7 @@ void do_delete(int jobid) {
 		g_hash_table_iter_init(&iter, invalid_containers);
 		while(g_hash_table_iter_next(&iter, &key, &value)){
 			containerid id = *(containerid*)key;
+			NOTICE("Reclaim container %lld", id);
 			struct containerMeta* cm = retrieve_container_meta_by_id(id);
 
 			container_meta_foreach(cm, delete_an_entry, &id);
