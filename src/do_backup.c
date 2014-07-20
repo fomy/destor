@@ -4,8 +4,6 @@
 #include "index/index.h"
 #include "backup.h"
 
-extern void do_delete(int jobid);
-
 /* defined in index.c */
 extern struct {
 	/* Requests to the key-value store */
