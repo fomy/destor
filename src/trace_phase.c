@@ -151,10 +151,11 @@ static void* read_trace_thread(void *argv) {
 	while (1) {
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
-		fgets(line, 128, trace_file);
+		char* ret = fgets(line, 128, trace_file);
 		TIMER_END(1, jcr.read_time);
 
-		if (strcmp(line, "stream end") == 0) {
+		/*if (strcmp(line, "stream end") == 0) {*/
+		if (ret == NULL) {
 			sync_queue_term(trace_queue);
 			break;
 		}
@@ -163,14 +164,16 @@ static void* read_trace_thread(void *argv) {
 
 		TIMER_BEGIN(1),
 
-		assert(strncmp(line, "file start ", 11) == 0);
-		int filenamelen;
-		sscanf(line, "file start %d", &filenamelen);
+		assert(strncmp(line, "File_ID = ", strlen("File_ID = ")) == 0);
+		int fid;
+		sscanf(line, "File_ID = %d", &fid);
+        char filename[20];
+        sprintf(filename, "%d", fid);
 
 		/* An additional '\n' is read */
-		c = new_chunk(filenamelen + 2);
-		fgets(c->data, filenamelen + 2, trace_file);
-		c->data[filenamelen] = 0;
+		c = new_chunk(strlen(filename));
+		strcpy(c->data, filename);
+		/*c->data[filenamelen] = 0;*/
 		VERBOSE("Reading: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
@@ -181,14 +184,24 @@ static void* read_trace_thread(void *argv) {
 
 		TIMER_BEGIN(1);
 		fgets(line, 128, trace_file);
-		while (strncmp(line, "file end", 8) != 0) {
+		while (strncmp(line, "File_Size", 9) != 0) {
 			c = new_chunk(0);
 
-			char code[41];
-			strncpy(code, line, 40);
+            int flag;
+            char code[41];
+            sscanf(line, "Flag:%d, Hash:%40s, Len:%d\n", &flag, code, &c->size);
 			code2hash(code, c->fp);
+            c->dsize = 0;
+            memcpy(&c->basefp, &c->fp, sizeof(fingerprint));
 
-			c->size = atoi(line + 41);
+            if(flag == 1){
+                /* read a delta */
+			    fgets(line, 128, trace_file);
+                int basesize;
+                sscanf(line, "==>BHash:%40s, BLen:%d, DLen:%d\n", code, &basesize, &c->dsize);
+                code2hash(code, c->basefp);
+            }
+
 			jcr.chunk_num++;
 			jcr.data_size += c->size;
 

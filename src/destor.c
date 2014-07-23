@@ -364,6 +364,9 @@ struct chunk* new_chunk(int32_t size) {
 	memset(&ck->fp, 0x0, sizeof(fingerprint));
 	ck->size = size;
 
+    ck->dsize = size;
+	memset(&ck->basefp, 0x0, sizeof(fingerprint));
+
 	if (size > 0)
 		ck->data = malloc(size);
 	else

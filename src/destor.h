@@ -281,6 +281,10 @@ struct chunk {
 	containerid id;
 	fingerprint fp;
 	unsigned char *data;
+
+    /* the size of delta */
+    int dsize;
+    fingerprint basefp;
 };
 
 /* struct segment only makes sense for index. */
