@@ -8,3 +8,4 @@ rm -f ${DIR}/recipes/*
 rm -f ${DIR}/index/*
 rm -f ${DIR}/container.pool
 rm -f ${DIR}/destor.stat
+rm -f ${DIR}/manifest
