@@ -69,9 +69,12 @@ void do_backup(char *path) {
 	printf("number of chunks: %d (%ld bytes on average)\n", jcr.chunk_num,
 			jcr.data_size / jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
+	printf("number of delta chunks: %d\n", jcr.delta_chunk_num);
 	printf("total size(B): %ld\n", jcr.data_size);
 	printf("stored data size(B): %ld\n",
 			jcr.unique_data_size + jcr.rewritten_chunk_size);
+	printf("stored data size(B) after delta: %ld\n",
+			jcr.delta_data_size + jcr.rewritten_chunk_size);
 	printf("deduplication ratio: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.unique_data_size
@@ -80,6 +83,13 @@ void do_backup(char *path) {
 					0,
 			jcr.data_size
 					/ (double) (jcr.unique_data_size + jcr.rewritten_chunk_size));
+	printf("deduplication ratio after delta: %.4f, %.4f\n",
+			jcr.data_size != 0 ?
+					(jcr.data_size - jcr.delta_data_size
+							- jcr.rewritten_chunk_size)
+							/ (double) (jcr.data_size) : 0,
+			jcr.data_size
+					/ (double) (jcr.delta_data_size + jcr.rewritten_chunk_size));
 	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
 	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
@@ -91,7 +101,7 @@ void do_backup(char *path) {
 			jcr.rewritten_chunk_size / (double) jcr.data_size);
 
 	destor.data_size += jcr.data_size;
-	destor.stored_data_size += jcr.unique_data_size + jcr.rewritten_chunk_size;
+	destor.stored_data_size += jcr.delta_data_size + jcr.rewritten_chunk_size;
 
 	destor.chunk_num += jcr.chunk_num;
 	destor.stored_chunk_num += jcr.unique_chunk_num + jcr.rewritten_chunk_num;
@@ -162,7 +172,7 @@ void do_backup(char *path) {
 			jcr.data_size,
 			destor.stored_data_size,
 			jcr.data_size != 0 ?
-					(jcr.data_size - jcr.rewritten_chunk_size - jcr.unique_data_size)/(double) (jcr.data_size)
+					(jcr.data_size - jcr.rewritten_chunk_size - jcr.delta_data_size)/(double) (jcr.data_size)
 					: 0,
 			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
 			jcr.total_container_num,

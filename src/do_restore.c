@@ -162,13 +162,14 @@ void write_restore_data() {
 			sdsfree(filepath);
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
-			if (fp)
+			if (destor.simulation_level == SIMULATION_NO)
 				fclose(fp);
 			fp = NULL;
 		} else {
-			assert(destor.simulation_level == SIMULATION_NO);
-			VERBOSE("Restoring %d bytes", c->size);
-			fwrite(c->data, c->size, 1, fp);
+			if(destor.simulation_level == SIMULATION_NO){
+				VERBOSE("Restoring %d bytes", c->size);
+				fwrite(c->data, c->size, 1, fp);
+			}
 		}
 
 		free_chunk(c);

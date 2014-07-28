@@ -25,6 +25,8 @@ void init_jcr(char *path) {
 	jcr.file_num = 0;
 	jcr.data_size = 0;
 	jcr.unique_data_size = 0;
+	jcr.delta_chunk_num = 0;
+	jcr.delta_data_size = 0;
 	jcr.chunk_num = 0;
 	jcr.unique_chunk_num = 0;
 	jcr.zero_chunk_num = 0;

@@ -22,8 +22,10 @@ struct {
 	int32_t file_num;
 	int64_t data_size;
 	int64_t unique_data_size;
+	int64_t delta_data_size;
 	int32_t chunk_num;
 	int32_t unique_chunk_num;
+	int32_t delta_chunk_num;
 	int32_t zero_chunk_num;
 	int64_t zero_chunk_size;
 	int32_t rewritten_chunk_num;
