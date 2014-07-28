@@ -122,13 +122,13 @@ void *delta_thread(void *arg) {
         }
 
         /* do delta compression (simulation) */
-        if(c->delta != NULL){
-        	c->delta->baseid = lookup_delta_index(&c->delta->basefp);
-        	if(c->delta->baseid == TEMPORARY_ID){
-        		free_delta(c->delta);
-        		c->delta = NULL;
-        	}
-        }
+       // if(c->delta != NULL){
+       // 	c->delta->baseid = lookup_delta_index(&c->delta->basefp);
+       // 	if(c->delta->baseid == TEMPORARY_ID){
+       // 		free_delta(c->delta);
+       // 		c->delta = NULL;
+        //	}
+        //}
 
         sync_queue_push(delta_queue, c);
     }

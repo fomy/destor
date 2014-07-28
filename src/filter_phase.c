@@ -6,6 +6,7 @@
 #include "backup.h"
 #include "index/index.h"
 
+extern containerid lookup_delta_index(fingerprint *fp);
 extern void update_delta_index(fingerprint *fp, containerid id);
 extern close_delta_index();
 
@@ -155,6 +156,15 @@ static void* filter_thread(void *arg) {
                     write_container_async(storage_buffer.container_buffer);
                     TIMER_BEGIN(1);
                     storage_buffer.container_buffer = create_container();
+                }
+
+                /* do delta compression (simulation) */
+                if(c->delta != NULL){
+                	c->delta->baseid = lookup_delta_index(&c->delta->basefp);
+                	if(c->delta->baseid == TEMPORARY_ID){
+                		free_delta(c->delta);
+                		c->delta = NULL;
+                	}
                 }
 
                 if(add_chunk_to_container(storage_buffer.container_buffer, c)){
