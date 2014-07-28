@@ -36,6 +36,7 @@ void do_backup(char *path) {
 	}
 	start_dedup_phase();
 	start_rewrite_phase();
+	start_delta_phase();
 	start_filter_phase();
 
 	if (destor.simulation_level == SIMULATION_ALL) {
@@ -47,6 +48,7 @@ void do_backup(char *path) {
 	}
 	stop_dedup_phase();
 	stop_rewrite_phase();
+	stop_delta_phase();
 	stop_filter_phase();
 
 	TIMER_END(1, jcr.total_time);
