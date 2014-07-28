@@ -175,7 +175,7 @@ static void* filter_thread(void *arg) {
                 	if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
                 		jcr.unique_chunk_num++;
                 		if(c->delta){
-                			jcr.delta_data_size += c->delta->size;
+                			jcr.delta_data_size += c->delta->size + sizeof(fingerprint) + sizeof(containerid);
                 			jcr.delta_chunk_num++;
                 		}else{
                 			jcr.delta_data_size += c->size;
