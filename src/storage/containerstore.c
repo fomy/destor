@@ -289,7 +289,7 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 
 	pthread_mutex_lock(&mutex);
 
-	fseek(fp, id * CONTAINER_SIZE, SEEK_SET);
+	fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
 
 	int count = fread(&cm->id, sizeof(cm->id), 1, fp);
 
