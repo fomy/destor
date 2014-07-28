@@ -356,6 +356,22 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
+struct delta* new_delta(int32_t size) {
+	struct delta* d = (struct delta*) malloc(sizeof(struct delta));
+
+	d->baseid = TEMPORARY_ID;
+	d->data = malloc(size);
+	d->size = size;
+	memset(&d->basefp, 0x0, sizeof(fingerprint));
+
+	return d;
+}
+
+void free_delta(struct delta* d) {
+	free(d->data);
+	free(d);
+}
+
 struct chunk* new_chunk(int32_t size) {
 	struct chunk* ck = (struct chunk*) malloc(sizeof(struct chunk));
 
@@ -364,8 +380,7 @@ struct chunk* new_chunk(int32_t size) {
 	memset(&ck->fp, 0x0, sizeof(fingerprint));
 	ck->size = size;
 
-    ck->dsize = size;
-	memset(&ck->basefp, 0x0, sizeof(fingerprint));
+    ck->delta = NULL;
 
 	if (size > 0)
 		ck->data = malloc(size);
@@ -380,6 +395,10 @@ void free_chunk(struct chunk* ck) {
 		free(ck->data);
 		ck->data = NULL;
 	}
+
+	if(ck->delta)
+		free_delta(ck->delta);
+
 	free(ck);
 }
 

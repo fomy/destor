@@ -32,7 +32,7 @@ static void* filter_thread(void *arg) {
     struct recipeMeta* r = NULL;
 
     while (1) {
-        struct chunk* c = sync_queue_pop(rewrite_queue);
+        struct chunk* c = sync_queue_pop(delta_queue);
 
         if (c == NULL)
             /* backup job finish */
@@ -45,14 +45,14 @@ static void* filter_thread(void *arg) {
         assert(CHECK_CHUNK(c, CHUNK_SEGMENT_START));
         free_chunk(c);
 
-        c = sync_queue_pop(rewrite_queue);
+        c = sync_queue_pop(delta_queue);
         while (!(CHECK_CHUNK(c, CHUNK_SEGMENT_END))) {
             g_queue_push_tail(s->chunks, c);
             if (!CHECK_CHUNK(c, CHUNK_FILE_START)
                     && !CHECK_CHUNK(c, CHUNK_FILE_END))
                 s->chunk_num++;
 
-            c = sync_queue_pop(rewrite_queue);
+            c = sync_queue_pop(delta_queue);
         }
         free_chunk(c);
 

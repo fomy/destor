@@ -51,6 +51,7 @@ int rewrite_buffer_push(struct chunk* c) {
 					sizeof(struct containerRecord));
 			record->cid = c->id;
 			record->size = c->size;
+			record->chunknum = 1;
 			/* We first assume it is out-of-order */
 			record->out_of_order = 1;
 			g_sequence_insert_sorted(rewrite_buffer.container_record_seq,
@@ -59,6 +60,7 @@ int rewrite_buffer_push(struct chunk* c) {
 			struct containerRecord* record = g_sequence_get(iter);
 			assert(record->cid == c->id);
 			record->size += c->size;
+			record->chunknum++;
 		}
 	}
 
@@ -90,6 +92,7 @@ struct chunk* rewrite_buffer_pop() {
 			assert(iter);
 			struct containerRecord* record = g_sequence_get(iter);
 			record->size -= c->size;
+			record->chunknum--;
 			if (record->size == 0)
 				g_sequence_remove(iter);
 

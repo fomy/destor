@@ -11,7 +11,6 @@
 #include "../destor.h"
 
 #define CONTAINER_SIZE (4194304ll) //4MB
-#define CONTAINER_META_SIZE (32768ll) //32KB
 #define CONTAINER_HEAD 16
 #define CONTAINER_META_ENTRY 28
 
@@ -24,6 +23,16 @@ struct containerMeta {
 	GHashTable *map;
 };
 
+/*
+ * Container is fixed-sized structure (4MB).
+ * It consists of two portions: metadata and data portions.
+ * All chunks are sequentially written to the data portions,
+ * and are indexed by the metadata portion.
+ *
+ * The metadata portion consists of two parts:
+ * 1) the head: describing the container.
+ * 3) the meta entries
+ */
 struct container {
 	struct containerMeta meta;
 	unsigned char *data;
@@ -42,7 +51,7 @@ struct containerMeta* retrieve_container_meta_by_id_async(containerid);
 
 struct chunk* get_chunk_in_container(struct container*, fingerprint*);
 int add_chunk_to_container(struct container*, struct chunk*);
-int container_overflow(struct container*, int32_t size);
+int container_overflow(struct container*, struct chunk*);
 void free_container(struct container*);
 void free_container_meta(struct containerMeta*);
 containerid get_container_id(struct container* c);

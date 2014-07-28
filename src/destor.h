@@ -275,6 +275,15 @@ typedef unsigned char fingerprint[20];
 typedef int64_t containerid; //container id
 typedef int64_t segmentid;
 
+struct delta {
+     /* the size of delta */
+	int32_t size;
+	unsigned char *data;
+	/* indicates the container where the base chunk locates */
+	containerid baseid;
+	fingerprint basefp;
+};
+
 struct chunk {
 	int32_t size;
 	int flag;
@@ -282,9 +291,7 @@ struct chunk {
 	fingerprint fp;
 	unsigned char *data;
 
-    /* the size of delta */
-    int dsize;
-    fingerprint basefp;
+	struct delta* delta;
 };
 
 /* struct segment only makes sense for index. */
@@ -296,6 +303,8 @@ struct segment {
 	GHashTable* features;
 };
 
+struct delta* new_delta(int32_t size);
+void free_delta(struct delta* d);
 struct chunk* new_chunk(int32_t);
 void free_chunk(struct chunk*);
 

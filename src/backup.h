@@ -68,5 +68,7 @@ SyncQueue* trace_queue;
 SyncQueue* dedup_queue;
 /* Output of rewrite phase. */
 SyncQueue* rewrite_queue;
+/* Output of delta phase. */
+SyncQueue* delta_queue;
 
 #endif /* BACKUP_H_ */

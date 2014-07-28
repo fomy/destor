@@ -12,7 +12,7 @@ static double get_rewrite_utility(struct chunk *c) {
 			&c->id, g_record_cmp_by_id, NULL);
 	assert(iter);
 	struct containerRecord *record = g_sequence_get(iter);
-	double coverage = (record->size + c->size) / (double) (CONTAINER_SIZE - CONTAINER_META_SIZE);
+	double coverage = (record->size + c->size + CONTAINER_META_ENTRY) / (double) CONTAINER_SIZE;
 	rewrite_utility = coverage >= 1 ? 0 : rewrite_utility - coverage;
 	return rewrite_utility;
 }

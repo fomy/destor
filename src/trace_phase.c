@@ -191,15 +191,15 @@ static void* read_trace_thread(void *argv) {
             char code[41];
             sscanf(line, "Flag:%d, Hash:%40s, Len:%d\n", &flag, code, &c->size);
 			code2hash(code, c->fp);
-            c->dsize = 0;
-            memcpy(&c->basefp, &c->fp, sizeof(fingerprint));
+            c->delta = NULL;
 
             if(flag == 1){
                 /* read a delta */
+            	c->delta = new_delta(0);
 			    fgets(line, 128, trace_file);
                 int basesize;
-                sscanf(line, "==>BHash:%40s, BLen:%d, DLen:%d\n", code, &basesize, &c->dsize);
-                code2hash(code, c->basefp);
+                sscanf(line, "==>BHash:%40s, BLen:%d, DLen:%d\n", code, &basesize, &c->delta->size);
+                code2hash(code, c->delta->basefp);
             }
 
 			jcr.chunk_num++;

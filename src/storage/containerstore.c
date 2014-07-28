@@ -12,9 +12,16 @@ static pthread_t append_t;
 
 static SyncQueue* container_buffer;
 
+
 struct metaEntry {
 	int32_t off;
 	int32_t len;
+	/*
+	 * the flag indicates whether it is a delta
+	 * 0 -> base chunk
+	 * 1 -> delta chunk
+	 * */
+	char flag;
 	fingerprint fp;
 };
 
@@ -91,10 +98,7 @@ static void init_container_meta(struct containerMeta *meta) {
  */
 struct container* create_container() {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
-	if (destor.simulation_level < SIMULATION_APPEND)
-		c->data = calloc(1, CONTAINER_SIZE);
-	else
-		c->data = 0;
+	c->data = calloc(1, CONTAINER_SIZE);
 
 	init_container_meta(&c->meta);
 	c->meta.id = container_count++;
@@ -120,8 +124,14 @@ void write_container_async(struct container* c) {
 	sync_queue_push(container_buffer, c);
 }
 
+static inline void mark_bitmap(unsigned char* bitmap, int n){
+	/* mark the nth bit */
+	bitmap[n>>3] |= 1<< (n & 7);
+}
+
 /*
  * Called by Append phase
+ * HEAD, meta entries, bitmap, data
  */
 void write_container(struct container* c) {
 
@@ -139,113 +149,84 @@ void write_container(struct container* c) {
 	VERBOSE("Append phase: Writing container %lld of %d chunks", c->meta.id,
 			c->meta.chunk_num);
 
-	if (destor.simulation_level < SIMULATION_APPEND) {
+	unsigned char *bitmap = malloc((c->meta.chunk_num+7)/8);
+	unsigned char *entries = malloc(c->meta.chunk_num * CONTAINER_META_ENTRY);
+	int n = 0;
 
-		unsigned char * cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
-		ser_declare;
-		ser_begin(cur, CONTAINER_META_SIZE);
-		ser_int64(c->meta.id);
-		ser_int32(c->meta.chunk_num);
-		ser_int32(c->meta.data_size);
-
-		GHashTableIter iter;
-		gpointer key, value;
-		g_hash_table_iter_init(&iter, c->meta.map);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			struct metaEntry *me = (struct metaEntry *) value;
-			ser_bytes(&me->fp, sizeof(fingerprint));
-			ser_bytes(&me->len, sizeof(int32_t));
-			ser_bytes(&me->off, sizeof(int32_t));
-		}
-
-		ser_end(cur, CONTAINER_META_SIZE);
-
-		pthread_mutex_lock(&mutex);
-
-		if (fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET) != 0) {
-			perror("Fail seek in container store.");
-			exit(1);
-		}
-		fwrite(c->data, CONTAINER_SIZE, 1, fp);
-
-		pthread_mutex_unlock(&mutex);
-	} else {
-		char buf[CONTAINER_META_SIZE];
-
-		ser_declare;
-		ser_begin(buf, CONTAINER_META_SIZE);
-		ser_int64(c->meta.id);
-		ser_int32(c->meta.chunk_num);
-		ser_int32(c->meta.data_size);
-
-		GHashTableIter iter;
-		gpointer key, value;
-		g_hash_table_iter_init(&iter, c->meta.map);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			struct metaEntry *me = (struct metaEntry *) value;
-			ser_bytes(&me->fp, sizeof(fingerprint));
-			ser_bytes(&me->len, sizeof(int32_t));
-			ser_bytes(&me->off, sizeof(int32_t));
-		}
-
-		ser_end(buf, CONTAINER_META_SIZE);
-
-		pthread_mutex_lock(&mutex);
-
-		fseek(fp, c->meta.id * CONTAINER_META_SIZE + 8, SEEK_SET);
-		fwrite(buf, CONTAINER_META_SIZE, 1, fp);
-
-		pthread_mutex_unlock(&mutex);
+	ser_declare;
+	ser_begin(entries, 0);
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, c->meta.map);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		struct metaEntry *me = (struct metaEntry *) value;
+		ser_bytes(&me->fp, sizeof(fingerprint));
+		ser_bytes(&me->len, sizeof(int32_t));
+		ser_bytes(&me->off, sizeof(int32_t));
+		if(me->flag == 1)
+			mark_bitmap(bitmap, n);
+		n++;
 	}
 
+	ser_end(entries, c->meta.chunk_num * CONTAINER_META_ENTRY);
+
+	pthread_mutex_lock(&mutex);
+
+	if (fseek(fp, c->meta.id * CONTAINER_SIZE + 8, SEEK_SET) != 0) {
+		perror("Fail seek in container store.");
+		exit(1);
+	}
+
+	int len = fwrite(&c->meta.id, sizeof(c->meta.id), 1, fp);
+	len += fwrite(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
+	len += fwrite(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
+
+	len += fwrite(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
+	len += fwrite(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+
+	assert(len + c->meta.data_size <= CONTAINER_SIZE);
+	len += fwrite(c->data, CONTAINER_SIZE - len, 1, fp);
+	assert(len == CONTAINER_SIZE);
+
+	pthread_mutex_unlock(&mutex);
+
+	free(entries);
+	free(bitmap);
 }
 
 struct container* retrieve_container_by_id(containerid id) {
 	struct container *c = (struct container*) malloc(sizeof(struct container));
-
 	init_container_meta(&c->meta);
+	c->data = malloc(CONTAINER_SIZE);
 
-	unsigned char *cur = 0;
-	if (destor.simulation_level >= SIMULATION_RESTORE) {
-		c->data = malloc(CONTAINER_META_SIZE);
+	pthread_mutex_lock(&mutex);
 
-		pthread_mutex_lock(&mutex);
+	fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
 
-		if (destor.simulation_level >= SIMULATION_APPEND)
-			fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
-		else
-			fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8,
-			SEEK_SET);
-
-		fread(c->data, CONTAINER_META_SIZE, 1, fp);
-
-		pthread_mutex_unlock(&mutex);
-
-		cur = c->data;
-	} else {
-		c->data = malloc(CONTAINER_SIZE);
-
-		pthread_mutex_lock(&mutex);
-
-		fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
-		fread(c->data, CONTAINER_SIZE, 1, fp);
-
-		pthread_mutex_unlock(&mutex);
-
-		cur = &c->data[CONTAINER_SIZE - CONTAINER_META_SIZE];
-	}
-
-	unser_declare;
-	unser_begin(cur, CONTAINER_META_SIZE);
-
-	unser_int64(c->meta.id);
-	unser_int32(c->meta.chunk_num);
-	unser_int32(c->meta.data_size);
+	int len = fread(&c->meta.id, sizeof(c->meta.id), 1, fp);
 
 	if(c->meta.id != id){
 		WARNING("expect %lld, but read %lld", id, c->meta.id);
 		assert(c->meta.id == id);
 	}
+
+	len += fread(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
+	len += fread(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
+
+	unsigned char *bitmap = malloc((c->meta.chunk_num+7)/8);
+	unsigned char *entries = malloc(c->meta.chunk_num * CONTAINER_META_ENTRY);
+
+	len += fread(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
+	len += fread(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+
+	assert(len + c->meta.data_size <= CONTAINER_SIZE);
+	len += fread(c->data, CONTAINER_SIZE - len, 1, fp);
+	assert(len == CONTAINER_SIZE);
+
+	pthread_mutex_unlock(&mutex);
+
+	unser_declare;
+	unser_begin(entries, 0);
 
 	int i;
 	for (i = 0; i < c->meta.chunk_num; i++) {
@@ -254,16 +235,20 @@ struct container* retrieve_container_by_id(containerid id) {
 		unser_bytes(&me->fp, sizeof(fingerprint));
 		unser_bytes(&me->len, sizeof(int32_t));
 		unser_bytes(&me->off, sizeof(int32_t));
+		me->flag = 0;
+
+		if ((bitmap[i>>3] & (1 << (i & 7))) == 1){
+			/* it is a delta */
+			me->flag = 1;
+		}
+
 		g_hash_table_insert(c->meta.map, &me->fp, me);
 	}
 
-	unser_end(cur, CONTAINER_META_SIZE);
+	unser_end(entries, c->meta.chunk_num * CONTAINER_META_ENTRY);
 
-	if (destor.simulation_level >= SIMULATION_RESTORE) {
-		free(c->data);
-		c->data = 0;
-	}
-
+	free(entries);
+	free(bitmap);
 	return c;
 }
 
@@ -302,31 +287,32 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 	cm = (struct containerMeta*) malloc(sizeof(struct containerMeta));
 	init_container_meta(cm);
 
-	unsigned char buf[CONTAINER_META_SIZE];
-
 	pthread_mutex_lock(&mutex);
 
-	if (destor.simulation_level >= SIMULATION_APPEND)
-		fseek(fp, id * CONTAINER_META_SIZE + 8, SEEK_SET);
-	else
-		fseek(fp, (id + 1) * CONTAINER_SIZE - CONTAINER_META_SIZE + 8,
-		SEEK_SET);
+	fseek(fp, id * CONTAINER_SIZE, SEEK_SET);
 
-	fread(buf, CONTAINER_META_SIZE, 1, fp);
-
-	pthread_mutex_unlock(&mutex);
-
-	unser_declare;
-	unser_begin(buf, CONTAINER_META_SIZE);
-
-	unser_int64(cm->id);
-	unser_int32(cm->chunk_num);
-	unser_int32(cm->data_size);
+	int len = fread(&cm->id, sizeof(cm->id), 1, fp);
 
 	if(cm->id != id){
 		WARNING("expect %lld, but read %lld", id, cm->id);
 		assert(cm->id == id);
 	}
+
+	len += fread(&cm->chunk_num, sizeof(cm->chunk_num), 1, fp);
+	len += fread(&cm->data_size, sizeof(cm->data_size), 1, fp);
+
+	unsigned char *bitmap = malloc((cm->chunk_num+7)/8);
+	unsigned char *entries = malloc(cm->chunk_num * CONTAINER_META_ENTRY);
+
+	len += fread(bitmap, (cm->chunk_num+7)/8, 1, fp);
+	len += fread(entries, cm->chunk_num * CONTAINER_META_ENTRY, 1, fp);
+
+	assert(len + cm->data_size <= CONTAINER_SIZE);
+
+	pthread_mutex_unlock(&mutex);
+
+	unser_declare;
+	unser_begin(entries, 0);
 
 	int i;
 	for (i = 0; i < cm->chunk_num; i++) {
@@ -335,8 +321,20 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 		unser_bytes(&me->fp, sizeof(fingerprint));
 		unser_bytes(&me->len, sizeof(int32_t));
 		unser_bytes(&me->off, sizeof(int32_t));
+		me->flag = 0;
+
+		if ((bitmap[i>>3] & (1 << (i & 7))) == 1){
+			/* it is a delta */
+			me->flag = 1;
+		}
+
 		g_hash_table_insert(cm->map, &me->fp, me);
 	}
+
+	unser_end(entries, cm->chunk_num * CONTAINER_META_ENTRY);
+
+	free(entries);
+	free(bitmap);
 
 	return cm;
 }
@@ -351,26 +349,60 @@ struct chunk* get_chunk_in_container(struct container* c, fingerprint *fp) {
 
 	assert(me);
 
-	struct chunk* ck = new_chunk(me->len);
+	struct chunk* ck = NULL;
+	if(me->flag == 1){
+		/* It is a delta */
+		int csize = 0;
+		int dsize = me->len - sizeof(csize) - sizeof(containerid) - sizeof(fingerprint);
 
-	if (destor.simulation_level < SIMULATION_RESTORE)
+		unser_declare;
+		unser_begin(c->data + me->off, me->len);
+		unser_int32(csize);
+		ck = new_chunk(csize);
+
+		ck->delta = new_delta(dsize);
+		unser_bytes(ck->delta->data, dsize);
+		unser_int64(ck->delta->baseid);
+		unser_bytes(ck->delta->basefp, sizeof(fingerprint));
+		unser_end(c->data + me->off, me->len);
+		/* The data portion remains unknown */
+	}else{
+		/* It is not a delta */
+		ck = new_chunk(me->len);
 		memcpy(ck->data, c->data + me->off, me->len);
+	}
 
-	ck->size = me->len;
 	ck->id = c->meta.id;
 	memcpy(&ck->fp, &fp, sizeof(fingerprint));
 
 	return ck;
 }
 
-int container_overflow(struct container* c, int32_t size) {
-	if (c->meta.data_size + size > CONTAINER_SIZE - CONTAINER_META_SIZE)
+static inline int calculate_meta_size(int num){
+	int size = CONTAINER_HEAD;
+	size += num * CONTAINER_META_ENTRY;
+	/* The size of bit map */
+	size += (num+7)/8;
+
+	return size;
+}
+
+int container_overflow(struct container* c, struct chunk* ck) {
+
+	int capacity = c->meta.data_size;
+
+	if(ck->delta == NULL) {
+		capacity += ck->size;
+	}else{
+		capacity += sizeof(ck->size) + ck->delta->size
+				+ sizeof(containerid) + sizeof(fingerprint);
+	}
+
+	capacity += calculate_meta_size(c->meta.chunk_num + 1);
+
+	if(capacity > CONTAINER_SIZE)
 		return 1;
-	/*
-	 * 28 is the size of metaEntry.
-	 */
-	if ((c->meta.chunk_num + 1) * 28 + 16 > CONTAINER_META_SIZE)
-		return 1;
+
 	return 0;
 }
 
@@ -380,7 +412,7 @@ int container_overflow(struct container* c, int32_t size) {
  * return 0 indicates fail.
  */
 int add_chunk_to_container(struct container* c, struct chunk* ck) {
-	assert(!container_overflow(c, ck->size));
+	assert(!container_overflow(c, ck));
 	if (g_hash_table_contains(c->meta.map, &ck->fp)) {
 		NOTICE("Writing a chunk already in the container buffer!");
 		ck->id = c->meta.id;
@@ -389,16 +421,35 @@ int add_chunk_to_container(struct container* c, struct chunk* ck) {
 
 	struct metaEntry* me = (struct metaEntry*) malloc(sizeof(struct metaEntry));
 	memcpy(&me->fp, &ck->fp, sizeof(fingerprint));
-	me->len = ck->size;
 	me->off = c->meta.data_size;
+
+	if(ck->delta != NULL){
+		/* it is a delta */
+		me->flag = 1;
+
+		ser_declare;
+		ser_begin(c->data + c->meta.data_size, 0);
+		ser_int32(ck->size);
+		ser_bytes(ck->delta->data, ck->delta->size);
+		ser_int64(ck->delta->baseid);
+		ser_bytes(ck->delta->basefp, sizeof(fingerprint));
+		ser_end(c->data + c->meta.data_size, sizeof(ck->size) + ck->delta->size
+				+ sizeof(containerid) + sizeof(fingerprint));
+		me->len = ser_length(c->data + c->meta.data_size);
+		c->meta.data_size += me->len;
+
+	}else{
+		/* it is not a delta */
+		me->flag = 0;
+
+		memcpy(c->data + c->meta.data_size, ck->data, ck->size);
+		c->meta.data_size += ck->size;
+
+		me->len = ck->size;
+	}
 
 	g_hash_table_insert(c->meta.map, &me->fp, me);
 	c->meta.chunk_num++;
-
-	if (destor.simulation_level < SIMULATION_APPEND)
-		memcpy(c->data + c->meta.data_size, ck->data, ck->size);
-
-	c->meta.data_size += ck->size;
 
 	ck->id = c->meta.id;
 

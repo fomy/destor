@@ -13,7 +13,8 @@
 struct containerRecord {
 	containerid cid;
 	int32_t size;
-	int32_t out_of_order;
+	int32_t chunknum;
+	char out_of_order;
 };
 
 struct {

@@ -65,16 +65,16 @@ void har_monitor_update(containerid id, int32_t size) {
 			container_utilization_monitor, &id);
 	if (record) {
 		record->size += size;
+		record->chunknum++;
 	} else {
 
 		record = (struct containerRecord*) malloc(
 					sizeof(struct containerRecord));
 		record->cid = id;
-		record->size = 0;
+		record->size = size;
+		record->chunknum = 1;
 		g_hash_table_insert(container_utilization_monitor,
 				&record->cid, record);
-
-		record->size += size;
 
 	}
 	TIMER_END(1, jcr.rewrite_time);
@@ -113,7 +113,7 @@ void close_har() {
 		struct containerRecord* cr = (struct containerRecord*) value;
 		total_size += cr->size;
 
-		if((1.0*cr->size/(CONTAINER_SIZE - CONTAINER_META_SIZE))
+		if((1.0*(cr->size + CONTAINER_HEAD + CONTAINER_META_ENTRY * cr->chunknum)/CONTAINER_SIZE)
 				< destor.rewrite_har_utilization_threshold){
 			/* It is sparse */
 			if (inherited_sparse_containers
@@ -129,7 +129,7 @@ void close_har() {
 	}
 
 	/*
-	 * If the sparse size is too large,
+	 * If the size of rewritten data is too large,
 	 * we need to trim the sequence to control the rewrite ratio.
 	 * We use sparse_size/total_size to estimate the rewrite ratio of next backup.
 	 * However, the estimation is inaccurate (generally over-estimating), since:
