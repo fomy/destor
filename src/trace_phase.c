@@ -185,20 +185,20 @@ static void* read_trace_thread(void *argv) {
 		TIMER_BEGIN(1);
 		fgets(line, 128, trace_file);
 		while (strncmp(line, "File_Size", 9) != 0) {
-			c = new_chunk(0);
 
-            int flag;
+            int flag, csize;
             char code[41];
-            sscanf(line, "Flag:%d, Hash:%40s, Len:%d\n", &flag, code, &c->size);
+            sscanf(line, "Flag:%d, Hash:%40s, Len:%d\n", &flag, code, &csize);
+            c = new_chunk(csize);
 			code2hash(code, c->fp);
             c->delta = NULL;
 
             if(flag == 1){
                 /* read a delta */
-            	c->delta = new_delta(0);
 			    fgets(line, 128, trace_file);
-                int basesize;
-                sscanf(line, "==>BHash:%40s, BLen:%d, DLen:%d\n", code, &basesize, &c->delta->size);
+                int basesize, deltasize;
+                sscanf(line, "==>BHash:%40s, BLen:%d, DLen:%d\n", code, &basesize, &deltasize);
+                c->delta = new_delta(deltasize);
                 code2hash(code, c->delta->basefp);
             }
 
