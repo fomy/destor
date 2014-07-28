@@ -149,7 +149,7 @@ void write_container(struct container* c) {
 	VERBOSE("Append phase: Writing container %lld of %d chunks", c->meta.id,
 			c->meta.chunk_num);
 
-	unsigned char *bitmap = malloc((c->meta.chunk_num+7)/8);
+	unsigned char *bitmap = calloc((c->meta.chunk_num+7)/8, 1);
 	unsigned char *entries = malloc(c->meta.chunk_num * CONTAINER_META_ENTRY);
 	int n = 0;
 
