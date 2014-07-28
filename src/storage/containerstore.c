@@ -177,16 +177,16 @@ void write_container(struct container* c) {
 		exit(1);
 	}
 
-	int len = fwrite(&c->meta.id, sizeof(c->meta.id), 1, fp);
-	len += fwrite(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
-	len += fwrite(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
+	int count = fwrite(&c->meta.id, sizeof(c->meta.id), 1, fp);
+	count += fwrite(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
+	count += fwrite(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
 
-	len += fwrite(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
-	len += fwrite(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+	count += fwrite(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
+	count += fwrite(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
 
-	assert(len + c->meta.data_size <= CONTAINER_SIZE);
-	len += fwrite(c->data, CONTAINER_SIZE - len, 1, fp);
-	assert(len == CONTAINER_SIZE);
+	count += fwrite(c->data, CONTAINER_SIZE - CONTAINER_HEAD - (c->meta.chunk_num+7)/8
+			- c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+	assert(count == 6);
 
 	pthread_mutex_unlock(&mutex);
 
@@ -203,25 +203,25 @@ struct container* retrieve_container_by_id(containerid id) {
 
 	fseek(fp, id * CONTAINER_SIZE + 8, SEEK_SET);
 
-	int len = fread(&c->meta.id, sizeof(c->meta.id), 1, fp);
+	int count = fread(&c->meta.id, sizeof(c->meta.id), 1, fp);
 
 	if(c->meta.id != id){
 		WARNING("expect %lld, but read %lld", id, c->meta.id);
 		assert(c->meta.id == id);
 	}
 
-	len += fread(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
-	len += fread(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
+	count += fread(&c->meta.chunk_num, sizeof(c->meta.chunk_num), 1, fp);
+	count += fread(&c->meta.data_size, sizeof(c->meta.data_size), 1, fp);
 
 	unsigned char *bitmap = malloc((c->meta.chunk_num+7)/8);
 	unsigned char *entries = malloc(c->meta.chunk_num * CONTAINER_META_ENTRY);
 
-	len += fread(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
-	len += fread(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+	count += fread(bitmap, (c->meta.chunk_num+7)/8, 1, fp);
+	count += fread(entries, c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
 
-	assert(len + c->meta.data_size <= CONTAINER_SIZE);
-	len += fread(c->data, CONTAINER_SIZE - len, 1, fp);
-	assert(len == CONTAINER_SIZE);
+	count += fread(c->data, CONTAINER_SIZE - CONTAINER_HEAD - (c->meta.chunk_num+7)/8
+			- c->meta.chunk_num * CONTAINER_META_ENTRY, 1, fp);
+	assert(count == 6);
 
 	pthread_mutex_unlock(&mutex);
 
@@ -291,23 +291,23 @@ struct containerMeta* retrieve_container_meta_by_id(containerid id) {
 
 	fseek(fp, id * CONTAINER_SIZE, SEEK_SET);
 
-	int len = fread(&cm->id, sizeof(cm->id), 1, fp);
+	int count = fread(&cm->id, sizeof(cm->id), 1, fp);
 
 	if(cm->id != id){
 		WARNING("expect %lld, but read %lld", id, cm->id);
 		assert(cm->id == id);
 	}
 
-	len += fread(&cm->chunk_num, sizeof(cm->chunk_num), 1, fp);
-	len += fread(&cm->data_size, sizeof(cm->data_size), 1, fp);
+	count += fread(&cm->chunk_num, sizeof(cm->chunk_num), 1, fp);
+	count += fread(&cm->data_size, sizeof(cm->data_size), 1, fp);
 
 	unsigned char *bitmap = malloc((cm->chunk_num+7)/8);
 	unsigned char *entries = malloc(cm->chunk_num * CONTAINER_META_ENTRY);
 
-	len += fread(bitmap, (cm->chunk_num+7)/8, 1, fp);
-	len += fread(entries, cm->chunk_num * CONTAINER_META_ENTRY, 1, fp);
+	count += fread(bitmap, (cm->chunk_num+7)/8, 1, fp);
+	count += fread(entries, cm->chunk_num * CONTAINER_META_ENTRY, 1, fp);
 
-	assert(len + cm->data_size <= CONTAINER_SIZE);
+	assert(count == 5);
 
 	pthread_mutex_unlock(&mutex);
 
