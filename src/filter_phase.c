@@ -137,7 +137,7 @@ static void* filter_thread(void *arg) {
                 		storage_buffer.chunks = g_queue_new();
                 }
 
-                if (container_overflow(storage_buffer.container_buffer, c->size)) {
+                if (container_overflow(storage_buffer.container_buffer, c)) {
 
                     if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
                         /*
