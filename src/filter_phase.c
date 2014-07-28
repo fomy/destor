@@ -6,6 +6,9 @@
 #include "backup.h"
 #include "index/index.h"
 
+extern void update_delta_index(fingerprint *fp, containerid id);
+extern close_delta_index();
+
 static pthread_t filter_t;
 static int64_t chunk_num;
 
@@ -179,6 +182,8 @@ static void* filter_thread(void *arg) {
 
                 	VERBOSE("Filter phase: Write %dth chunk to container %lld",
                 			chunk_num, c->id);
+
+                	update_delta_index(&c->fp, c->id);
                 }else{
                 	VERBOSE("Filter phase: container %lld already has this chunk", c->id);
             		assert(destor.index_category[0] != INDEX_CATEGORY_EXACT
@@ -309,4 +314,5 @@ void start_filter_phase() {
 void stop_filter_phase() {
     pthread_join(filter_t, NULL);
     close_har();
+    close_delta_index();
 }
