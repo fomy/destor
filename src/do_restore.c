@@ -7,12 +7,8 @@
 
 static void* lru_restore_thread(void *arg) {
 	struct lruCache *cache;
-	if (destor.simulation_level >= SIMULATION_RESTORE)
-		cache = new_lru_cache(destor.restore_cache[1], free_container_meta,
-				lookup_fingerprint_in_container_meta);
-	else
-		cache = new_lru_cache(destor.restore_cache[1], free_container,
-				lookup_fingerprint_in_container);
+	cache = new_lru_cache(destor.restore_cache[1], free_container,
+			lookup_fingerprint_in_container);
 
 	struct chunk* c;
 	while ((c = sync_queue_pop(restore_recipe_queue))) {
@@ -25,30 +21,29 @@ static void* lru_restore_thread(void *arg) {
 		TIMER_DECLARE(1);
 		TIMER_BEGIN(1);
 
-		if (destor.simulation_level >= SIMULATION_RESTORE) {
-			struct containerMeta *cm = lru_cache_lookup(cache, &c->fp);
-			if (!cm) {
-				VERBOSE("Restore cache: container %lld is missed", c->id);
-				cm = retrieve_container_meta_by_id(c->id);
-				assert(lookup_fingerprint_in_container_meta(cm, &c->fp));
-				lru_cache_insert(cache, cm, NULL, NULL);
-				jcr.read_container_num++;
-			}
+		struct container *con = lru_cache_lookup(cache, &c->fp);
+		if (!con) {
+			VERBOSE("Restore cache: container %lld is missed", c->id);
+			con = retrieve_container_by_id(c->id);
+			lru_cache_insert(cache, con, NULL, NULL);
+			jcr.read_container_num++;
+		}
+		struct chunk *rc = get_chunk_in_container(con, &c->fp);
+		assert(rc);
+		TIMER_END(1, jcr.read_chunk_time);
 
-			TIMER_END(1, jcr.read_chunk_time);
-		} else {
-			struct container *con = lru_cache_lookup(cache, &c->fp);
+		if(rc->delta){
+			/* It is a delta. To reconstruct it. */
+			struct container *con = lru_cache_lookup(cache, &rc->delta->basefp);
 			if (!con) {
-				VERBOSE("Restore cache: container %lld is missed", c->id);
-				con = retrieve_container_by_id(c->id);
+				VERBOSE("Restore cache: the base container %lld is missed", rc->delta->baseid);
+				con = retrieve_container_by_id(rc->delta->baseid);
 				lru_cache_insert(cache, con, NULL, NULL);
 				jcr.read_container_num++;
 			}
-			struct chunk *rc = get_chunk_in_container(con, &c->fp);
-			assert(rc);
-			TIMER_END(1, jcr.read_chunk_time);
-			sync_queue_push(restore_chunk_queue, rc);
 		}
+
+		sync_queue_push(restore_chunk_queue, rc);
 
 		free_chunk(c);
 	}

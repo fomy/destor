@@ -164,7 +164,10 @@ static void* filter_thread(void *arg) {
                 	wc->id = c->id;
                 	if (!CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
                 		jcr.unique_chunk_num++;
-                		jcr.unique_data_size += c->size;
+                		if(c->delta)
+                			jcr.unique_data_size += c->delta->size;
+                		else
+                			jcr.unique_data_size += c->size;
                 		g_hash_table_insert(recently_unique_chunks, &wc->fp, wc);
                     	VERBOSE("Filter phase: %dth chunk is recently unique, size %d", chunk_num,
                     			g_hash_table_size(recently_unique_chunks));
