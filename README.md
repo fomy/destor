@@ -1,6 +1,6 @@
 General Information
 -------------------
-This is a prototype of a deduplication system called destor.
+Destor is a platform for data deduplication evaluation.
 
 Features
 --------
