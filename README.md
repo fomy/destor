@@ -39,14 +39,14 @@ Related papers
     >
     > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
-3. The restore cache
+3. The restore cache:
     > a) A Study of Replacement Algorithms for a Virtual-Storage Computer @ IBM Systems Journal'1966.
     >
     > b) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication @ FAST'13.
     >
     > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
-4. Garbage collection (available in first release (Mouse), but to be continue in new version):
+4. Garbage collection:
     > a) Building a High-Performance Deduplication System @ USENIX ATC'11.
     >
     > b) Cumulus: Filesystem Backup to the Cloud @ FAST'09.
