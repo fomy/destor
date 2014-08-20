@@ -95,7 +95,7 @@ Running
 If compile and install are successful, the executable file, destor, should have been moved to /usr/local/bin by default.
 You can create a config file, destor.config, in where you run destor.
 A sample destor.config is in the project directory.
-Run rebuild script before destor to make subdirectory and clean data.
+Run rebuild script before destor to prepare working directory and clear data.
 
 destor can run as follows:
 
@@ -105,10 +105,10 @@ destor can run as follows:
 2. start a restore task,
    > destor -r<jobid> /path/to/restore -p"a line as in config file"
 
-3. lookup statistics of system,
+3. show the current statistics of system,
    > destor -s
 
-4. help
+4. show help
    > destor -h
 
 5. make a trace
