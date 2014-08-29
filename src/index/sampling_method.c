@@ -44,10 +44,6 @@ static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
             g_sequence_insert_sorted(candidates, new_candidate,
                     g_fingerprint_cmp, NULL);
             if (g_sequence_get_length(candidates) > feature_num) {
-                free(
-                        g_sequence_get(
-                            g_sequence_iter_prev(
-                                g_sequence_get_end_iter(candidates))));
                 g_sequence_remove(
                         g_sequence_iter_prev(
                             g_sequence_get_end_iter(candidates)));
