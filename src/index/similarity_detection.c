@@ -127,7 +127,6 @@ static void top_segment_select(GHashTable* features) {
 					g_sequence_get_begin_iter(seq));
 			NOTICE("read segment %lld", top->id);
 
-			index_overhead.read_prefetching_units++;
 			fingerprint_cache_prefetch(top->id);
 
 			g_sequence_remove(g_sequence_get_begin_iter(seq));
@@ -198,7 +197,6 @@ void index_lookup_similarity_detection(struct segment *s){
 				if(ids){
 					index_overhead.lookup_requests++;
 					/* prefetch the target unit */
-					index_overhead.read_prefetching_units++;
 					fingerprint_cache_prefetch(ids[0]);
 					int64_t id = fingerprint_cache_lookup(&c->fp);
 					if(id != TEMPORARY_ID){
@@ -211,7 +209,8 @@ void index_lookup_similarity_detection(struct segment *s){
 					}else{
 						NOTICE("Filter phase: A key collision occurs");
 					}
-				}else{index_overhead.lookup_requests_for_unique++;
+				}else{
+					index_overhead.lookup_requests_for_unique++;
 					VERBOSE("Dedup phase: non-existing fingerprint");
 				}
 			}

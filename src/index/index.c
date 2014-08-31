@@ -197,7 +197,6 @@ static void index_lookup_base(struct segment *s){
             if(ids){
                 index_overhead.lookup_requests++;
                 /* prefetch the target unit */
-                index_overhead.read_prefetching_units++;
                 fingerprint_cache_prefetch(ids[0]);
                 int64_t id = fingerprint_cache_lookup(&c->fp);
                 if(id != TEMPORARY_ID){
