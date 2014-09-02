@@ -1,48 +1,42 @@
 #!/bin/bash
 
-if [ $# -gt 2 ];then
+dataset="kernel"
+
+if [ $# -gt 0 ];then
     echo "dataset <- $1"
     dataset=$1
-    echo "sampling <- $3"
-    sampling=$3
 else
-    echo "3 parameters are required"
-    exit 1
+    echo "default dataset <- $dataset"
 fi
-
-case $2 in
-    "cds")
-        echo "segmenting <- content-defined"
-        segmenting="content-defined"
-        ;;
-    "fixed")
-        echo "segmenting <- fixed"
-        segmenting="fixed"
-        ;;
-    *)
-        echo "wrong segmenting method!"
-        exit 1
-        ;;
-esac
 
 kernel_path="/home/dataset/kernel_8k/"
 vmdk_path="/home/dataset/vmdk_4k/"
 rdb_path="/home/dataset/rdb_4k/"
 synthetic_path="/home/dataset/synthetic_8k/"
 
+kernel_fcs=(16 32 64 128 256 )
+vmdk_fcs=(64 128 256 512 1024 )
+rdb_fcs=(32 64 128 256 512)
+synthetic_fcs=(32 64 128 256 512)
+
 # path: where trace files locate
+# fcs: the restore cache size
 case $dataset in
     "kernel") 
         path=$kernel_path
+        fcs=(${kernel_fcs[@]})
         ;;
     "vmdk")
         path=$vmdk_path
+        fcs=(${vmdk_fcs[@]})
         ;;
     "rdb") 
         path=$rdb_path
+        fcs=(${rdb_fcs[@]})
         ;;
     "synthetic") 
         path=$synthetic_path
+        fcs=(${synthetic_fcs[@]})
         ;;
     *) 
         echo "Wrong dataset!"
@@ -56,11 +50,10 @@ esac
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
 
-# r is the sampling Ratio
-for r in 1 16 32 64 128 256;do
-./rebuild
+for s in ${fcs[@]};do
+../rebuild
 for file in $(ls $path);do
-    ./destor $path/$file -p"fingerprint-index exact logical" -p"fingerprint-index-segment-algorithm $segmenting 1024" -p"fingerprint-index-sampling-method $sampling $r" >> log
+    ../destor $path/$file -p"fingerprint-index exact physical" -p"fingerprint-index-cache-size $s" >> log
 done
-./destor -s >> backup.log
+../destor -s >> backup.log
 done

@@ -50,18 +50,17 @@ esac
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
 
-for c in ${rcs[@]};do
 n=0
-./rebuild
+../rebuild
 for file in $(ls $path);do
-    ./destor $path/$file -p"restore-cache lru $c" >> log
-    ./destor -r$n /home/fumin/restore -p"restore-cache lru $c" >> log
-    ./destor -r$n /home/fumin/restore -p"restore-cache opt $c" >> log
+    ../destor $path/$file >> log
+    for s in ${rcs[@]};do
+        ../destor -r$n /home/fumin/restore -p"restore-cache lru $s" >> log
+        ../destor -r$n /home/fumin/restore -p"restore-cache opt $s" >> log
+    done
     n=$(($n+1))
 done
-./destor -s >> backup.log
-
-done
+../destor -s >> backup.log
 
 # split the restore.log according to the restore cache size
 split_file(){
@@ -69,15 +68,14 @@ split_file(){
     IFS=$'\n' # split 'lines' by '\n'
     lineno=0
     for line in $lines; do
-        index=$(( ($lineno)%2 ))
+        index=$(( ($lineno/2)%${#rcs[@]} ))
         if [ $(($lineno%2)) -eq 0 ];then
-            echo $line >> restore.lru.log
+            echo $line >> restore.lru${rcs[$index]}.log
         else
-            echo $line >> restore.opt.log
+            echo $line >> restore.opt${rcs[$index]}.log
         fi
         lineno=$(($lineno+1))
     done
 }
 
 split_file restore.log
-
