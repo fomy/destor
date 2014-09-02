@@ -1,14 +1,29 @@
 #!/bin/bash
 
-if [ $# -gt 1 ];then
+if [ $# -gt 2 ];then
     echo "dataset <- $1"
     dataset=$1
-    echo "sampling <- $2"
-    sampling=$2
+    echo "sampling <- $3"
+    sampling=$3
 else
-    echo "2 parameters are required"
+    echo "3 parameters are required"
     exit 1
 fi
+
+case $2 in
+    "cds")
+        echo "segmenting <- content-defined"
+        segmenting="content-defined"
+        ;;
+    "fixed")
+        echo "segmenting <- fixed"
+        segmenting="fixed"
+        ;;
+    *)
+        echo "wrong segmenting method!"
+        exit 1
+        ;;
+esac
 
 kernel_path="/home/dataset/kernel_8k/"
 vmdk_path="/home/dataset/vmdk_4k/"
@@ -45,7 +60,7 @@ esac
 for r in 1 16 32 64 128 256;do
 ./rebuild
 for file in $(ls $path);do
-    ./destor $path/$file -p"fingerprint-index near-exact physical" -p"fingerprint-index-sampling-method $sampling $r" >> log
+    ./destor $path/$file -p"fingerprint-index exact logical" -p"fingerprint-index-segment-algorithm $segmenting 1024" -p"fingerprint-index-sampling-method $sampling $r" >> log
 done
 ./destor -s >> backup.log
 done
