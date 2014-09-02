@@ -50,8 +50,6 @@ esac
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
 
-param="""
-
 for s in ${fcs[@]};do
 ./rebuild
 for file in $(ls $path);do
