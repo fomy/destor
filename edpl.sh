@@ -55,7 +55,7 @@ param="-p\"fingerprint-index exact physical\""
 for s in ${fcs[@]};do
 ./rebuild
 for file in $(ls $path);do
-    ./destor $path/$file $param -p"fingerprint-cache $s" >> log
+    ./destor $path/$file $param -p"fingerprint-index-cache-size $s" >> log
 done
 ./destor -s >> backup.log
 done
