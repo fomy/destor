@@ -41,13 +41,11 @@ esac
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
 
-param="-p\"fingerprint-index near-exact physical\""
-
 # r is the sampling Ratio
 for r in 1 16 32 64 128 256;do
 ./rebuild
 for file in $(ls $path);do
-    ./destor $path/$file $param $"fingerprint-index-sampling-method $sampling $r" >> log
+    ./destor $path/$file -p"fingerprint-index near-exact physical" $"fingerprint-index-sampling-method $sampling $r" >> log
 done
 ./destor -s >> backup.log
 done

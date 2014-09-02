@@ -304,7 +304,7 @@ void load_config_from_string(sds config) {
 	sdsfreesplitres(lines, totlines);
 	return;
 
-	loaderr: fprintf(stderr, "\n*** FATAL CONFIG FILE ERROR ***\n");
+	loaderr: fprintf(stderr, "\n*** FATAL CONFIG FILE ERROR in destor ***\n");
 	fprintf(stderr, "Reading the configuration file, at line %d\n", linenum);
 	fprintf(stderr, ">>> '%s'\n", lines[i]);
 	fprintf(stderr, "%s\n", err);

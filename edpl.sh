@@ -50,12 +50,12 @@ esac
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
 
-param="-p\"fingerprint-index exact physical\""
+param="""
 
 for s in ${fcs[@]};do
 ./rebuild
 for file in $(ls $path);do
-    ./destor $path/$file $param -p"fingerprint-index-cache-size $s" >> log
+    ./destor $path/$file -p"fingerprint-index exact physical" -p"fingerprint-index-cache-size $s" >> log
 done
 ./destor -s >> backup.log
 done
