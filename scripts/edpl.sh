@@ -14,10 +14,10 @@ vmdk_path="/home/dataset/vmdk_4k/"
 rdb_path="/home/dataset/rdb_4k/"
 synthetic_path="/home/dataset/synthetic_8k/"
 
-kernel_fcs=(128 256 512 1024 2048 )
-vmdk_fcs=(128 256 512 1024 2048 )
-rdb_fcs=(128 256 512 1024 2048)
-synthetic_fcs=(128 256 512 1024 2048)
+kernel_fcs=(256 512 1024 2048 4096)
+vmdk_fcs=(256 512 1024 2048 4096)
+rdb_fcs=(256 512 1024 2048 4096)
+synthetic_fcs=(256 512 1024 2048 4096)
 
 # path: where trace files locate
 # fcs: the restore cache size
