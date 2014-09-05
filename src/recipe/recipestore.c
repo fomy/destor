@@ -48,6 +48,11 @@ int32_t get_next_version_number() {
 	return backup_version_count++;
 }
 
+/* the write buffer of recipe meta */
+static int metabufsize = 64*1024;
+static char *metabuf;
+static metabuflen = 0;
+
 /*
  * Create a new backupVersion structure for a backup run.
  */
@@ -96,6 +101,8 @@ struct backupVersion* create_backup_version(const char *path) {
 	int pathlen = sdslen(b->path);
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
+
+	metabuf = malloc(metabufsize);
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
@@ -229,8 +236,13 @@ void update_backup_version(struct backupVersion *b) {
  * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
-	if (b->metadata_fp)
+	if (b->metadata_fp){
+		if(metabuf){
+			fwrite(metabuf, metabuflen, 1, b->metadata_fp);
+			free(metabuf);
+		}
 		fclose(b->metadata_fp);
+	}
 	if (b->recipe_fp)
 		fclose(b->recipe_fp);
 	if (b->record_fp)
@@ -244,10 +256,21 @@ void free_backup_version(struct backupVersion *b) {
 void append_recipe_meta(struct backupVersion* b, struct recipeMeta* r) {
 
 	int len = sdslen(r->filename);
-	fwrite(&len, sizeof(len), 1, b->metadata_fp);
-	fwrite(r->filename, len, 1, b->metadata_fp);
-	fwrite(&r->chunknum, sizeof(r->chunknum), 1, b->metadata_fp);
-	fwrite(&r->filesize, sizeof(r->filesize), 1, b->metadata_fp);
+
+	if(sizeof(len) + len + sizeof(r->chunknum) + sizeof(r->filesize) > metabufsize - metabuflen){
+		/* buf is full */
+		fwrite(metabuf, metabuflen, 1, b->metadata_fp);
+		metabuflen = 0;
+	}
+
+	memcpy(metabuf + metabuflen, &len, sizeof(len));
+	metabuflen += sizeof(len);
+	memcpy(metabuf + metabuflen, r->filename, len);
+	metabuflen += len;
+	memcpy(metabuf, &r->chunknum, sizeof(r->chunknum));
+	metabuflen += sizeof(r->chunknum);
+	memcpy(metabuf, &r->filesize, sizeof(r->filesize));
+	metabuflen += sizeof(r->filesize);
 
 	b->number_of_files++;
 }
@@ -272,6 +295,10 @@ static inline int64_t id_to_bnum(segmentid id) {
 	return id >> 48;
 }
 
+static char* segmentbuf = NULL;
+static int segmentlen = 0;
+static int segmentbufoff = 0;
+
 segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_size){
 	assert(flag == CHUNK_SEGMENT_START || flag == CHUNK_SEGMENT_END);
 	struct chunkPointer cp;
@@ -283,15 +310,25 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	int64_t off = ftell(b->recipe_fp);
 
 	if(flag == CHUNK_SEGMENT_START){
-		NOTICE("Filter phase: write a segment start at offset %lld!", off);
+		/* Two flags and many chunk pointers */
+		segmentlen = (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t))*2
+				+ segment_size * (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t));
+		segmentbuf = malloc(segmentlen);
+		segmentbufoff = 0;
 	}else{
-		NOTICE("Filter phase: write a segment end at offset %lld!", off);
+		NOTICE("Filter phase: write a segment start at offset %lld!", off);
+		fwrite(segmentbuf, segmentlen, 1, b->recipe_fp);
+		free(segmentbuf);
+		segmentbuf = NULL;
+		segmentlen = 0;
 	}
 
-	int n = fwrite(&cp.fp, sizeof(fingerprint), 1, b->recipe_fp);
-	n += fwrite(&cp.id, sizeof(containerid), 1, b->recipe_fp);
-	n += fwrite(&cp.size, sizeof(int32_t), 1, b->recipe_fp);
-	assert(n == 3);
+	memcpy(segmentbuf + segmentbufoff, &cp.fp, sizeof(fingerprint));
+	segmentbufoff += sizeof(fingerprint);
+	memcpy(segmentbuf + segmentbufoff, &cp.id, sizeof(containerid));
+	segmentbufoff += sizeof(containerid);
+	memcpy(segmentbuf + segmentbufoff, &cp.size, sizeof(int32_t));
+	segmentbufoff += sizeof(int32_t);
 
 	if(flag == CHUNK_SEGMENT_END){
 		return TEMPORARY_ID;
@@ -315,10 +352,12 @@ void append_n_chunk_pointers(struct backupVersion* b,
 		access_record = bcp.id;
 		assert(bcp.id != TEMPORARY_ID);
 
-		int n = fwrite(&bcp.fp, sizeof(fingerprint), 1, b->recipe_fp);
-		n += fwrite(&(bcp.id), sizeof(containerid), 1, b->recipe_fp);
-		n += fwrite(&(bcp.size), sizeof(int32_t), 1, b->recipe_fp);
-		assert(n == 3);
+		memcpy(segmentbuf + segmentbufoff, &bcp.fp, sizeof(fingerprint));
+		segmentbufoff += sizeof(fingerprint);
+		memcpy(segmentbuf + segmentbufoff, &(bcp.id), sizeof(containerid));
+		segmentbufoff += sizeof(containerid);
+		memcpy(segmentbufoff + segmentbufoff, &(bcp.size), sizeof(int32_t));
+		segmentbufoff += sizeof(int32_t);
 
 		b->number_of_chunks++;
 	}
