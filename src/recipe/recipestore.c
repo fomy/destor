@@ -266,6 +266,7 @@ void free_backup_version(struct backupVersion *b) {
 
 	b->metadata_fp = b->recipe_fp = b->record_fp = 0;
 	sdsfree(b->path);
+	sdsfree(b->fname_prefix);
 	free(b);
 }
 
