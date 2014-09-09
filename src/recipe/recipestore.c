@@ -356,7 +356,7 @@ void append_n_chunk_pointers(struct backupVersion* b,
 		segmentbufoff += sizeof(fingerprint);
 		memcpy(segmentbuf + segmentbufoff, &(bcp.id), sizeof(containerid));
 		segmentbufoff += sizeof(containerid);
-		memcpy(segmentbufoff + segmentbufoff, &(bcp.size), sizeof(int32_t));
+		memcpy(segmentbuf + segmentbufoff, &(bcp.size), sizeof(int32_t));
 		segmentbufoff += sizeof(int32_t);
 
 		b->number_of_chunks++;
