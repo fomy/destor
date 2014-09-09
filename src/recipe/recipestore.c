@@ -223,10 +223,8 @@ static containerid access_record = TEMPORARY_ID;
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
-	if(metabuf && metabufoff>0){
+	if(metabuf && metabufoff>0)
 		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
-		free(metabuf);
-	}
 
 	fseek(b->metadata_fp, 0, SEEK_SET);
 	fwrite(&b->bv_num, sizeof(b->bv_num), 1, b->metadata_fp);
@@ -240,22 +238,32 @@ void update_backup_version(struct backupVersion *b) {
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
+	if(recordbufoff > 0){
+		fwrite(recordbuf, recordbufoff, 1, b->record_fp);
+		recordbufoff = 0;
+	}
+
 	if (access_record != TEMPORARY_ID)
-		fprintf(b->record_fp, "%lld\n", access_record);
+		fwrite(&access_record, sizeof(access_record), 1, b->record_fp);
 	/* An indication of end. */
-	fprintf(b->record_fp, "%lld\n", TEMPORARY_ID);
+	access_record = TEMPORARY_ID;
+	fwrite(&access_record, sizeof(access_record), 1, b->record_fp);
 }
 
 /*
  * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
-	if (b->metadata_fp)
+	if (b->metadata_fp){
+		free(metabuf);
 		fclose(b->metadata_fp);
+	}
 	if (b->recipe_fp)
 		fclose(b->recipe_fp);
-	if (b->record_fp)
+	if (b->record_fp){
+		free(recordbuf);
 		fclose(b->record_fp);
+	}
 
 	b->metadata_fp = b->recipe_fp = b->record_fp = 0;
 	sdsfree(b->path);
@@ -358,8 +366,14 @@ void append_n_chunk_pointers(struct backupVersion* b,
 	int i;
 	for (i = 0; i < n; i++) {
 		struct chunkPointer bcp = cp[i];
-		if (access_record != TEMPORARY_ID && access_record != bcp.id)
-			fprintf(b->record_fp, "%lld\n", access_record);
+		if (access_record != TEMPORARY_ID && access_record != bcp.id){
+			if(recordbufoff + sizeof(access_record) > recordbufsize){
+				fwrite(recordbuf, recordbufoff, 1, b->record_fp);
+				recordbufoff = 0;
+			}
+			memcpy(recordbuf + recordbufoff, &access_record, sizeof(access_record));
+			recordbufoff += sizeof(access_record);
+		}
 		access_record = bcp.id;
 		assert(bcp.id != TEMPORARY_ID);
 
@@ -438,17 +452,19 @@ struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 }
 
 containerid* read_next_n_records(struct backupVersion* b, int n, int *k) {
-	static int end;
+	static int end = 0;
 
 	if (end) {
 		*k = 0;
 		return NULL;
 	}
 
+	/* ids[0] indicates the number of IDs */
 	containerid *ids = (containerid *) malloc(sizeof(containerid) * (n + 1));
+	fread(&ids[1], n, 1, b->record_fp);
+
 	int i;
 	for (i = 1; i < n + 1; i++) {
-		fscanf(b->record_fp, "%lld", &ids[i]);
 		if (ids[i] == TEMPORARY_ID) {
 			end = 1;
 			break;
