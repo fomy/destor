@@ -70,6 +70,8 @@ void update_manifest(GHashTable *monitor){
     destor.live_container_num = g_hash_table_size(manifest);
 
     g_hash_table_destroy(manifest);
+
+    sdsfree(fname);
 }
 
 /*
