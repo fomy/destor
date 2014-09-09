@@ -315,12 +315,6 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 				+ segment_size * (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t));
 		segmentbuf = malloc(segmentlen);
 		segmentbufoff = 0;
-	}else{
-		NOTICE("Filter phase: write a segment start at offset %lld!", off);
-		fwrite(segmentbuf, segmentlen, 1, b->recipe_fp);
-		free(segmentbuf);
-		segmentbuf = NULL;
-		segmentlen = 0;
 	}
 
 	memcpy(segmentbuf + segmentbufoff, &cp.fp, sizeof(fingerprint));
@@ -329,6 +323,14 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	segmentbufoff += sizeof(containerid);
 	memcpy(segmentbuf + segmentbufoff, &cp.size, sizeof(int32_t));
 	segmentbufoff += sizeof(int32_t);
+
+	if(flag == CHUNK_SEGMENT_END){
+		NOTICE("Filter phase: write a segment start at offset %lld!", off);
+		fwrite(segmentbuf, segmentlen, 1, b->recipe_fp);
+		free(segmentbuf);
+		segmentbuf = NULL;
+		segmentlen = 0;
+	}
 
 	if(flag == CHUNK_SEGMENT_END){
 		return TEMPORARY_ID;
