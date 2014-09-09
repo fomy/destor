@@ -51,7 +51,7 @@ int32_t get_next_version_number() {
 /* the write buffer of recipe meta */
 static int metabufsize = 64*1024;
 static char *metabuf;
-static metabuflen = 0;
+static int metabuflen = 0;
 
 /*
  * Create a new backupVersion structure for a backup run.
