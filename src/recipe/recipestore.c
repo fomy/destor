@@ -214,6 +214,11 @@ static containerid access_record = TEMPORARY_ID;
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
+	if(metabuf && metabuflen>0){
+		fwrite(metabuf, metabuflen, 1, b->metadata_fp);
+		free(metabuf);
+	}
+
 	fseek(b->metadata_fp, 0, SEEK_SET);
 	fwrite(&b->bv_num, sizeof(b->bv_num), 1, b->metadata_fp);
 	fwrite(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
@@ -236,13 +241,8 @@ void update_backup_version(struct backupVersion *b) {
  * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
-	if (b->metadata_fp){
-		if(metabuf){
-			fwrite(metabuf, metabuflen, 1, b->metadata_fp);
-			free(metabuf);
-		}
+	if (b->metadata_fp)
 		fclose(b->metadata_fp);
-	}
 	if (b->recipe_fp)
 		fclose(b->recipe_fp);
 	if (b->record_fp)
