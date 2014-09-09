@@ -171,6 +171,7 @@ void write_container(struct container* c) {
 		pthread_mutex_unlock(&mutex);
 	} else {
 		char buf[CONTAINER_META_SIZE];
+		memset(buf, 0, CONTAINER_META_SIZE);
 
 		ser_declare;
 		ser_begin(buf, CONTAINER_META_SIZE);

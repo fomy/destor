@@ -322,6 +322,7 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	// Set to a negative number for being distinguished from container ID.
 	cp.id = 0 - flag;
 	cp.size = segment_size;
+	memset(&cp.fp, 0, sizeof(cp.fp));
 
 	fseek(b->recipe_fp, 0, SEEK_END);
 	int64_t off = ftell(b->recipe_fp);
