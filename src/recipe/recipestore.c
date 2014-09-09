@@ -51,7 +51,12 @@ int32_t get_next_version_number() {
 /* the write buffer of recipe meta */
 static int metabufsize = 64*1024;
 static char *metabuf;
-static int metabuflen = 0;
+static int metabufoff = 0;
+
+/* the write buffer of records */
+static char *recordbuf;
+static int recordbufsize = 64*1024;
+static int recordbufoff = 0;
 
 /*
  * Create a new backupVersion structure for a backup run.
@@ -103,6 +108,7 @@ struct backupVersion* create_backup_version(const char *path) {
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
 	metabuf = malloc(metabufsize);
+	metabufoff = 0;
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
@@ -110,6 +116,9 @@ struct backupVersion* create_backup_version(const char *path) {
 		fprintf(stderr, "Can not create bv%d.recipe!\n", b->bv_num);
 		exit(1);
 	}
+
+	recordbuf = malloc(recordbufsize);
+	recordbufoff = 0;
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".records");
@@ -214,8 +223,8 @@ static containerid access_record = TEMPORARY_ID;
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
-	if(metabuf && metabuflen>0){
-		fwrite(metabuf, metabuflen, 1, b->metadata_fp);
+	if(metabuf && metabufoff>0){
+		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
 		free(metabuf);
 	}
 
@@ -257,20 +266,20 @@ void append_recipe_meta(struct backupVersion* b, struct recipeMeta* r) {
 
 	int len = sdslen(r->filename);
 
-	if(sizeof(len) + len + sizeof(r->chunknum) + sizeof(r->filesize) > metabufsize - metabuflen){
+	if(sizeof(len) + len + sizeof(r->chunknum) + sizeof(r->filesize) > metabufsize - metabufoff){
 		/* buf is full */
-		fwrite(metabuf, metabuflen, 1, b->metadata_fp);
-		metabuflen = 0;
+		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
+		metabufoff = 0;
 	}
 
-	memcpy(metabuf + metabuflen, &len, sizeof(len));
-	metabuflen += sizeof(len);
-	memcpy(metabuf + metabuflen, r->filename, len);
-	metabuflen += len;
-	memcpy(metabuf, &r->chunknum, sizeof(r->chunknum));
-	metabuflen += sizeof(r->chunknum);
-	memcpy(metabuf, &r->filesize, sizeof(r->filesize));
-	metabuflen += sizeof(r->filesize);
+	memcpy(metabuf + metabufoff, &len, sizeof(len));
+	metabufoff += sizeof(len);
+	memcpy(metabuf + metabufoff, r->filename, len);
+	metabufoff += len;
+	memcpy(metabuf + metabufoff, &r->chunknum, sizeof(r->chunknum));
+	metabufoff += sizeof(r->chunknum);
+	memcpy(metabuf + metabufoff, &r->filesize, sizeof(r->filesize));
+	metabufoff += sizeof(r->filesize);
 
 	b->number_of_files++;
 }
