@@ -270,7 +270,7 @@ void free_backup_version(struct backupVersion *b) {
 	free(b);
 }
 
-void append_recipe_meta(struct backupVersion* b, struct recipeMeta* r) {
+void append_file_recipe_meta(struct backupVersion* b, struct fileRecipeMeta* r) {
 
 	int len = sdslen(r->filename);
 
@@ -389,7 +389,7 @@ void append_n_chunk_pointers(struct backupVersion* b,
 	}
 }
 
-struct recipeMeta* read_next_recipe_meta(struct backupVersion* b) {
+struct fileRecipeMeta* read_next_file_recipe_meta(struct backupVersion* b) {
 
 	static int read_file_num;
 
@@ -402,7 +402,7 @@ struct recipeMeta* read_next_recipe_meta(struct backupVersion* b) {
 	fread(filename, len, 1, b->metadata_fp);
 	filename[len] = 0;
 
-	struct recipeMeta* r = new_recipe_meta(filename);
+	struct fileRecipeMeta* r = new_file_recipe_meta(filename);
 
 	fread(&r->chunknum, sizeof(r->chunknum), 1, b->metadata_fp);
 	fread(&r->filesize, sizeof(r->filesize), 1, b->metadata_fp);
@@ -477,15 +477,15 @@ containerid* read_next_n_records(struct backupVersion* b, int n, int *k) {
 	return ids;
 }
 
-struct recipeMeta* new_recipe_meta(char* name) {
-	struct recipeMeta* r = (struct recipeMeta*) malloc(sizeof(struct recipeMeta));
+struct fileRecipeMeta* new_file_recipe_meta(char* name) {
+	struct fileRecipeMeta* r = (struct fileRecipeMeta*) malloc(sizeof(struct fileRecipeMeta));
 	r->filename = sdsnew(name);
 	r->chunknum = 0;
 	r->filesize = 0;
 	return r;
 }
 
-void free_recipe_meta(struct recipeMeta* r) {
+void free_file_recipe_meta(struct fileRecipeMeta* r) {
 	sdsfree(r->filename);
 	free(r);
 }

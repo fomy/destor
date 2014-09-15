@@ -29,7 +29,7 @@ extern struct {
  */
 static void* filter_thread(void *arg) {
     int enable_rewrite = 1;
-    struct recipeMeta* r = NULL;
+    struct fileRecipeMeta* r = NULL;
 
     while (1) {
         struct chunk* c = sync_queue_pop(rewrite_queue);
@@ -217,7 +217,7 @@ static void* filter_thread(void *arg) {
 
         	if(r == NULL){
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
-        		r = new_recipe_meta(c->data);
+        		r = new_file_recipe_meta(c->data);
         	}else if(!CHECK_CHUNK(c,CHUNK_FILE_END)){
         		struct chunkPointer cp;
         		cp.id = c->id;
@@ -229,8 +229,8 @@ static void* filter_thread(void *arg) {
         		r->filesize += c->size;
         	}else{
         		assert(CHECK_CHUNK(c,CHUNK_FILE_END));
-        		append_recipe_meta(jcr.bv, r);
-        		free_recipe_meta(r);
+        		append_file_recipe_meta(jcr.bv, r);
+        		free_file_recipe_meta(r);
         		r = NULL;
         	}
         }

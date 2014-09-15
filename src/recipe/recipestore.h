@@ -10,7 +10,18 @@
 
 #include "../destor.h"
 
-/* a backup version */
+/*
+ * A backup version
+ * A backup version describes the fingerprint sequence of a backup job to facilitate restore jobs.
+ * It consists of three metadata files: .meta, .recipe, and .record.
+ * The .record file is for the optimal cache: it consists of access records of referred containers.
+ * The .recipe file records the fingerprint sequence of the backup with segment boundary indicators.
+ * Hence, the .recipe file consists of segment recipes (each of which describes the
+ * fingerprint sequence of a segment).
+ * The .meta file consists of metadata of file recipes, i.e., fileRecipeMeta.
+ * Each fileRecipeMeta structure describes the range of a file recipe in the .recipe file.
+ * So, we can accurately restore a file.
+ * */
 struct backupVersion {
 
 	sds path;
@@ -28,8 +39,8 @@ struct backupVersion {
 	FILE *record_fp;
 };
 
-/* Point to the meta of a recipe */
-struct recipeMeta {
+/* Point to the meta of a file recipe */
+struct fileRecipeMeta {
 	int64_t chunknum;
 	int64_t filesize;
 	sds filename;
@@ -67,15 +78,15 @@ struct backupVersion* open_backup_version(int number);
 void update_backup_version(struct backupVersion *b);
 void free_backup_version(struct backupVersion *b);
 
-void append_recipe_meta(struct backupVersion* b, struct recipeMeta* r);
+void append_file_recipe_meta(struct backupVersion* b, struct fileRecipeMeta* r);
 void append_n_chunk_pointers(struct backupVersion* b,
 		struct chunkPointer* cp, int n);
-struct recipeMeta* read_next_recipe_meta(struct backupVersion* b);
+struct fileRecipeMeta* read_next_recipe_meta(struct backupVersion* b);
 struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		int *k);
 containerid* read_next_n_records(struct backupVersion* b, int n, int *k);
-struct recipeMeta* new_recipe_meta(char* name);
-void free_recipe_meta(struct recipeMeta* r);
+struct fileRecipeMeta* new_file_recipe_meta(char* name);
+void free_file_recipe_meta(struct fileRecipeMeta* r);
 
 int segment_recipe_check_id(struct segmentRecipe* sr, segmentid *id);
 struct segmentRecipe* new_segment_recipe();
