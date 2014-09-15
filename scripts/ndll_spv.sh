@@ -53,7 +53,7 @@ for p in 1 2 4;do
 for v in 1 2 4;do
 ../rebuild
 for file in $(ls $path);do
-    ../destor $path/$file -p"fingerprint-index near-exact logical" -p"fingerprint-index-segment-algorithm content-defined 1024" -p"fingerprint-index-sampling-method random 128" -p"fingerprint-index-segment-selection base" -p"fingerprint-index-segment-selection top $s" -p"fingerprint-index-segment-prefetching $p" -p"fingerprint-index-value-length $v" >> log
+    ../destor $path/$file -p"fingerprint-index near-exact logical" -p"fingerprint-index-segment-algorithm content-defined 1024" -p"fingerprint-index-sampling-method random 128" -p"fingerprint-index-segment-selection top $s" -p"fingerprint-index-segment-prefetching $p" -p"fingerprint-index-value-length $v" >> log
 done
 ../destor -s >> backup.log
 done
