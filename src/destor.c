@@ -13,6 +13,7 @@
 extern void do_backup(char *path);
 //extern void do_delete(int revision);
 extern void do_restore(int revision, char *path);
+void do_delete(int jobid);
 extern void make_trace(char *raw_files);
 
 extern int load_config();
@@ -219,13 +220,13 @@ void destor_stat() {
 	printf("the number of live containers: %d\n",
 			destor.live_container_num);
 
-	printf("the number of chunks: %ld\n", destor.chunk_num);
-	printf("the number of stored chunks: %ld\n", destor.stored_chunk_num);
+	printf("the number of chunks: %lld\n", destor.chunk_num);
+	printf("the number of stored chunks: %lld\n", destor.stored_chunk_num);
 
-	printf("the size of data (B): %ld\n", destor.data_size);
-	printf("the size of stored data (B): %ld\n", destor.stored_data_size);
+	printf("the size of data (B): %lld\n", destor.data_size);
+	printf("the size of stored data (B): %lld\n", destor.stored_data_size);
 
-	printf("the size of saved data (B): %ld\n",
+	printf("the size of saved data (B): %lld\n",
 			destor.data_size - destor.stored_data_size);
 
 	printf("deduplication ratio: %.4f, %.4f\n",
@@ -233,11 +234,11 @@ void destor_stat() {
 					/ (double) destor.data_size,
 			((double) destor.data_size) / (destor.stored_data_size));
 
-	printf("the number of zero chunks: %ld\n", destor.zero_chunk_num);
-	printf("the size of zero chunks (B): %ld\n", destor.zero_chunk_size);
+	printf("the number of zero chunks: %lld\n", destor.zero_chunk_num);
+	printf("the size of zero chunks (B): %lld\n", destor.zero_chunk_size);
 
-	printf("the number of rewritten chunks: %ld\n", destor.rewritten_chunk_num);
-	printf("the size of rewritten chunks (B): %ld\n",
+	printf("the number of rewritten chunks: %lld\n", destor.rewritten_chunk_num);
+	printf("the size of rewritten chunks (B): %lld\n",
 			destor.rewritten_chunk_size);
 	printf("rewrite ratio: %.4f\n",
 			destor.rewritten_chunk_size / (double) destor.data_size);
@@ -292,7 +293,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	sds path;
+	sds path = NULL;
 
 	switch (job) {
 	case DESTOR_BACKUP:
@@ -384,7 +385,7 @@ struct segment* new_segment() {
 	struct segment * s = (struct segment*) malloc(sizeof(struct segment));
 	s->id = TEMPORARY_ID;
 	s->chunk_num = 0;
-	s->chunks = g_queue_new();
+	s->chunks = g_sequence_new(NULL);
 	s->features = NULL;
 	return s;
 }
@@ -396,7 +397,13 @@ struct segment* new_segment_full(){
 }
 
 void free_segment(struct segment* s) {
-	g_queue_free_full(s->chunks, free_chunk);
+	GSequenceIter *begin = g_sequence_get_begin_iter(s->chunks);
+	GSequenceIter *end = g_sequence_get_end_iter(s->chunks);
+	for(; begin != end; begin = g_sequence_get_begin_iter(s->chunks)){
+		free_chunk(g_sequence_get(begin));
+		g_sequence_remove(begin);
+	}
+	g_sequence_free(s->chunks);
 
 	if (s->features)
 		g_hash_table_destroy(s->features);

@@ -288,7 +288,7 @@ struct segment {
 	segmentid id;
 	/* The actual number because there are signal chunks. */
 	int32_t chunk_num;
-	GQueue *chunks;
+	GSequence *chunks;
 	GHashTable* features;
 };
 

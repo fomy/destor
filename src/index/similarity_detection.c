@@ -145,16 +145,17 @@ extern struct{
 	struct container *container_buffer;
 	/* In order to facilitate sampling in container,
 	 * we keep a queue for chunks in container buffer. */
-	GQueue *chunks;
+	GSequence *chunks;
 } storage_buffer;
 
 void index_lookup_similarity_detection(struct segment *s){
 	assert(s->features);
 	top_segment_select(s->features);
 
-	int len = g_queue_get_length(s->chunks), i;
-	for (i = 0; i < len; ++i) {
-		struct chunk* c = g_queue_peek_nth(s->chunks, i);
+	GSequenceIter *iter = g_sequence_get_begin_iter(s->chunks);
+	GSequenceIter *end = g_sequence_get_end_iter(s->chunks);
+	for (; iter != end; iter = g_sequence_iter_next(iter)) {
+		struct chunk* c = g_sequence_get(iter);
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 			continue;

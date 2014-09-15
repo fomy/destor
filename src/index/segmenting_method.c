@@ -19,7 +19,7 @@ static struct segment* segment_fixed(struct chunk * c) {
         /* The end of stream */
         return tmp;
 
-    g_queue_push_tail(tmp->chunks, c);
+    g_sequence_append(tmp->chunks, c);
     if (CHECK_CHUNK(c, CHUNK_FILE_START) 
             || CHECK_CHUNK(c, CHUNK_FILE_END))
         /* FILE_END */
@@ -53,7 +53,7 @@ static struct segment* segment_file_defined(struct chunk *c) {
     if (c == NULL)
         return tmp;
 
-    g_queue_push_tail(tmp->chunks, c);
+    g_sequence_append(tmp->chunks, c);
     if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
         struct segment* ret = tmp;
         tmp = NULL;
@@ -81,13 +81,13 @@ static struct segment* segment_content_defined(struct chunk *c) {
         return tmp;
 
     if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
-        g_queue_push_tail(tmp->chunks, c);
+        g_sequence_append(tmp->chunks, c);
         return NULL;
     }
 
     /* Avoid too small segment. */
     if (tmp->chunk_num < destor.index_segment_min) {
-        g_queue_push_tail(tmp->chunks, c);
+    	g_sequence_append(tmp->chunks, c);
         tmp->chunk_num++;
         return NULL;
     }
@@ -96,12 +96,12 @@ static struct segment* segment_content_defined(struct chunk *c) {
     if ((*head) % destor.index_segment_algorithm[1] == 0) {
         struct segment* ret = tmp;
         tmp = new_segment();
-        g_queue_push_tail(tmp->chunks, c);
+        g_sequence_append(tmp->chunks, c);
         tmp->chunk_num++;
         return ret;
     }
 
-    g_queue_push_tail(tmp->chunks, c);
+    g_sequence_append(tmp->chunks, c);
     tmp->chunk_num++;
     if (tmp->chunk_num >= destor.index_segment_max){
         struct segment* ret = tmp;

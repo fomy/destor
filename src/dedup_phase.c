@@ -34,23 +34,27 @@ void send_segment(struct segment* s) {
 	SET_CHUNK(ss, CHUNK_SEGMENT_START);
 	sync_queue_push(dedup_queue, ss);
 
-	struct chunk* c;
-	while ((c = g_queue_pop_head(s->chunks))) {
+	GSequenceIter *end = g_sequence_get_end_iter(s->chunks);
+	GSequenceIter *begin = g_sequence_get_begin_iter(s->chunks);
+	while(begin != end) {
+		struct chunk* c = g_sequence_get(begin);
 		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)) {
 			if (CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 				if (c->id == TEMPORARY_ID) {
-					VERBOSE("Dedup phase: %ldth chunk is identical to a unique chunk",
+					DEBUG("Dedup phase: %ldth chunk is identical to a unique chunk",
 							chunk_num++);
 				} else {
-					VERBOSE("Dedup phase: %ldth chunk is duplicate in container %lld",
+					DEBUG("Dedup phase: %ldth chunk is duplicate in container %lld",
 							chunk_num++, c->id);
 				}
 			} else {
-				VERBOSE("Dedup phase: %ldth chunk is unique", chunk_num++);
+				DEBUG("Dedup phase: %ldth chunk is unique", chunk_num++);
 			}
 
 		}
 		sync_queue_push(dedup_queue, c);
+		g_sequence_remove(begin);
+		begin = g_sequence_get_begin_iter(s->chunks);
 	}
 
 	struct chunk* se = new_chunk(0);

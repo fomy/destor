@@ -4,14 +4,14 @@
 /*
  * Sampling features for a chunk sequence.
  */
-GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
+GHashTable* (*sampling)(GSequence *chunks, int32_t chunk_num);
 
 /*
  * Used by Extreme Binning and Silo.
  */
-static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
+static GHashTable* index_sampling_min(GSequence *chunks, int32_t chunk_num) {
 
-    chunk_num = (chunk_num == 0) ? g_queue_get_length(chunks) : chunk_num;
+    chunk_num = (chunk_num == 0) ? g_sequence_get_length(chunks) : chunk_num;
     int feature_num = 1;
     if (destor.index_sampling_method[1] != 0
             && chunk_num > destor.index_sampling_method[1]) {
@@ -23,10 +23,11 @@ static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
     }
 
     GSequence *candidates = g_sequence_new(free);
-    int queue_len = g_queue_get_length(chunks), i;
-    for (i = 0; i < queue_len; i++) {
+    GSequenceIter *iter = g_sequence_get_begin_iter(chunks);
+    GSequenceIter *end = g_sequence_get_end_iter(chunks);
+    for (; iter != end; iter = g_sequence_iter_next(iter)) {
         /* iterate the queue */
-        struct chunk* c = g_queue_peek_nth(chunks, i);
+        struct chunk* c = g_sequence_get(iter);
 
         if (CHECK_CHUNK(c, CHUNK_FILE_START) 
                 || CHECK_CHUNK(c, CHUNK_FILE_END))
@@ -77,10 +78,10 @@ static GHashTable* index_sampling_min(GQueue *chunks, int32_t chunk_num) {
 /*
  * Used by Extreme Binning and Silo.
  */
-static GHashTable* index_sampling_optimized_min(GQueue *chunks,
+static GHashTable* index_sampling_optimized_min(GSequence *chunks,
         int32_t chunk_num) {
 
-    chunk_num = (chunk_num == 0) ? g_queue_get_length(chunks) : chunk_num;
+    chunk_num = (chunk_num == 0) ? g_sequence_get_length(chunks) : chunk_num;
     int feature_num = 1;
     if (destor.index_sampling_method[1] != 0
             && chunk_num > destor.index_sampling_method[1]) {
@@ -104,10 +105,12 @@ static GHashTable* index_sampling_optimized_min(GQueue *chunks,
 
     /* Select anchors */
     GSequence *anchors = g_sequence_new(free);
-    int queue_len = g_queue_get_length(chunks), i;
-    for (i = 0; i < queue_len; i++) {
+
+    GSequenceIter* iter = g_sequence_get_begin_iter(chunks);
+    GSequenceIter* end = g_sequence_get_end_iter(chunks);
+    for (; iter != end; iter = g_sequence_iter_next(iter)) {
         /* iterate the queue */
-        struct chunk* c = g_queue_peek_nth(chunks, i);
+        struct chunk* c = g_sequence_get(iter);
 
         if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
             continue;
@@ -169,15 +172,16 @@ static GHashTable* index_sampling_optimized_min(GQueue *chunks,
 /*
  * Used by Sparse Indexing.
  */
-static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
+static GHashTable* index_sampling_random(GSequence *chunks, int32_t chunk_num) {
     assert(destor.index_sampling_method[1] != 0);
     GHashTable * features = g_hash_table_new_full(g_feature_hash,
             g_feature_equal, free, NULL);
 
-    int queue_len = g_queue_get_length(chunks), i;
-    for (i = 0; i < queue_len; i++) {
+    GSequenceIter *iter = g_sequence_get_begin_iter(chunks);
+    GSequenceIter *end = g_sequence_get_end_iter(chunks);
+    for (; iter != end; iter = g_sequence_iter_next(iter)) {
         /* iterate the queue */
-        struct chunk* c = g_queue_peek_nth(chunks, i);
+        struct chunk* c = g_sequence_get(iter);
 
         if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
             continue;
@@ -203,14 +207,16 @@ static GHashTable* index_sampling_random(GQueue *chunks, int32_t chunk_num) {
 
 }
 
-static GHashTable* index_sampling_uniform(GQueue *chunks, int32_t chunk_num) {
+static GHashTable* index_sampling_uniform(GSequence *chunks, int32_t chunk_num) {
     assert(destor.index_sampling_method[1] != 0);
     GHashTable * features = g_hash_table_new_full(g_feature_hash,
             g_feature_equal, free, NULL);
     int count = 0;
-    int queue_len = g_queue_get_length(chunks), i;
-    for (i = 0; i < queue_len; i++) {
-        struct chunk *c = g_queue_peek_nth(chunks, i);
+
+    GSequenceIter *iter = g_sequence_get_begin_iter(chunks);
+    GSequenceIter *end = g_sequence_get_end_iter(chunks);
+    for (; iter != end; iter = g_sequence_iter_next(iter)) {
+        struct chunk *c = g_sequence_get(iter);
         /* Examine whether fp is a feature */
         if (count % destor.index_sampling_method[1] == 0) {
             if (!g_hash_table_contains(features, &c->fp)) {

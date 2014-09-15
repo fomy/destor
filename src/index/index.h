@@ -40,7 +40,7 @@ int index_update_buffer(struct segment *s);
 
 //void index_delete(fingerprint *);
 
-extern GHashTable* (*sampling)(GQueue *chunks, int32_t chunk_num);
+extern GHashTable* (*sampling)(GSequence *chunks, int32_t chunk_num);
 extern struct segment* (*segmenting)(struct chunk *c);
 
 gboolean g_feature_equal(char* a, char* b);

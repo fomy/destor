@@ -14,7 +14,7 @@ struct{
 	struct container *container_buffer;
 	/* In order to facilitate sampling in container,
 	 * we keep a queue for chunks in container buffer. */
-	GQueue *chunks;
+	GSequence *chunks;
 } storage_buffer;
 
 extern struct {
@@ -47,7 +47,7 @@ static void* filter_thread(void *arg) {
 
         c = sync_queue_pop(rewrite_queue);
         while (!(CHECK_CHUNK(c, CHUNK_SEGMENT_END))) {
-            g_queue_push_tail(s->chunks, c);
+            g_sequence_append(s->chunks, c);
             if (!CHECK_CHUNK(c, CHUNK_FILE_START)
                     && !CHECK_CHUNK(c, CHUNK_FILE_END))
                 s->chunk_num++;
@@ -76,9 +76,10 @@ static void* filter_thread(void *arg) {
          * the rewrite request for it will be denied. */
         index_check_buffer(s);
 
-        int len = g_queue_get_length(s->chunks), i;
-        for(i = 0; i<len; i++){
-            struct chunk* c = g_queue_peek_nth(s->chunks, i);
+    	GSequenceIter *iter = g_sequence_get_begin_iter(s->chunks);
+    	GSequenceIter *end = g_sequence_get_end_iter(s->chunks);
+        for (; iter != end; iter = g_sequence_iter_next(iter)) {
+            c = g_sequence_get(iter);
 
     		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
     			continue;
@@ -131,7 +132,7 @@ static void* filter_thread(void *arg) {
                 if (storage_buffer.container_buffer == NULL){
                 	storage_buffer.container_buffer = create_container();
                 	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY)
-                		storage_buffer.chunks = g_queue_new();
+                		storage_buffer.chunks = g_sequence_new(free_chunk);
                 }
 
                 if (container_overflow(storage_buffer.container_buffer, c->size)) {
@@ -142,11 +143,11 @@ static void* filter_thread(void *arg) {
                          * Update_index for physical locality
                          */
                         GHashTable *features = sampling(storage_buffer.chunks,
-                        		g_queue_get_length(storage_buffer.chunks));
+                        		g_sequence_get_length(storage_buffer.chunks));
                         index_update(features, get_container_id(storage_buffer.container_buffer));
                         g_hash_table_destroy(features);
-                        g_queue_free_full(storage_buffer.chunks, free_chunk);
-                        storage_buffer.chunks = g_queue_new();
+                        g_sequence_free(storage_buffer.chunks);
+                        storage_buffer.chunks = g_sequence_new(free_chunk);
                     }
                     TIMER_END(1, jcr.filter_time);
                     write_container_async(storage_buffer.container_buffer);
@@ -174,7 +175,7 @@ static void* filter_thread(void *arg) {
                 	if(destor.index_category[1] == INDEX_CATEGORY_PHYSICAL_LOCALITY){
                 		struct chunk* ck = new_chunk(0);
                 		memcpy(&ck->fp, &c->fp, sizeof(fingerprint));
-                		g_queue_push_tail(storage_buffer.chunks, ck);
+                		g_sequence_append(storage_buffer.chunks, ck);
                 	}
 
                 	VERBOSE("Filter phase: Write %dth chunk to container %lld",
@@ -211,9 +212,10 @@ static void* filter_thread(void *arg) {
         segmentid sid = append_segment_flag(jcr.bv, CHUNK_SEGMENT_START, s->chunk_num);
 
         /* Write recipe */
-        int qlen = g_queue_get_length(s->chunks);
-        for(i=0; i< qlen; i++){
-        	c = g_queue_peek_nth(s->chunks, i);
+    	iter = g_sequence_get_begin_iter(s->chunks);
+    	end = g_sequence_get_end_iter(s->chunks);
+        for (; iter != end; iter = g_sequence_iter_next(iter)) {
+            c = g_sequence_get(iter);
 
         	if(r == NULL){
         		assert(CHECK_CHUNK(c,CHUNK_FILE_START));
@@ -286,10 +288,10 @@ static void* filter_thread(void *arg) {
              * Update_index for physical locality
              */
         	GHashTable *features = sampling(storage_buffer.chunks,
-        			g_queue_get_length(storage_buffer.chunks));
+        			g_sequence_get_length(storage_buffer.chunks));
         	index_update(features, get_container_id(storage_buffer.container_buffer));
         	g_hash_table_destroy(features);
-        	g_queue_free_full(storage_buffer.chunks, free_chunk);
+        	g_sequence_free(storage_buffer.chunks);
         }
         write_container_async(storage_buffer.container_buffer);
     }

@@ -3,6 +3,7 @@
 #include "utils/sync_queue.h"
 #include "index/index.h"
 #include "backup.h"
+#include "storage/containerstore.h"
 
 /* defined in index.c */
 extern struct {
@@ -64,11 +65,11 @@ void do_backup(char *path) {
 	printf("job id: %d\n", jcr.id);
 	printf("backup path: %s\n", jcr.path);
 	printf("number of files: %d\n", jcr.file_num);
-	printf("number of chunks: %d (%ld bytes on average)\n", jcr.chunk_num,
+	printf("number of chunks: %d (%lld bytes on average)\n", jcr.chunk_num,
 			jcr.data_size / jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
-	printf("total size(B): %ld\n", jcr.data_size);
-	printf("stored data size(B): %ld\n",
+	printf("total size(B): %lld\n", jcr.data_size);
+	printf("stored data size(B): %lld\n",
 			jcr.unique_data_size + jcr.rewritten_chunk_size);
 	printf("deduplication ratio: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
@@ -82,9 +83,9 @@ void do_backup(char *path) {
 	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
 	printf("number of zero chunks: %d\n", jcr.zero_chunk_num);
-	printf("size of zero chunks: %ld\n", jcr.zero_chunk_size);
+	printf("size of zero chunks: %lld\n", jcr.zero_chunk_size);
 	printf("number of rewritten chunks: %d\n", jcr.rewritten_chunk_num);
-	printf("size of rewritten chunks: %ld\n", jcr.rewritten_chunk_size);
+	printf("size of rewritten chunks: %lld\n", jcr.rewritten_chunk_size);
 	printf("rewritten rate in size: %.3f\n",
 			jcr.rewritten_chunk_size / (double) jcr.data_size);
 
@@ -155,7 +156,7 @@ void do_backup(char *path) {
 	 * 4 * index overhead (4 * int)
 	 * throughput,
 	 */
-	fprintf(fp, "%d %ld %ld %.4f %.4f %d %d %d %d %d %d %d %.2f\n",
+	fprintf(fp, "%d %lld %lld %.4f %.4f %d %d %d %d %d %d %d %.2f\n",
 			jcr.id,
 			jcr.data_size,
 			destor.stored_data_size,
