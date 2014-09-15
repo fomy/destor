@@ -81,7 +81,7 @@ void free_backup_version(struct backupVersion *b);
 void append_file_recipe_meta(struct backupVersion* b, struct fileRecipeMeta* r);
 void append_n_chunk_pointers(struct backupVersion* b,
 		struct chunkPointer* cp, int n);
-struct fileRecipeMeta* read_next_recipe_meta(struct backupVersion* b);
+struct fileRecipeMeta* read_next_file_recipe_meta(struct backupVersion* b);
 struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 		int *k);
 containerid* read_next_n_records(struct backupVersion* b, int n, int *k);
