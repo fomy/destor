@@ -49,7 +49,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index exact physical" -p"rewrite-enable-har yes" -p"rewrite-har-utilization-threshold 0.4" -p"rewrite-har-rewrite-limit 1" >> log
-    ../destor -r$i -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
     i=$(($i+1))
 done
 ../destor -s >> backup.log
@@ -59,7 +59,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index near-exact physical" -p"fingerprint-index-sampling-method uniform $r " >> log
-    ../destor -r$i -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
     i=$(($i+1))
 done
 ../destor -s >> backup.log
