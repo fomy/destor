@@ -462,17 +462,12 @@ containerid* read_next_n_records(struct backupVersion* b, int n, int *k) {
 
 	/* ids[0] indicates the number of IDs */
 	containerid *ids = (containerid *) malloc(sizeof(containerid) * (n + 1));
-	fread(&ids[1], n, 1, b->record_fp);
+	*k = fread(&ids[1], sizeof(containerid), n, b->record_fp);
 
-	int i;
-	for (i = 1; i < n + 1; i++) {
-		if (ids[i] == TEMPORARY_ID) {
-			end = 1;
-			break;
-		}
-	}
+	/* TEMPORARY_ID indicates all records have been read. */
+	if(ids[*k] == TEMPORARY_ID)
+		end = 1;
 
-	*k = i - 1;
 	ids[0] = *k;
 	return ids;
 }
