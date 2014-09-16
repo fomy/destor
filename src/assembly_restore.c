@@ -11,13 +11,13 @@
 #include "restore.h"
 
 struct {
-	GQueue *area;
+	GSequence *area;
 	int64_t area_size;
 	int64_t size;
 } assembly_area;
 
 static void init_assembly_area() {
-	assembly_area.area = g_queue_new();
+	assembly_area.area = g_sequence_new(NULL);
 	assembly_area.size = 0;
 	assembly_area.area_size = (destor.restore_cache[1] - 1) * CONTAINER_SIZE;
 }
@@ -29,16 +29,18 @@ static void init_assembly_area() {
  */
 static GQueue* assemble_area() {
 
-	if (g_queue_get_length(assembly_area.area) == 0)
+	if (g_sequence_get_length(assembly_area.area) == 0)
 		return NULL;
 
 	GQueue *q = g_queue_new();
 
 	struct chunk *c = NULL;
-	while (g_queue_get_length(assembly_area.area) > 0) {
-		c = g_queue_peek_head(assembly_area.area);
+	GSequenceIter *begin = g_sequence_get_begin_iter(assembly_area.area);
+	GSequenceIter *end = g_sequence_get_end_iter(assembly_area.area);
+	for (;begin != end;begin = g_sequence_get_begin_iter(assembly_area.area)) {
+		c = g_sequence_get(begin);
 		if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END)) {
-			c = g_queue_pop_head(assembly_area.area);
+			g_sequence_remove(begin);
 			g_queue_push_tail(q, c);
 			c = NULL;
 		} else {
@@ -46,20 +48,23 @@ static GQueue* assemble_area() {
 		}
 	}
 
+	/* !c == true indicates no more chunks in the area. */
 	if (!c)
 		return q;
 
+	/* read a container */
 	containerid id = c->id;
-
 	struct container *con = NULL;
 	jcr.read_container_num++;
 	VERBOSE("Restore cache: container %lld is missed", id);
 	if (destor.simulation_level == SIMULATION_NO)
 		con = retrieve_container_by_id(id);
 
-	int i, n = g_queue_get_length(assembly_area.area);
-	for (i = 0; i < n; i++) {
-		struct chunk *c = g_queue_peek_nth(assembly_area.area, i);
+	/* assemble the area */
+	GSequenceIter *iter = g_sequence_get_begin_iter(assembly_area.area);
+	end = g_sequence_get_end_iter(assembly_area.area);
+	for (;iter != end;iter = g_sequence_iter_next(iter)) {
+		c = g_sequence_get(iter);
 		if (!CHECK_CHUNK(c, CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
 				&& id == c->id) {
 			if (destor.simulation_level == SIMULATION_NO) {
@@ -74,11 +79,14 @@ static GQueue* assemble_area() {
 		}
 	}
 
-	while (g_queue_get_length(assembly_area.area) > 0) {
-		struct chunk *rc = g_queue_peek_head(assembly_area.area);
+	/* issue the assembled area */
+	begin = g_sequence_get_begin_iter(assembly_area.area);
+	end = g_sequence_get_end_iter(assembly_area.area);
+	for (;begin != end;begin = g_sequence_get_begin_iter(assembly_area.area)) {
+		struct chunk *rc = g_sequence_get(begin);
 		if (CHECK_CHUNK(rc,
 				CHUNK_FILE_START) || CHECK_CHUNK(rc, CHUNK_FILE_END) || CHECK_CHUNK(rc, CHUNK_READY)) {
-			g_queue_pop_head(assembly_area.area);
+			g_sequence_remove(begin);
 			g_queue_push_tail(q, rc);
 		} else {
 			break;
@@ -92,7 +100,7 @@ static int assembly_area_push(struct chunk* c) {
 	if (c == NULL)
 		return 1;
 
-	g_queue_push_tail(assembly_area.area, c);
+	g_sequence_append(assembly_area.area, c);
 
 	if (CHECK_CHUNK(c, CHUNK_FILE_START) || CHECK_CHUNK(c, CHUNK_FILE_END))
 		return 0;
