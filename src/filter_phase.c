@@ -13,7 +13,7 @@ struct{
 	/* accessed in dedup phase */
 	struct container *container_buffer;
 	/* In order to facilitate sampling in container,
-	 * we keep a queue for chunks in container buffer. */
+	 * we keep a list for chunks in container buffer. */
 	GSequence *chunks;
 } storage_buffer;
 
@@ -257,6 +257,25 @@ static void* filter_thread(void *arg) {
          		GHashTableIter iter;
          		gpointer key, value;
          		g_hash_table_iter_init(&iter, recently_unique_chunks);
+         		while(g_hash_table_iter_next(&iter, &key, &value)){
+         			struct chunk* uc = value;
+         			fingerprint *ft = malloc(sizeof(fingerprint));
+         			memcpy(ft, &uc->fp, sizeof(fingerprint));
+         			g_hash_table_insert(s->features, ft, NULL);
+         		}
+
+         		/*
+         		 * OPTION:
+         		 * 	It is still an open problem whether we need to update
+         		 * 	rewritten fingerprints.
+         		 * 	It would increase index update overhead, while the benefit
+         		 * 	remains unclear.
+         		 * 	More experiments are required.
+         		 */
+         		VERBOSE("Filter phase: add %d rewritten fingerprints to %d features",
+         				g_hash_table_size(recently_rewritten_chunks),
+         				g_hash_table_size(s->features));
+         		g_hash_table_iter_init(&iter, recently_rewritten_chunks);
          		while(g_hash_table_iter_next(&iter, &key, &value)){
          			struct chunk* uc = value;
          			fingerprint *ft = malloc(sizeof(fingerprint));
