@@ -50,7 +50,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index exact physical" -p"rewrite-enable-har yes" -p"rewrite-har-utilization-threshold 0.4" -p"rewrite-har-rewrite-limit 1" >> log
-    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs" >> log
     i=$(($i+1))
 done
 ../destor -s >> backup.log
@@ -60,7 +60,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index near-exact physical" -p"fingerprint-index-sampling-method uniform 128" -p"rewrite-enable-har yes" -p"rewrite-har-utilization-threshold 0.4" -p"rewrite-har-rewrite-limit 1" >> log
-    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs" >> log
     i=$(($i+1))
 done
 ../destor -s >> backup.log
@@ -70,7 +70,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index exact logical" -p"fingerprint-index-sampling-method random 256" -p"rewrite-enable-har yes" -p"rewrite-har-utilization-threshold 0.4" -p"rewrite-har-rewrite-limit 1" >> log
-    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs" >> log
     i=$(($i+1))
 done
 ../destor -s >> backup.log
@@ -80,7 +80,7 @@ i=0
 ../rebuild
 for file in $(ls $path);do
     ../destor $path/$file -p"fingerprint-index near-exact logical" -p"fingerprint-index-sampling-method random 128" -p"fingerprint-index-segment-selection top 4" -p"fingerprint-index-segment-prefetching 4" -p"rewrite-enable-har yes" -p"rewrite-har-utilization-threshold 0.4" -p"rewrite-har-rewrite-limit 1" >> log
-    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs" >> log
     i=$(($i+1))
 done
 ../destor -s >> backup.log
