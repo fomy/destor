@@ -44,6 +44,14 @@ esac
 #   (results are written to backup.log)
 # ./destor -rN executes a restore job under various restore cache size
 #   (results are written to restore.log)
+i=0
+../rebuild
+for file in $(ls $path);do
+    ../destor $path/$file -p"fingerprint-index exact physical" >> log
+    ../destor -r$i /home/fumin/restore -p"restore-cache opt $rcs"
+    i=$(($i+1))
+done
+../destor -s >> backup.log
 
 i=0
 ../rebuild
