@@ -74,7 +74,6 @@ static GQueue* assemble_area() {
 				memcpy(c->data, buf->data, c->size);
 				free_chunk(buf);
 			}
-			assembly_area.size -= c->size;
 			SET_CHUNK(c, CHUNK_READY);
 		}
 	}
@@ -84,10 +83,13 @@ static GQueue* assemble_area() {
 	end = g_sequence_get_end_iter(assembly_area.area);
 	for (;begin != end;begin = g_sequence_get_begin_iter(assembly_area.area)) {
 		struct chunk *rc = g_sequence_get(begin);
-		if (CHECK_CHUNK(rc,
-				CHUNK_FILE_START) || CHECK_CHUNK(rc, CHUNK_FILE_END) || CHECK_CHUNK(rc, CHUNK_READY)) {
+		if (CHECK_CHUNK(rc, CHUNK_FILE_START) || CHECK_CHUNK(rc, CHUNK_FILE_END)){
 			g_sequence_remove(begin);
 			g_queue_push_tail(q, rc);
+		}else if(CHECK_CHUNK(rc, CHUNK_READY)) {
+			g_sequence_remove(begin);
+			g_queue_push_tail(q, rc);
+			assembly_area.size -= rc->size;
 		} else {
 			break;
 		}
