@@ -174,13 +174,13 @@
 #define CHUNK_SEGMENT_START (0x0004)
 #define CHUNK_SEGMENT_END (0x0008)
 
+/* Flags for restore */
+#define CHUNK_WAIT 0x0010
+#define CHUNK_READY 0x0020
+
 #define SET_CHUNK(c, f) (c->flag |= f)
 #define UNSET_CHUNK(c, f) (c->flag &= ~f)
 #define CHECK_CHUNK(c, f) (c->flag & f)
-
-/* Flags for restore */
-#define CHUNK_WAIT 0
-#define CHUNK_READY 1
 
 struct destor {
 	sds working_directory;
