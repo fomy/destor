@@ -66,7 +66,8 @@ void do_backup(char *path) {
 	printf("backup path: %s\n", jcr.path);
 	printf("number of files: %d\n", jcr.file_num);
 	printf("number of chunks: %d (%lld bytes on average)\n", jcr.chunk_num,
-			jcr.data_size / jcr.chunk_num);
+			destor.chunk_algorithm == CHUNK_FIXED ?
+					destor.chunk_avg_size : jcr.data_size / jcr.chunk_num);
 	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
 	printf("total size(B): %lld\n", jcr.data_size);
 	printf("stored data size(B): %lld\n",
