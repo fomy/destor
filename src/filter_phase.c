@@ -57,9 +57,8 @@ static void* filter_thread(void *arg) {
         free_chunk(c);
 
         /* For self-references in a segment.
-         * If we find there is an early copy of the chunk in this segment,
-         * has been rewritten,
-         * the rewrite request for it will be denied. */
+         * If we find an early copy of the chunk in this segment has been rewritten,
+         * the rewrite request for it will be denied to avoid repeat rewriting. */
         GHashTable *recently_rewritten_chunks = g_hash_table_new_full(g_int64_hash,
         		g_fingerprint_equal, NULL, free_chunk);
         GHashTable *recently_unique_chunks = g_hash_table_new_full(g_int64_hash,
