@@ -214,19 +214,19 @@ void destor_shutdown() {
 void destor_stat() {
 	printf("=== destor stat ===\n");
 
-	printf("the index memory footprint (B): %d\n",
+	printf("the index memory footprint (B): %" PRId32 "\n",
 			destor.index_memory_footprint);
 
-	printf("the number of live containers: %d\n",
+	printf("the number of live containers: %" PRId32 "\n",
 			destor.live_container_num);
 
-	printf("the number of chunks: %lld\n", destor.chunk_num);
-	printf("the number of stored chunks: %lld\n", destor.stored_chunk_num);
+	printf("the number of chunks: %" PRId64 "\n", destor.chunk_num);
+	printf("the number of stored chunks: %" PRId64 "\n", destor.stored_chunk_num);
 
-	printf("the size of data (B): %lld\n", destor.data_size);
-	printf("the size of stored data (B): %lld\n", destor.stored_data_size);
+	printf("the size of data (B): %" PRId64 "\n", destor.data_size);
+	printf("the size of stored data (B): %" PRId64 "\n", destor.stored_data_size);
 
-	printf("the size of saved data (B): %lld\n",
+	printf("the size of saved data (B): %" PRId64 "\n",
 			destor.data_size - destor.stored_data_size);
 
 	printf("deduplication ratio: %.4f, %.4f\n",
@@ -234,11 +234,11 @@ void destor_stat() {
 					/ (double) destor.data_size,
 			((double) destor.data_size) / (destor.stored_data_size));
 
-	printf("the number of zero chunks: %lld\n", destor.zero_chunk_num);
-	printf("the size of zero chunks (B): %lld\n", destor.zero_chunk_size);
+	printf("the number of zero chunks: %" PRId64 "\n", destor.zero_chunk_num);
+	printf("the size of zero chunks (B): %" PRId64 "\n", destor.zero_chunk_size);
 
-	printf("the number of rewritten chunks: %lld\n", destor.rewritten_chunk_num);
-	printf("the size of rewritten chunks (B): %lld\n",
+	printf("the number of rewritten chunks: %" PRId64 "\n", destor.rewritten_chunk_num);
+	printf("the size of rewritten chunks (B): %" PRId64 "\n",
 			destor.rewritten_chunk_size);
 	printf("rewrite ratio: %.4f\n",
 			destor.rewritten_chunk_size / (double) destor.data_size);
