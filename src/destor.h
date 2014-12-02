@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>

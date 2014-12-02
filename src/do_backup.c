@@ -62,15 +62,15 @@ void do_backup(char *path) {
 
 	puts("==== backup end ====");
 
-	printf("job id: %d\n", jcr.id);
+	printf("job id: %" PRId32 "\n", jcr.id);
 	printf("backup path: %s\n", jcr.path);
 	printf("number of files: %d\n", jcr.file_num);
-	printf("number of chunks: %d (%lld bytes on average)\n", jcr.chunk_num,
+	printf("number of chunks: %" PRId32 " (%" PRId64 " bytes on average)\n", jcr.chunk_num,
 			destor.chunk_algorithm == CHUNK_FIXED ?
 					destor.chunk_avg_size : jcr.data_size / jcr.chunk_num);
-	printf("number of unique chunks: %d\n", jcr.unique_chunk_num);
-	printf("total size(B): %lld\n", jcr.data_size);
-	printf("stored data size(B): %lld\n",
+	printf("number of unique chunks: %" PRId32 "\n", jcr.unique_chunk_num);
+	printf("total size(B): %" PRId64 "\n", jcr.data_size);
+	printf("stored data size(B): %" PRId64 "\n",
 			jcr.unique_data_size + jcr.rewritten_chunk_size);
 	printf("deduplication ratio: %.4f, %.4f\n",
 			jcr.data_size != 0 ?
@@ -83,10 +83,10 @@ void do_backup(char *path) {
 	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
 	printf("throughput(MB/s): %.2f\n",
 			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
-	printf("number of zero chunks: %d\n", jcr.zero_chunk_num);
-	printf("size of zero chunks: %lld\n", jcr.zero_chunk_size);
-	printf("number of rewritten chunks: %d\n", jcr.rewritten_chunk_num);
-	printf("size of rewritten chunks: %lld\n", jcr.rewritten_chunk_size);
+	printf("number of zero chunks: %" PRId32 "\n", jcr.zero_chunk_num);
+	printf("size of zero chunks: %" PRId64 "\n", jcr.zero_chunk_size);
+	printf("number of rewritten chunks: %" PRId32 "\n", jcr.rewritten_chunk_num);
+	printf("size of rewritten chunks: %" PRId64 "\n", jcr.rewritten_chunk_size);
 	printf("rewritten rate in size: %.3f\n",
 			jcr.rewritten_chunk_size / (double) jcr.data_size);
 
@@ -157,7 +157,7 @@ void do_backup(char *path) {
 	 * 4 * index overhead (4 * int)
 	 * throughput,
 	 */
-	fprintf(fp, "%d %lld %lld %.4f %.4f %d %d %d %d %d %d %d %.2f\n",
+	fprintf(fp, "%" PRId32 " %" PRId64 " %" PRId64 " %.4f %.4f %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32" %" PRId32 " %" PRId32" %" PRId32" %.2f\n",
 			jcr.id,
 			jcr.data_size,
 			destor.stored_data_size,

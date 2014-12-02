@@ -229,11 +229,11 @@ void do_restore(int revision, char *path) {
 	TIMER_END(1, jcr.total_time);
 	puts("==== restore end ====");
 
-	printf("job id: %d\n", jcr.id);
+	printf("job id: %" PRId32 "\n", jcr.id);
 	printf("restore path: %s\n", jcr.path);
-	printf("number of files: %d\n", jcr.file_num);
-	printf("number of chunks: %d\n", jcr.chunk_num);
-	printf("total size(B): %lld\n", jcr.data_size);
+	printf("number of files: %" PRId32 "\n", jcr.file_num);
+	printf("number of chunks: %" PRId32"\n", jcr.chunk_num);
+	printf("total size(B): %" PRId64 "\n", jcr.data_size);
 	printf("total time(s): %.3f\n", jcr.total_time / 1000000);
 	printf("throughput(MB/s): %.2f\n",
 			jcr.data_size * 1000000 / (1024.0 * 1024 * jcr.total_time));
@@ -260,7 +260,7 @@ void do_restore(int revision, char *path) {
 	 * speed factor,
 	 * throughput
 	 */
-	fprintf(fp, "%d %lld %d %.4f %.4f\n", jcr.id, jcr.data_size,
+	fprintf(fp, "%" PRId32 " %" PRId64 " %" PRId32 " %.4f %.4f\n", jcr.id, jcr.data_size,
 			jcr.read_container_num,
 			jcr.data_size / (1024.0 * 1024 * jcr.read_container_num),
 			jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
