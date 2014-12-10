@@ -4,7 +4,7 @@ File list:
 
 1. atc14-paper-fu_min.pdf
 
-    > This paper accepted by USENIX ATC'14 describes HAR, OPT, and CMA.
+    > This paper accepted by USENIX ATC'14 describes the rewriting algorithm and garbage collection scheme in Destor.
 
 2. fast15_destor.pdf
 
