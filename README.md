@@ -74,7 +74,7 @@ Dependencies
 
    > libglib.so and glib.h may not be found when you first install it.
 
-   > The header files (that originally locate in /usr/local/include/glib-2.0) are required to be moved to a searchable path, such as "/usr/local/include". 
+   > The header files (that originally locate in /usr/local/include/glib-2.0 and /usr/local/lib/glib-2.0/include) are required to be moved to a searchable path, such as "/usr/local/include". 
 
    > Also a link named libglib.so should be created in "/usr/local/lib".
 
@@ -122,6 +122,10 @@ destor can run as follows:
 Configuration
 -------------
 A sample configuration is shown in destor.conf
+
+To find what the parameters in destor.conf exactly mean and how to configure an existing solution (such as DDFS), please read the paper **Design Tradeoffs for Data Deduplication Performance in Backup Workloads** in doc/.
+The parameter space is based on the taxonomy proposed in the paper.
+(Note: I know the paper is somewhat difficult to follow. I am sorry about that. I am trying to improve the readability.)
 
 Bugs
 ----
