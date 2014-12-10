@@ -125,7 +125,7 @@ A sample configuration is shown in destor.conf
 
 To find what the parameters in destor.conf exactly mean and how to configure an existing solution (such as DDFS), please read the paper **Design Tradeoffs for Data Deduplication Performance in Backup Workloads** in doc/.
 The parameter space is based on the taxonomy proposed in the paper.
-(Note: I know the paper is somewhat difficult to follow. I am sorry about that. I am trying to improve the readability.)
+(Note: I know the paper is somewhat difficult to follow. I am sorry about that, but I am trying to improve the readability.)
 
 Bugs
 ----
