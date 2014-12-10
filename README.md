@@ -53,6 +53,10 @@ Related papers
     >
     > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
+The paper on Destor
+----------------------
+**Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Yucheng Zhang, and Yujuan Tan. *Design Tradeoffs for Data Deduplication Performance in Backup Workloads* @ USENIX FAST'15.
+
 Recent publications using Destor
 -----------------------------
 1. **Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Fangting Huang, and Qing Liu. *Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information* @ USENIX ATC'14.
