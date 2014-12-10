@@ -55,7 +55,12 @@ Related papers
 
 The paper on Destor
 ----------------------
-**Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Yucheng Zhang, and Yujuan Tan. *Design Tradeoffs for Data Deduplication Performance in Backup Workloads* @ USENIX FAST'15.
+**Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Yucheng Zhang, and Yujuan Tan. 
+*Design Tradeoffs for Data Deduplication Performance in Backup Workloads.* 
+In Proceedings of 13th USENIX Conference on File and Storage Technologies (FAST'15).
+
+This paper describes the overall architecture and backup/restore pipeline in Destor.
+You can find it in doc directory.
 
 Recent publications using Destor
 -----------------------------
