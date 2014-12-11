@@ -61,6 +61,7 @@
 #define CHUNK_FIXED 0
 #define CHUNK_RABIN 1
 #define CHUNK_NORMALIZED_RABIN 2
+#define CHUNK_FILE 3 /* approximate file-level */
 
 /*
  * A global fingerprint index is required.

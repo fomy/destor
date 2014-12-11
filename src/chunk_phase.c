@@ -12,6 +12,10 @@ static inline int fixed_chunk_data(unsigned char* buf, int size){
 	return destor.chunk_avg_size > size ? size : destor.chunk_avg_size;
 }
 
+/*
+ * chunk-level deduplication.
+ * Destor currently supports fixed-sized chunking and (normalized) rabin-based chunking.
+ */
 static void* chunk_thread(void *arg) {
 	int leftlen = 0;
 	int leftoff = 0;
@@ -100,9 +104,12 @@ static void* chunk_thread(void *arg) {
 	return NULL;
 }
 
+
+
 void start_chunk_phase() {
-	assert(destor.chunk_avg_size > destor.chunk_min_size);
-	assert(destor.chunk_avg_size < destor.chunk_max_size);
+	assert(destor.chunk_avg_size >= destor.chunk_min_size);
+	assert(destor.chunk_avg_size <= destor.chunk_max_size);
+	assert(destor.chunk_max_size <= CONTAINER_SIZE - CONTAINER_META_SIZE);
 
 	if (destor.chunk_algorithm == CHUNK_RABIN){
 		chunkAlg_init();
@@ -111,6 +118,18 @@ void start_chunk_phase() {
 		chunkAlg_init();
 		chunking = normalized_rabin_chunk_data;
 	}else if(destor.chunk_algorithm == CHUNK_FIXED){
+		destor.chunk_max_size = destor.chunk_avg_size;
+		chunking = fixed_chunk_data;
+	}else if(destor.chunk_algorithm == CHUNK_FILE){
+		/*
+		 * approximate file-level deduplication
+		 * It splits the stream according to file boundaries.
+		 * For a larger file, we need to split it due to container size limit.
+		 * Hence, our approximate file-level deduplication are only for files smaller than CONTAINER_SIZE - CONTAINER_META_SIZE.
+		 * Similar to fixed-sized chunking of $(( CONTAINER_SIZE - CONTAINER_META_SIZE )) chunk size.
+		 * */
+		destor.chunk_avg_size = CONTAINER_SIZE - CONTAINER_META_SIZE;
+		destor.chunk_max_size = CONTAINER_SIZE - CONTAINER_META_SIZE;
 		chunking = fixed_chunk_data;
 	}else{
 		NOTICE("Invalid chunking algorithm");
