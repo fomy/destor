@@ -2,6 +2,7 @@
 #include "jcr.h"
 #include "utils/rabin_chunking.h"
 #include "backup.h"
+#include "storage/containerstore.h"
 
 static pthread_t chunk_t;
 static int64_t chunk_num;
