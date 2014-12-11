@@ -240,6 +240,7 @@ void chunkAlg_init() {
 	_num_chunks = 0;
 }
 
+/* The standard rabin chunking */
 int rabin_chunk_data(unsigned char *p, int n) {
 
 	UINT64 f_break = 0;
@@ -260,31 +261,59 @@ int rabin_chunk_data(unsigned char *p, int n) {
 	while (i <= n) {
 
 		SLIDE(p[i - 1], fp, bufPos, buf);
-		if (destor.chunk_algorithm == CHUNK_RABIN) {
-			if (((fp & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE
+		if (((fp & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE
+				&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
+				|| i == n) {
+			break;
+		} else
+			i++;
+
+	}
+	return i;
+}
+
+/*
+ * A variant of rabin chunking.
+ * We use a larger avg chunk size when the current size is small,
+ * and a smaller avg chunk size when the current size is large.
+ * */
+int normalized_rabin_chunk_data(unsigned char *p, int n) {
+
+	UINT64 f_break = 0;
+	UINT64 count = 0;
+	UINT64 fp = 0;
+	int i = 1, bufPos = -1;
+
+	unsigned char om;
+	u_int64_t x;
+
+	unsigned char buf[128];
+	memset((char*) buf, 0, 128);
+
+	if (n <= destor.chunk_min_size)
+		return n;
+	else
+		i = destor.chunk_min_size;
+	while (i <= n) {
+
+		SLIDE(p[i - 1], fp, bufPos, buf);
+
+		if (i < destor.chunk_avg_size) {
+			if (((fp & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE
 					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
 					|| i == n) {
 				break;
 			} else
 				i++;
-		} else if (destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN) {
-			if (i < destor.chunk_avg_size) {
-				if (((fp & (destor.chunk_avg_size * 2 - 1))
-						== BREAKMARK_VALUE && i >= destor.chunk_min_size)
-						|| i >= destor.chunk_max_size || i == n) {
-					break;
-				} else
-					i++;
-			} else {
-				if (((fp & (destor.chunk_avg_size / 2 - 1))
-						== BREAKMARK_VALUE && i >= destor.chunk_min_size)
-						|| i >= destor.chunk_max_size || i == n) {
-					break;
-				} else
-					i++;
-			}
-
+		} else {
+			if (((fp & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE
+					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
+					|| i == n) {
+				break;
+			} else
+				i++;
 		}
+
 	}
 	return i;
 }

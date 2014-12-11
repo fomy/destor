@@ -6,6 +6,12 @@
 static pthread_t chunk_t;
 static int64_t chunk_num;
 
+static int (*chunking)(unsigned char* buf, int size);
+
+static inline int fixed_chunk_data(unsigned char* buf, int size){
+	return destor.chunk_avg_size > size ? size : destor.chunk_avg_size;
+}
+
 static void* chunk_thread(void *arg) {
 	int leftlen = 0;
 	int leftoff = 0;
@@ -61,13 +67,7 @@ static void* chunk_thread(void *arg) {
 			TIMER_DECLARE(1);
 			TIMER_BEGIN(1);
 
-			int chunk_size = 0;
-			if (destor.chunk_algorithm == CHUNK_RABIN
-					|| destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN)
-				chunk_size = rabin_chunk_data(leftbuf + leftoff, leftlen);
-			else
-				chunk_size = destor.chunk_avg_size > leftlen ?
-								leftlen : destor.chunk_avg_size;
+			int	chunk_size = chunking(leftbuf + leftoff, leftlen);
 
 			TIMER_END(1, jcr.chunk_time);
 
@@ -104,7 +104,19 @@ void start_chunk_phase() {
 	assert(destor.chunk_avg_size > destor.chunk_min_size);
 	assert(destor.chunk_avg_size < destor.chunk_max_size);
 
-	chunkAlg_init();
+	if (destor.chunk_algorithm == CHUNK_RABIN){
+		chunkAlg_init();
+		chunking = rabin_chunk_data;
+	}else if(destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN){
+		chunkAlg_init();
+		chunking = normalized_rabin_chunk_data;
+	}else if(destor.chunk_algorithm == CHUNK_FIXED){
+		chunking = fixed_chunk_data;
+	}else{
+		NOTICE("Invalid chunking algorithm");
+		exit(1);
+	}
+
 	chunk_queue = sync_queue_new(100);
 	pthread_create(&chunk_t, NULL, chunk_thread, NULL);
 }

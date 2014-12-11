@@ -13,7 +13,12 @@ Features
 
 Related papers
 --------------
-1. The design of the fingerprint index:
+1. The chunking algorithm:
+    > a) A Low-bandwidth Network File System @ SOSP'02. 
+    >
+    > b) AE: An Asymmetric Extremum Content Defined Chunking Algorithm for Fast and Bandwidth-Efficient Data Deduplication @ IEEE Infocom'15.
+
+2. The design of the fingerprint index:
     > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System @ FAST'08.
     >
     > b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality @ FAST'09.
@@ -28,7 +33,7 @@ Related papers
     >
     > g) The design of a similarity based deduplication system @ SYSTOR'09.
 
-2. The fragmentation:
+3. The fragmentation:
     > a) Chunk Fragmentation Level: An Effective Indicator for Read Performance Degradation in Deduplication Storage @ HPCC'11.
     >
     > b) Assuring Demanded Read Performance of Data Deduplication Storage with Backup Datasets @ MASCOTS'12. 
@@ -39,14 +44,14 @@ Related papers
     >
     > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
-3. The restore cache:
+4. The restore algorithm:
     > a) A Study of Replacement Algorithms for a Virtual-Storage Computer @ IBM Systems Journal'1966.
     >
     > b) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication @ FAST'13.
     >
     > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
-4. Garbage collection:
+5. Garbage collection:
     > a) Building a High-Performance Deduplication System @ USENIX ATC'11.
     >
     > b) Cumulus: Filesystem Backup to the Cloud @ FAST'09.

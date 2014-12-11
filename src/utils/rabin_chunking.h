@@ -12,6 +12,7 @@
 #define BREAKMARK_VALUE 0x78
 
 int rabin_chunk_data(unsigned char *p, int n);
+int normalized_rabin_chunk_data(unsigned char *p, int n);
 void chunkAlg_init();
 void windows_reset();
 
