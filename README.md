@@ -18,7 +18,7 @@ Related papers
     >
     > b) AE: An Asymmetric Extremum Content Defined Chunking Algorithm for Fast and Bandwidth-Efficient Data Deduplication @ IEEE Infocom'15.
 
-2. The design of the fingerprint index:
+2. The fingerprint index:
     > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System @ FAST'08.
     >
     > b) Sparse Indexing: Large Scale, Inline Deduplication Using Sampling and Locality @ FAST'09.
