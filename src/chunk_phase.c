@@ -110,6 +110,12 @@ static void* chunk_thread(void *arg) {
 void start_chunk_phase() {
 
 	if (destor.chunk_algorithm == CHUNK_RABIN){
+		int pwr;
+		for (pwr = 0; destor.chunk_avg_size; pwr++) {
+			destor.chunk_avg_size >>= 1;
+		}
+		destor.chunk_avg_size = 1 << (pwr - 1);
+
 		assert(destor.chunk_avg_size >= destor.chunk_min_size);
 		assert(destor.chunk_avg_size <= destor.chunk_max_size);
 		assert(destor.chunk_max_size <= CONTAINER_SIZE - CONTAINER_META_SIZE);
@@ -117,6 +123,12 @@ void start_chunk_phase() {
 		chunkAlg_init();
 		chunking = rabin_chunk_data;
 	}else if(destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN){
+		int pwr;
+		for (pwr = 0; destor.chunk_avg_size; pwr++) {
+			destor.chunk_avg_size >>= 1;
+		}
+		destor.chunk_avg_size = 1 << (pwr - 1);
+
 		assert(destor.chunk_avg_size >= destor.chunk_min_size);
 		assert(destor.chunk_avg_size <= destor.chunk_max_size);
 		assert(destor.chunk_max_size <= CONTAINER_SIZE - CONTAINER_META_SIZE);
