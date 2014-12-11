@@ -52,7 +52,7 @@ static void* chunk_thread(void *arg) {
 
 		while (1) {
 			/* c == NULL indicates more data for this file can be read. */
-			if ((leftlen < destor.chunk_max_size) && c == NULL) {
+			while ((leftlen < destor.chunk_max_size) && c == NULL) {
 				c = sync_queue_pop(read_queue);
 				if (!CHECK_CHUNK(c, CHUNK_FILE_END)) {
 					memmove(leftbuf, leftbuf + leftoff, leftlen);
