@@ -60,7 +60,7 @@ Related papers
 
 The Destor paper
 ----------------------
-*[FAST'15] Design Tradeoffs for Data Deduplication Performance in Backup Workloads.* 
+**[FAST'15] Design Tradeoffs for Data Deduplication Performance in Backup Workloads.**
 
 This paper presents the parameter space in data deduplication that guides the design of Destor.
 It then gives the overall architecture and the backup/restore pipeline in Destor.
