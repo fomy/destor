@@ -58,14 +58,14 @@ Related papers
     >
     > c) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
 
-The paper on Destor
+The Destor paper
 ----------------------
-**Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Yucheng Zhang, and Yujuan Tan. 
-*Design Tradeoffs for Data Deduplication Performance in Backup Workloads.* 
-In Proceedings of 13th USENIX Conference on File and Storage Technologies (FAST'15).
+*[FAST'15] Design Tradeoffs for Data Deduplication Performance in Backup Workloads.* 
 
-This paper describes the overall architecture and backup/restore pipeline in Destor.
-You can find it in doc directory.
+This paper presents the parameter space in data deduplication that guides the design of Destor.
+It then gives the overall architecture and the backup/restore pipeline in Destor.
+Finally, we did an entensive experimentation via Destor to find reasonable solutions.
+You can find the paper in doc directory.
 
 Recent publications using Destor
 -----------------------------
