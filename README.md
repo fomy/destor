@@ -6,7 +6,7 @@ Features
 --------
 1. Container-based storage;
 2. Chunk-level pipeline;
-3. Fixed-sized chunking and Content-Defined Chunking (CDC);
+3. Fixed-sized chunking, Content-Defined Chunking (CDC) and an approximate file-level deduplication;
 4. A variety of fingerprint indexes, including DDFS, Extreme Binning, Sparse Index, SiLo, etc.
 5. A variety of rewriting algorithms, including CFL, CBR, CAP, HAR etc.
 6. A variety of restore algorithms, including LRU, optimal replacement algorithm, rolling forward assembly.
@@ -135,7 +135,7 @@ A sample configuration is shown in destor.conf
 
 To find what the parameters in destor.conf exactly mean and how to configure an existing solution (such as DDFS), please read the paper **Design Tradeoffs for Data Deduplication Performance in Backup Workloads** in doc/.
 The parameter space is based on the taxonomy proposed in the paper.
-(Note: I know the paper is somewhat difficult to follow. I am sorry about that, but I am trying to improve the readability.)
+(Note: The paper is somewhat difficult to follow. I am sorry about that, still working on improving the readability.)
 
 Bugs
 ----
@@ -155,3 +155,6 @@ Min Fu
 Email : fumin at hust.edu.cn
 
 Blog : fumin.hustbackup.cn
+
+(Feel free to contact me if you have any questions about Destor.
+I would appreciate bug report.)
