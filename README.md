@@ -146,7 +146,7 @@ Bugs
 3. If working path in destor.config is modified, the rebuild script must be modified too.
 
 4. CMA assumes the backups are deleted in FIFO order.
-    > In any cases, the expired backup is deleted automatically.
+    > If you set a backup-retention-time, the expired backup is deleted automatically.
 
 Author
 ------
