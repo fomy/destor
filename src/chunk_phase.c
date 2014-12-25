@@ -95,8 +95,12 @@ static void* chunk_thread(void *arg) {
 
 		sync_queue_push(chunk_queue, c);
 		leftoff = 0;
-		windows_reset();
 		c = NULL;
+
+		if(destor.chunk_algorithm == CHUNK_RABIN ||
+				destor.chunk_algorithm == CHUNK_NORMALIZED_RABIN)
+			windows_reset();
+
 	}
 
 	free(leftbuf);

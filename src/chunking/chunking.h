@@ -5,6 +5,7 @@
 #ifndef CHUNK_H_
 #define CHUNK_H_
 
+void windows_reset();
 void chunkAlg_init();
 int rabin_chunk_data(unsigned char *p, int n);
 int normalized_rabin_chunk_data(unsigned char *p, int n);
