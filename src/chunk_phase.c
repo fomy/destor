@@ -1,6 +1,6 @@
 #include "destor.h"
 #include "jcr.h"
-#include "utils/rabin_chunking.h"
+#include "chunking/chunking.h"
 #include "backup.h"
 #include "storage/containerstore.h"
 
@@ -151,6 +151,12 @@ void start_chunk_phase() {
 		destor.chunk_avg_size = CONTAINER_SIZE - CONTAINER_META_SIZE;
 		destor.chunk_max_size = CONTAINER_SIZE - CONTAINER_META_SIZE;
 		chunking = fixed_chunk_data;
+	}else if(destor.chunk_algorithm == CHUNK_AE){
+		assert(destor.chunk_avg_size <= destor.chunk_max_size);
+		assert(destor.chunk_max_size <= CONTAINER_SIZE - CONTAINER_META_SIZE);
+
+		ae_init();
+		chunking = ae_chunk_data;
 	}else{
 		NOTICE("Invalid chunking algorithm");
 		exit(1);

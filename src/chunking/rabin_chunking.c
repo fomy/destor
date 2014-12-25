@@ -1,8 +1,10 @@
-#include <stdint.h>/*uint32_t*/
-#include <stdlib.h> /*size_t*/
-#include <string.h>/*memset*/
-#include "rabin_chunking.h"
 #include "../destor.h"
+
+#define MSB64 0x8000000000000000LL
+#define MAXBUF (128*1024)
+
+#define FINGERPRINT_PT  0xbfe6b8a5bf378d83LL
+#define BREAKMARK_VALUE 0x78
 
 #define SLIDE(m,fp,bufPos,buf) do{	\
 	    unsigned char om;   \
