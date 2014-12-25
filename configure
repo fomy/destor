@@ -4837,7 +4837,7 @@ fi
 
 #AC_CHECK_FUNCS([gettimeofday memmove memset socket strerror])
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/utils/Makefile src/index/Makefile src/recipe/Makefile src/storage/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/utils/Makefile src/index/Makefile src/recipe/Makefile src/storage/Makefile src/chunking/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5587,6 +5587,7 @@ do
     "src/index/Makefile") CONFIG_FILES="$CONFIG_FILES src/index/Makefile" ;;
     "src/recipe/Makefile") CONFIG_FILES="$CONFIG_FILES src/recipe/Makefile" ;;
     "src/storage/Makefile") CONFIG_FILES="$CONFIG_FILES src/storage/Makefile" ;;
+    "src/chunking/Makefile") CONFIG_FILES="$CONFIG_FILES src/chunking/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
