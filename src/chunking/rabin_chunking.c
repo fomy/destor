@@ -294,24 +294,20 @@ int normalized_rabin_chunk_data(unsigned char *p, int n) {
 		return n;
 	else
 		i = destor.chunk_min_size;
-	while (i <= n) {
+
+	int end = n > destor.chunk_max_size ? destor.chunk_max_size : n;
+	while (i < end) {
 
 		SLIDE(p[i - 1], fp, bufPos, buf);
 
 		if (i < destor.chunk_avg_size) {
-			if (((fp & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE
-					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
-					|| i == n) {
+			if ((fp & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE)
 				break;
-			} else
-				i++;
+			i++;
 		} else {
-			if (((fp & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE
-					&& i >= destor.chunk_min_size) || i >= destor.chunk_max_size
-					|| i == n) {
+			if ((fp & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE)
 				break;
-			} else
-				i++;
+			i++;
 		}
 
 	}
