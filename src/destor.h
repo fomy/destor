@@ -63,7 +63,7 @@
 #define CHUNK_NORMALIZED_RABIN 2
 #define CHUNK_FILE 3 /* approximate file-level */
 #define CHUNK_AE 4 /* Asymmetric Extremum CDC */
-#define TTTD 5
+#define CHUNK_TTTD 5
 
 /*
  * A global fingerprint index is required.

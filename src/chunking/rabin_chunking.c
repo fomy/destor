@@ -319,3 +319,44 @@ int normalized_rabin_chunk_data(unsigned char *p, int n) {
 	}
 	return i;
 }
+
+/*
+ * TTTD from HP
+ * See their paper:
+ * 	A Framework for Analyzing and Improving Content-Based Chunking Algorithms
+ */
+int tttd_chunk_data(unsigned char *p, int n) {
+
+	UINT64 f_break = 0;
+	UINT64 count = 0;
+	UINT64 fingerprint = 0;
+	int i = 1, bufPos = -1, m = 0;
+
+	unsigned char om;
+	u_int64_t x;
+
+	unsigned char buf[128];
+	memset((char*) buf, 0, 128);
+
+	if (n <= destor.chunk_min_size)
+		return n;
+	else
+		i = destor.chunk_min_size;
+
+	int end = n > destor.chunk_max_size ? destor.chunk_max_size : n;
+	while (i < end) {
+
+		SLIDE(p[i - 1], fingerprint, bufPos, buf);
+		if ((fingerprint & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE) {
+			if ((fingerprint & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE)
+				return i;
+			m = i;
+		}
+
+		i++;
+	}
+	if (m != 0)
+		return m;
+	else
+		return i;
+}
