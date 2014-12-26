@@ -16,7 +16,9 @@ Related papers
 1. The chunking algorithm:
     > a) A Low-bandwidth Network File System @ SOSP'02. 
     >
-    > b) AE: An Asymmetric Extremum Content Defined Chunking Algorithm for Fast and Bandwidth-Efficient Data Deduplication @ IEEE Infocom'15.
+    > b) A Framework for Analyzing and Improving Content-Based Chunking Algorithms @ HP technical report.
+    >
+    > c) AE: An Asymmetric Extremum Content Defined Chunking Algorithm for Fast and Bandwidth-Efficient Data Deduplication @ IEEE Infocom'15.
 
 2. The fingerprint index:
     > a) Avoiding the Disk Bottleneck in the Data Domain Deduplication File System @ FAST'08.
