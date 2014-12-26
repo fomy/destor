@@ -234,12 +234,15 @@ void windows_reset() {
 	//memset((char*) chunk,0,sizeof (chunk));
 }
 
+static int rabin_mask = 0;
+
 void chunkAlg_init() {
 	window_init(FINGERPRINT_PT);
 	_last_pos = 0;
 	_cur_pos = 0;
 	windows_reset();
 	_num_chunks = 0;
+	rabin_mask = destor.chunk_avg_size - 1;
 }
 
 /* The standard rabin chunking */
@@ -265,7 +268,7 @@ int rabin_chunk_data(unsigned char *p, int n) {
 	while (i < end) {
 
 		SLIDE(p[i - 1], fp, bufPos, buf);
-		if ((fp & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE)
+		if ((fp & rabin_mask) == BREAKMARK_VALUE)
 			break;
 		i++;
 	}
@@ -295,17 +298,19 @@ int normalized_rabin_chunk_data(unsigned char *p, int n) {
 	else
 		i = destor.chunk_min_size;
 
+	int small_mask = destor.chunk_avg_size*2 - 1;
+	int large_mask = destor.chunk_avg_size/2 - 1;
 	int end = n > destor.chunk_max_size ? destor.chunk_max_size : n;
 	while (i < end) {
 
 		SLIDE(p[i - 1], fp, bufPos, buf);
 
 		if (i < destor.chunk_avg_size) {
-			if ((fp & (destor.chunk_avg_size * 2 - 1)) == BREAKMARK_VALUE)
+			if ((fp & small_mask) == BREAKMARK_VALUE)
 				break;
 			i++;
 		} else {
-			if ((fp & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE)
+			if ((fp & large_mask) == BREAKMARK_VALUE)
 				break;
 			i++;
 		}
@@ -337,12 +342,13 @@ int tttd_chunk_data(unsigned char *p, int n) {
 	else
 		i = destor.chunk_min_size;
 
+	int back_mask = destor.chunk_avg_size/2 - 1;
 	int end = n > destor.chunk_max_size ? destor.chunk_max_size : n;
 	while (i < end) {
 
 		SLIDE(p[i - 1], fingerprint, bufPos, buf);
-		if ((fingerprint & (destor.chunk_avg_size / 2 - 1)) == BREAKMARK_VALUE) {
-			if ((fingerprint & (destor.chunk_avg_size - 1)) == BREAKMARK_VALUE)
+		if ((fingerprint &  back_mask) == BREAKMARK_VALUE) {
+			if ((fingerprint & rabin_mask) == BREAKMARK_VALUE)
 				return i;
 			m = i;
 		}
