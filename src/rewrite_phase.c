@@ -151,4 +151,5 @@ void start_rewrite_phase() {
 
 void stop_rewrite_phase() {
     pthread_join(rewrite_t, NULL);
+    NOTICE("rewrite phase stops successfully!");
 }

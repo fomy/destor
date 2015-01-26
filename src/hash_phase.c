@@ -47,4 +47,5 @@ void start_hash_phase() {
 
 void stop_hash_phase() {
 	pthread_join(hash_t, NULL);
+	NOTICE("hash phase stops successfully!");
 }

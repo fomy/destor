@@ -123,6 +123,6 @@ void start_dedup_phase() {
 
 void stop_dedup_phase() {
 	pthread_join(dedup_t, NULL);
-	NOTICE("Dedup phase concludes: %d segments of %d chunks on average",
+	NOTICE("dedup phase stops successfully: %d segments of %d chunks on average",
 			segment_num, segment_num ? chunk_num / segment_num : 0);
 }

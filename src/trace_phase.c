@@ -216,5 +216,7 @@ void start_read_trace_phase() {
 }
 
 void stop_read_trace_phase() {
+
 	pthread_join(trace_t, NULL);
+	NOTICE("read trace phase stops successfully!");
 }

@@ -178,5 +178,6 @@ void start_chunk_phase() {
 }
 
 void stop_chunk_phase() {
+	NOTICE("join chunk phase!");
 	pthread_join(chunk_t, NULL);
 }

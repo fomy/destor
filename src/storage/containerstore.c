@@ -67,7 +67,9 @@ void init_container_store() {
 
 void close_container_store() {
 	sync_queue_term(container_buffer);
+
 	pthread_join(append_t, NULL);
+	NOTICE("append phase stops successfully!");
 
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&container_count, sizeof(container_count), 1, fp);

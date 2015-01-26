@@ -329,4 +329,6 @@ void start_filter_phase() {
 void stop_filter_phase() {
     pthread_join(filter_t, NULL);
     close_har();
+	NOTICE("filter phase stops successfully!");
+
 }

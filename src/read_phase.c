@@ -113,5 +113,6 @@ void start_read_phase() {
 
 void stop_read_phase() {
 	pthread_join(read_t, NULL);
+	NOTICE("read phase stops successfully!");
 }
 
