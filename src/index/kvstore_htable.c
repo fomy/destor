@@ -118,13 +118,22 @@ void close_kvstore_htable() {
 
 		/* Write a feature. */
 		kvpair kv = value;
-		fwrite(get_key(kv), destor.index_key_size, 1, fp);
+		if(fwrite(get_key(kv), destor.index_key_size, 1, fp) != 1){
+			perror("Fail to write a key!");
+			exit(1);
+		}
 
 		/* Write the number of segments/containers */
-		fwrite(&destor.index_value_length, sizeof(int), 1, fp);
+		if(fwrite(&destor.index_value_length, sizeof(int), 1, fp) != 1){
+			perror("Fail to write a length!");
+			exit(1);
+		}
 		int i;
 		for (i = 0; i < destor.index_value_length; i++)
-			fwrite(&get_value(kv)[i], sizeof(int64_t), 1, fp);
+			if(fwrite(&get_value(kv)[i], sizeof(int64_t), 1, fp) != -1){
+				perror("Fail to write a value!");
+				exit(1);
+			}
 
 	}
 

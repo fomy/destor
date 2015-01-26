@@ -168,7 +168,10 @@ void write_container(struct container* c) {
 			perror("Fail seek in container store.");
 			exit(1);
 		}
-		fwrite(c->data, CONTAINER_SIZE, 1, fp);
+		if(fwrite(c->data, CONTAINER_SIZE, 1, fp) != 1){
+			perror("Fail to write a container in container store.");
+			exit(1);
+		}
 
 		pthread_mutex_unlock(&mutex);
 	} else {
@@ -195,8 +198,14 @@ void write_container(struct container* c) {
 
 		pthread_mutex_lock(&mutex);
 
-		fseek(fp, c->meta.id * CONTAINER_META_SIZE + 8, SEEK_SET);
-		fwrite(buf, CONTAINER_META_SIZE, 1, fp);
+		if(fseek(fp, c->meta.id * CONTAINER_META_SIZE + 8, SEEK_SET) != 0){
+			perror("Fail seek in container store.");
+			exit(1);
+		}
+		if(fwrite(buf, CONTAINER_META_SIZE, 1, fp) != 1){
+			perror("Fail to write a container in container store.");
+			exit(1);
+		}
 
 		pthread_mutex_unlock(&mutex);
 	}
