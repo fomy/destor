@@ -107,6 +107,7 @@ void close_kvstore_htable() {
 		exit(1);
 	}
 
+	NOTICE("flushing hash table!");
 	int key_num = g_hash_table_size(htable);
 	fwrite(&key_num, sizeof(int), 1, fp);
 
@@ -132,6 +133,8 @@ void close_kvstore_htable() {
 			* (destor.index_key_size + sizeof(int64_t) * destor.index_value_length + 4);
 
 	fclose(fp);
+
+	NOTICE("flushing hash table successfully!");
 
 	sdsfree(indexpath);
 
