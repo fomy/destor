@@ -130,7 +130,7 @@ void close_kvstore_htable() {
 		}
 		int i;
 		for (i = 0; i < destor.index_value_length; i++)
-			if(fwrite(&get_value(kv)[i], sizeof(int64_t), 1, fp) != -1){
+			if(fwrite(&get_value(kv)[i], sizeof(int64_t), 1, fp) != 1){
 				perror("Fail to write a value!");
 				exit(1);
 			}
