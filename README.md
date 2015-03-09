@@ -45,6 +45,8 @@ Related papers
     > d) Improving Restore Speed for Backup Systems that Use Inline Chunk-Based Deduplication @ FAST'13.
     >
     > e) Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information @ USENIX ATC'14.
+    >
+    > f) Reducing Fragmentation for In-line Deduplication Backup Storage via Exploiting Historical Information and Cache Knowledge @ IEEE TPDS.
 
 4. The restore algorithm:
     > a) A Study of Replacement Algorithms for a Virtual-Storage Computer @ IBM Systems Journal'1966.
@@ -74,6 +76,8 @@ Recent publications using Destor
 1. **Min Fu**, Dan Feng, Yu Hua, Xubin He, Zuoning Chen, Wen Xia, Fangting Huang, and Qing Liu. *Accelerating Restore and Garbage Collection in Deduplication-based Backup Systems via Exploiting Historical Information* @ USENIX ATC'14.
 2. Jian Liu, Yunpeng Chai, Xiao Qin, and Yuan Xiao. *PLC-Cache: Endurable SSD Cache for Deduplication-based Primary Storage* @ MSST'14.
 3. Yucheng Zhang et al. *AE: An Asymmetric Extremum Content Defined Chunking Algorithm for Fast and Bandwidth-Efficient Data Deduplication* @ IEEE Infocom'15.
+4. **Min Fu** et al. *Reducing Fragmentation for In-line Deduplication Backup Storage via Exploiting Historical Information and Cache Knowledge* @ IEEE TPDS.
+
 
 Environment
 -----------
