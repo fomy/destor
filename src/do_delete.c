@@ -92,7 +92,7 @@ void do_delete(int jobid) {
 	sds didfilepath = sdsdup(destor.working_directory);
 	char s[128];
 	sprintf(s, "recipes/delete_%d.id", jobid);
-	didfilepath = sdscat(didfile, s);
+	didfilepath = sdscat(didfilepath, s);
 
 	FILE*  didfile = fopen(didfilepath, "w");
 
