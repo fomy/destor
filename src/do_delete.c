@@ -87,4 +87,24 @@ void do_delete(int jobid) {
 			destor.index_memory_footprint);
 
 	fclose(fp);
+
+	/* record the IDs of invalid containers */
+	sds didfilepath = sdsdup(destor.working_directory);
+	char s[128];
+	sprintf(s, "recipes/delete_%d.id", jobid);
+	didfilepath = sdscat(didfile, s);
+
+	FILE*  didfile = fopen(didfilepath, "w");
+
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, invalid_containers);
+	while(g_hash_table_iter_next(&iter, &key, &value)){
+		containerid id = *(containerid*)key;
+		fprintf(didfile, "%lld\n", id);
+	}
+
+	fclose(didfile);
+
+	g_hash_table_destroy(invalid_containers);
 }
