@@ -50,13 +50,9 @@ int32_t get_next_version_number() {
 
 /* the write buffer of recipe meta */
 static int metabufsize = 64*1024;
-static char *metabuf;
-static int metabufoff = 0;
 
 /* the write buffer of records */
-static char *recordbuf;
 static int recordbufsize = 64*1024;
-static int recordbufoff = 0;
 
 /*
  * Create a new backupVersion structure for a backup run.
@@ -107,8 +103,8 @@ struct backupVersion* create_backup_version(const char *path) {
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
-	metabuf = malloc(metabufsize);
-	metabufoff = 0;
+	b->metabuf = malloc(metabufsize);
+	b->metabufoff = 0;
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".recipe");
@@ -117,8 +113,8 @@ struct backupVersion* create_backup_version(const char *path) {
 		exit(1);
 	}
 
-	recordbuf = malloc(recordbufsize);
-	recordbufoff = 0;
+	b->recordbuf = malloc(recordbufsize);
+	b->recordbufoff = 0;
 
 	fname = sdscpy(fname, b->fname_prefix);
 	fname = sdscat(fname, ".records");
@@ -212,6 +208,12 @@ struct backupVersion* open_backup_version(int number) {
 		exit(1);
 	}
 
+	b->metabuf = 0;
+	b->metabufoff = 0;
+
+	b->recordbuf = 0;
+	b->recordbufoff = 0;
+
 	sdsfree(fname);
 
 	return b;
@@ -225,8 +227,6 @@ static containerid access_record = TEMPORARY_ID;
 void update_backup_version(struct backupVersion *b) {
 	if(metabuf && metabufoff>0){
 		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
-		free(metabuf);
-		metabuf=0;
 		metabufoff=0;
 	}
 
@@ -242,9 +242,8 @@ void update_backup_version(struct backupVersion *b) {
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
-	if(recordbufoff > 0){
+	if(recordbuf && recordbufoff > 0){
 		fwrite(recordbuf, recordbufoff, 1, b->record_fp);
-		free(recordbuf);
 		recordbufoff = 0;
 	}
 
@@ -259,6 +258,15 @@ void update_backup_version(struct backupVersion *b) {
  * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
+	if(metabuf){
+		free(metabuf);
+		metabuf = 0;
+	}
+	if(recordbuf){
+		free(recordbuf);
+		recordbuf = 0;
+	}
+
 	if (b->metadata_fp)
 		fclose(b->metadata_fp);
 	if (b->recipe_fp)
@@ -276,20 +284,20 @@ void append_file_recipe_meta(struct backupVersion* b, struct fileRecipeMeta* r) 
 
 	int len = sdslen(r->filename);
 
-	if(sizeof(len) + len + sizeof(r->chunknum) + sizeof(r->filesize) > metabufsize - metabufoff){
+	if(sizeof(len) + len + sizeof(r->chunknum) + sizeof(r->filesize) > metabufsize - b->metabufoff){
 		/* buf is full */
-		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
-		metabufoff = 0;
+		fwrite(b->metabuf, b->metabufoff, 1, b->metadata_fp);
+		b->metabufoff = 0;
 	}
 
-	memcpy(metabuf + metabufoff, &len, sizeof(len));
-	metabufoff += sizeof(len);
-	memcpy(metabuf + metabufoff, r->filename, len);
-	metabufoff += len;
-	memcpy(metabuf + metabufoff, &r->chunknum, sizeof(r->chunknum));
-	metabufoff += sizeof(r->chunknum);
-	memcpy(metabuf + metabufoff, &r->filesize, sizeof(r->filesize));
-	metabufoff += sizeof(r->filesize);
+	memcpy(b->metabuf + b->metabufoff, &len, sizeof(len));
+	b->metabufoff += sizeof(len);
+	memcpy(b->metabuf + b->metabufoff, r->filename, len);
+	b->metabufoff += len;
+	memcpy(b->metabuf + b->metabufoff, &r->chunknum, sizeof(r->chunknum));
+	b->metabufoff += sizeof(r->chunknum);
+	memcpy(b->metabuf + b->metabufoff, &r->filesize, sizeof(r->filesize));
+	b->metabufoff += sizeof(r->filesize);
 
 	b->number_of_files++;
 }
@@ -314,9 +322,7 @@ static inline int64_t id_to_bnum(segmentid id) {
 	return id >> 48;
 }
 
-static char* segmentbuf = NULL;
-static int segmentlen = 0;
-static int segmentbufoff = 0;
+
 
 segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_size){
 	assert(flag == CHUNK_SEGMENT_START || flag == CHUNK_SEGMENT_END);
@@ -331,25 +337,25 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 
 	if(flag == CHUNK_SEGMENT_START){
 		/* Two flags and many chunk pointers */
-		segmentlen = (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t))*2
+		b->segmentlen = (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t))*2
 				+ segment_size * (sizeof(fingerprint) + sizeof(containerid) + sizeof(int32_t));
-		segmentbuf = malloc(segmentlen);
-		segmentbufoff = 0;
+		b->segmentbuf = malloc(b->segmentlen);
+		b->segmentbufoff = 0;
 	}
 
-	memcpy(segmentbuf + segmentbufoff, &cp.fp, sizeof(fingerprint));
-	segmentbufoff += sizeof(fingerprint);
-	memcpy(segmentbuf + segmentbufoff, &cp.id, sizeof(containerid));
-	segmentbufoff += sizeof(containerid);
-	memcpy(segmentbuf + segmentbufoff, &cp.size, sizeof(int32_t));
-	segmentbufoff += sizeof(int32_t);
+	memcpy(b->segmentbuf + b->segmentbufoff, &cp.fp, sizeof(fingerprint));
+	b->segmentbufoff += sizeof(fingerprint);
+	memcpy(b->segmentbuf + b->segmentbufoff, &cp.id, sizeof(containerid));
+	b->segmentbufoff += sizeof(containerid);
+	memcpy(b->segmentbuf + b->segmentbufoff, &cp.size, sizeof(int32_t));
+	b->segmentbufoff += sizeof(int32_t);
 
 	if(flag == CHUNK_SEGMENT_END){
 		NOTICE("Filter phase: write a segment start at offset %lld!", off);
-		fwrite(segmentbuf, segmentlen, 1, b->recipe_fp);
-		free(segmentbuf);
-		segmentbuf = NULL;
-		segmentlen = 0;
+		fwrite(b->segmentbuf, b->segmentlen, 1, b->recipe_fp);
+		free(b->segmentbuf);
+		b->segmentbuf = NULL;
+		b->segmentlen = 0;
 	}
 
 	if(flag == CHUNK_SEGMENT_END){
@@ -370,12 +376,12 @@ void append_n_chunk_pointers(struct backupVersion* b,
 	for (i = 0; i < n; i++) {
 		struct chunkPointer bcp = cp[i];
 		if (access_record != TEMPORARY_ID && access_record != bcp.id){
-			if(recordbufoff + sizeof(access_record) > recordbufsize){
-				fwrite(recordbuf, recordbufoff, 1, b->record_fp);
-				recordbufoff = 0;
+			if(b->recordbufoff + sizeof(access_record) > recordbufsize){
+				fwrite(recordbuf, b->recordbufoff, 1, b->record_fp);
+				b->recordbufoff = 0;
 			}
-			memcpy(recordbuf + recordbufoff, &access_record, sizeof(access_record));
-			recordbufoff += sizeof(access_record);
+			memcpy(b->recordbuf + b->recordbufoff, &access_record, sizeof(access_record));
+			b->recordbufoff += sizeof(access_record);
 		}
 		access_record = bcp.id;
 		assert(bcp.id != TEMPORARY_ID);

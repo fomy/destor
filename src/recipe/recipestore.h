@@ -37,6 +37,18 @@ struct backupVersion {
 	FILE *metadata_fp;
 	FILE *recipe_fp;
 	FILE *record_fp;
+
+	/* the write buffer of recipe meta */
+	char *metabuf;
+	int metabufoff;
+
+	/* the write buffer of records */
+	char *recordbuf;
+	int recordbufoff;
+
+	char* segmentbuf;
+	int segmentlen;
+	int segmentbufoff;
 };
 
 /* Point to the meta of a file recipe */
