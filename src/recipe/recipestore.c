@@ -225,9 +225,9 @@ static containerid access_record = TEMPORARY_ID;
  * Update the metadata after a backup run is finished.
  */
 void update_backup_version(struct backupVersion *b) {
-	if(metabuf && metabufoff>0){
-		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
-		metabufoff=0;
+	if(b->metabuf && b->metabufoff>0){
+		fwrite(b->metabuf, b->metabufoff, 1, b->metadata_fp);
+		b->metabufoff=0;
 	}
 
 	fseek(b->metadata_fp, 0, SEEK_SET);
@@ -242,9 +242,9 @@ void update_backup_version(struct backupVersion *b) {
 	fwrite(&pathlen, sizeof(pathlen), 1, b->metadata_fp);
 	fwrite(b->path, sdslen(b->path), 1, b->metadata_fp);
 
-	if(recordbuf && recordbufoff > 0){
-		fwrite(recordbuf, recordbufoff, 1, b->record_fp);
-		recordbufoff = 0;
+	if(b->recordbuf && b->recordbufoff > 0){
+		fwrite(b->recordbuf, b->recordbufoff, 1, b->record_fp);
+		b->recordbufoff = 0;
 	}
 
 	if (access_record != TEMPORARY_ID)
@@ -258,13 +258,13 @@ void update_backup_version(struct backupVersion *b) {
  * Free backup version.
  */
 void free_backup_version(struct backupVersion *b) {
-	if(metabuf){
-		free(metabuf);
-		metabuf = 0;
+	if(b->metabuf){
+		free(b->metabuf);
+		b->metabuf = 0;
 	}
-	if(recordbuf){
-		free(recordbuf);
-		recordbuf = 0;
+	if(b->recordbuf){
+		free(b->recordbuf);
+		b->recordbuf = 0;
 	}
 
 	if (b->metadata_fp)
@@ -377,7 +377,7 @@ void append_n_chunk_pointers(struct backupVersion* b,
 		struct chunkPointer bcp = cp[i];
 		if (access_record != TEMPORARY_ID && access_record != bcp.id){
 			if(b->recordbufoff + sizeof(access_record) > recordbufsize){
-				fwrite(recordbuf, b->recordbufoff, 1, b->record_fp);
+				fwrite(b->recordbuf, b->recordbufoff, 1, b->record_fp);
 				b->recordbufoff = 0;
 			}
 			memcpy(b->recordbuf + b->recordbufoff, &access_record, sizeof(access_record));
