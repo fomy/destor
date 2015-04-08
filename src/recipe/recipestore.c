@@ -386,12 +386,12 @@ void append_n_chunk_pointers(struct backupVersion* b,
 		access_record = bcp.id;
 		assert(bcp.id != TEMPORARY_ID);
 
-		memcpy(segmentbuf + segmentbufoff, &bcp.fp, sizeof(fingerprint));
-		segmentbufoff += sizeof(fingerprint);
-		memcpy(segmentbuf + segmentbufoff, &(bcp.id), sizeof(containerid));
-		segmentbufoff += sizeof(containerid);
-		memcpy(segmentbuf + segmentbufoff, &(bcp.size), sizeof(int32_t));
-		segmentbufoff += sizeof(int32_t);
+		memcpy(b->segmentbuf + b->segmentbufoff, &bcp.fp, sizeof(fingerprint));
+		b->segmentbufoff += sizeof(fingerprint);
+		memcpy(b->segmentbuf + b->segmentbufoff, &(bcp.id), sizeof(containerid));
+		b->segmentbufoff += sizeof(containerid);
+		memcpy(b->segmentbuf + b->segmentbufoff, &(bcp.size), sizeof(int32_t));
+		b->segmentbufoff += sizeof(int32_t);
 
 		b->number_of_chunks++;
 	}
