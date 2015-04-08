@@ -226,6 +226,8 @@ void update_backup_version(struct backupVersion *b) {
 	if(metabuf && metabufoff>0){
 		fwrite(metabuf, metabufoff, 1, b->metadata_fp);
 		free(metabuf);
+		metabuf=0;
+		metabuffoff=0;
 	}
 
 	fseek(b->metadata_fp, 0, SEEK_SET);
