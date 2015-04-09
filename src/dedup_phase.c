@@ -18,8 +18,8 @@ static int64_t segment_num;
 
 struct {
 	/* g_mutex_init() is unnecessary if in static storage. */
-	GMutex mutex;
-	GCond cond; // index buffer is not full
+	pthread_mutex_t mutex;
+	pthread_cond_t cond; // index buffer is not full
 	// index buffer is full, waiting
 	// if threshold < 0, it indicates no threshold.
 	int wait_threshold;
@@ -83,11 +83,11 @@ void *dedup_thread(void *arg) {
 			NOTICE("Dedup phase: the %lldth segment of %lld chunks", segment_num++,
 					s->chunk_num);
 			/* Each duplicate chunk will be marked. */
-			g_mutex_lock(&index_lock.mutex);
+			pthread_mutex_lock(&index_lock.mutex);
 			while (index_lookup(s) == 0) {
-				g_cond_wait(&index_lock.cond, &index_lock.mutex);
+				pthread_cond_wait(&index_lock.cond, &index_lock.mutex);
 			}
-			g_mutex_unlock(&index_lock.mutex);
+			pthread_mutex_unlock(&index_lock.mutex);
 		} else {
 			NOTICE("Dedup phase: an empty segment");
 		}
@@ -115,6 +115,9 @@ void start_dedup_phase() {
 		index_lock.wait_threshold = destor.rewrite_algorithm[1] + destor.index_segment_algorithm[1] - 1;
 	else
 		index_lock.wait_threshold = -1; // file-defined segmenting has no threshold.
+
+	pthread_mutex_init(&index_lock.mutex, NULL);
+	pthread_cond_init(&index_lock.cond, NULL);
 
 	dedup_queue = sync_queue_new(1000);
 

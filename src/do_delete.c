@@ -95,16 +95,18 @@ void do_delete(int jobid) {
 	didfilepath = sdscat(didfilepath, s);
 
 	FILE*  didfile = fopen(didfilepath, "w");
+	if(didfile){
+		GHashTableIter iter;
+		gpointer key, value;
+		g_hash_table_iter_init(&iter, invalid_containers);
+		while(g_hash_table_iter_next(&iter, &key, &value)){
+			containerid id = *(containerid*)key;
+			fprintf(didfile, "%lld\n", id);
+		}
 
-	GHashTableIter iter;
-	gpointer key, value;
-	g_hash_table_iter_init(&iter, invalid_containers);
-	while(g_hash_table_iter_next(&iter, &key, &value)){
-		containerid id = *(containerid*)key;
-		fprintf(didfile, "%lld\n", id);
+		fclose(didfile);
 	}
 
-	fclose(didfile);
 
 	g_hash_table_destroy(invalid_containers);
 }
