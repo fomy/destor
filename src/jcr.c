@@ -7,6 +7,8 @@
 
 #include "jcr.h"
 
+struct jcr jcr;
+
 void init_jcr(char *path) {
 	jcr.path = sdsnew(path);
 

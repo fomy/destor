@@ -12,7 +12,7 @@
 #include "recipe/recipestore.h"
 
 /* job control record */
-struct {
+struct jcr{
 	int32_t id;
 	/*
 	 * The path of backup or restore.
@@ -52,7 +52,9 @@ struct {
 	double write_chunk_time;
 
 	int32_t read_container_num;
-} jcr;
+};
+
+extern struct jcr jcr;
 
 void init_jcr(char *path);
 void init_backup_jcr(char *path);
