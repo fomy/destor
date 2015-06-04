@@ -115,7 +115,7 @@ void* read_fsl_trace(void *argv)
         struct chunk* c = new_chunk(strlen(hashfile_curfile_path(handle))+1);
         strcpy(c->data, hashfile_curfile_path(handle));
 
-		NOTICE("Read trace phase: %s", c->data);
+		VERBOSE("Read trace phase: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
 
@@ -145,9 +145,6 @@ void* read_fsl_trace(void *argv)
             memset(c->fp, 0, sizeof(fingerprint));
             memcpy(c->fp, ci->hash, hashfile_hash_size(handle) / 8);
 
-			jcr.chunk_num++;
-			jcr.data_size += c->size;
-
 			sync_queue_push(trace_queue, c);
 
 		}
@@ -156,7 +153,6 @@ void* read_fsl_trace(void *argv)
 		SET_CHUNK(c, CHUNK_FILE_END);
 		sync_queue_push(trace_queue, c);
 
-		jcr.file_num++;
 	}
 
 	hashfile_close(handle);

@@ -24,6 +24,8 @@ void init_jcr(char *path) {
 
 	jcr.id = TEMPORARY_ID;
 
+    jcr.status = JCR_STATUS_INIT;
+
 	jcr.file_num = 0;
 	jcr.data_size = 0;
 	jcr.unique_data_size = 0;

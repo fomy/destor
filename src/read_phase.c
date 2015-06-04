@@ -26,12 +26,11 @@ static void read_file(sds path) {
 		perror("The reason is");
 		exit(1);
 	}
-	jcr.file_num++;
 
 	struct chunk *c = new_chunk(sdslen(filename) + 1);
 	strcpy(c->data, filename);
 
-	NOTICE("Read phase: %s", filename);
+	VERBOSE("Read phase: %s", filename);
 
 	SET_CHUNK(c, CHUNK_FILE_START);
 
@@ -107,6 +106,8 @@ static void* read_thread(void *argv) {
 }
 
 void start_read_phase() {
+    /* running job */
+    jcr.status = JCR_STATUS_RUNNING;
 	read_queue = sync_queue_new(10);
 	pthread_create(&read_t, NULL, read_thread, NULL);
 }

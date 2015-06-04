@@ -171,7 +171,7 @@ static void* read_trace_thread(void *argv) {
 		c = new_chunk(filenamelen + 2);
 		fgets(c->data, filenamelen + 2, trace_file);
 		c->data[filenamelen] = 0;
-		NOTICE("Read trace phase: %s", c->data);
+		VERBOSE("Read trace phase: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
 
@@ -189,8 +189,6 @@ static void* read_trace_thread(void *argv) {
 			code2hash(code, c->fp);
 
 			c->size = atoi(line + 41);
-			jcr.chunk_num++;
-			jcr.data_size += c->size;
 
 			TIMER_END(1, jcr.read_time);
 			sync_queue_push(trace_queue, c);
@@ -202,8 +200,6 @@ static void* read_trace_thread(void *argv) {
 		c = new_chunk(0);
 		SET_CHUNK(c, CHUNK_FILE_END);
 		sync_queue_push(trace_queue, c);
-
-		jcr.file_num++;
 	}
 
 	fclose(trace_file);
@@ -214,6 +210,8 @@ static void* read_trace_thread(void *argv) {
 extern void* read_fsl_trace(void *argv);
 
 void start_read_trace_phase() {
+    /* running job */
+    jcr.status = JCR_STATUS_RUNNING;
 	trace_queue = sync_queue_new(100);
     if(destor.trace_format == TRACE_DESTOR)
 	    pthread_create(&trace_t, NULL, read_trace_thread, NULL);

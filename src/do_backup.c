@@ -39,6 +39,12 @@ void do_backup(char *path) {
 	start_rewrite_phase();
 	start_filter_phase();
 
+    do{
+        sleep(1);
+        NOTICE("%s : %d bytes, %d chunks, %d files processed", 
+                ctime(time(NULL)), jcr.data_size, jcr.chunk_num, jcr.file_num);
+    }while(jcr.status == JCR_STATUS_RUNNING || jcr.status != JCR_STATUS_DONE);
+
 	if (destor.simulation_level == SIMULATION_ALL) {
 		stop_read_trace_phase();
 	} else {

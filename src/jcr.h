@@ -11,6 +11,10 @@
 #include "destor.h"
 #include "recipe/recipestore.h"
 
+#define JCR_STATUS_INIT 1
+#define JCR_STATUS_RUNNING 2
+#define JCR_STATUS_DONE 3
+
 /* job control record */
 struct jcr{
 	int32_t id;
@@ -18,6 +22,8 @@ struct jcr{
 	 * The path of backup or restore.
 	 */
 	sds path;
+
+    int status;
 
 	int32_t file_num;
 	int64_t data_size;

@@ -28,9 +28,6 @@ static void* sha1_thread(void* arg) {
 		SHA_Final(c->fp, &ctx);
 		TIMER_END(1, jcr.hash_time);
 
-		jcr.chunk_num++;
-		jcr.data_size += c->size;
-
 		hash2code(c->fp, code);
 		code[40] = 0;
 		VERBOSE("Hash phase: %ldth chunk identified by %s", chunk_num++, code);

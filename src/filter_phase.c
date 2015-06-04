@@ -228,11 +228,17 @@ static void* filter_thread(void *arg) {
         		append_n_chunk_pointers(jcr.bv, &cp ,1);
         		r->chunknum++;
         		r->filesize += c->size;
+
+    	    	jcr.chunk_num++;
+	    	    jcr.data_size += c->size;
+
         	}else{
         		assert(CHECK_CHUNK(c,CHUNK_FILE_END));
         		append_file_recipe_meta(jcr.bv, r);
         		free_file_recipe_meta(r);
         		r = NULL;
+
+	            jcr.file_num++;
         	}
         }
 
@@ -314,6 +320,8 @@ static void* filter_thread(void *arg) {
         write_container_async(storage_buffer.container_buffer);
     }
 
+    /* All files done */
+    jcr.status = JCR_STATUS_DONE;
     return NULL;
 }
 
