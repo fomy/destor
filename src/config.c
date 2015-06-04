@@ -59,6 +59,15 @@ void load_config_from_string(sds config) {
 				err = "Invalid simulation level";
 				goto loaderr;
 			}
+		} else if (strcasecmp(argv[0], "trace-format") == 0 && argc == 2) {
+            if (strcasecmp(argv[1], "destor") == 0) {
+				destor.trace_format = TRACE_DESTOR;
+			} else if (strcasecmp(argv[1], "fsl") == 0) {
+				destor.trace_format = TRACE_FSL;
+			} else {
+				err = "Invalid trace format";
+				goto loaderr;
+			}
 		} else if (strcasecmp(argv[0], "log-level") == 0 && argc == 2) {
 			if (strcasecmp(argv[1], "debug") == 0) {
 				destor.verbosity = DESTOR_DEBUG;

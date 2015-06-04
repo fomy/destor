@@ -97,7 +97,8 @@ am_destor_OBJECTS =
 destor_OBJECTS = $(am_destor_OBJECTS)
 destor_DEPENDENCIES = src/libdestor.a src/index/libindex.a \
 	src/storage/libstorage.a src/utils/libutils.a \
-	src/recipe/librecipe.a src/chunking/libchunk.a
+	src/recipe/librecipe.a src/chunking/libchunk.a \
+	src/fsl/libfsl.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -298,8 +299,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 destor_SOURCES = 
-destor_LDADD = src/libdestor.a src/index/libindex.a src/storage/libstorage.a src/utils/libutils.a src/recipe/librecipe.a src/chunking/libchunk.a
-SUBDIRS = src src/index src/recipe src/storage src/utils src/chunking
+destor_LDADD = src/libdestor.a src/index/libindex.a src/storage/libstorage.a src/utils/libutils.a src/recipe/librecipe.a src/chunking/libchunk.a src/fsl/libfsl.a
+SUBDIRS = src src/index src/recipe src/storage src/utils src/chunking src/fsl
 all: all-recursive
 
 .SUFFIXES:

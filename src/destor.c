@@ -80,6 +80,7 @@ void destor_start() {
 	/* Init */
 	destor.working_directory = sdsnew("/home/data/working/");
 	destor.simulation_level = SIMULATION_NO;
+    destor.trace_format = TRACE_DESTOR;
 	destor.verbosity = DESTOR_WARNING;
 
 	destor.chunk_algorithm = CHUNK_RABIN;

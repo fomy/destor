@@ -210,13 +210,22 @@ static void* read_trace_thread(void *argv) {
 	return NULL;
 }
 
+/* fsl/read_fsl_trace.c */
+extern void read_fsl_trace(void *argv);
+
 void start_read_trace_phase() {
 	trace_queue = sync_queue_new(100);
-	pthread_create(&trace_t, NULL, read_trace_thread, NULL);
+    if(destor.trace_format == TRACE_DESTOR)
+	    pthread_create(&trace_t, NULL, read_trace_thread, NULL);
+    else if(destor.trace_format == TRACE_FSL)
+	    pthread_create(&trace_t, NULL, read_fsl_trace, NULL);
+    else {
+		NOTICE("Invalid trace format");
+		exit(1);
+    }
 }
 
 void stop_read_trace_phase() {
-
 	pthread_join(trace_t, NULL);
 	NOTICE("read trace phase stops successfully!");
 }

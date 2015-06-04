@@ -58,6 +58,10 @@
 #define SIMULATION_APPEND 2
 #define SIMULATION_ALL 3
 
+/* trace format */
+#define TRACE_DESTOR 0
+#define TRACE_FSL 1
+
 #define CHUNK_FIXED 0
 #define CHUNK_RABIN 1
 #define CHUNK_NORMALIZED_RABIN 2
@@ -189,6 +193,7 @@
 struct destor {
 	sds working_directory;
 	int simulation_level;
+    int trace_format;
 	int verbosity;
 
 	int chunk_algorithm;

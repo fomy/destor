@@ -64,4 +64,5 @@ AC_OUTPUT(Makefile
         src/index/Makefile
         src/recipe/Makefile
         src/storage/Makefile
-        src/chunking/Makefile)
+        src/chunking/Makefile
+        src/fsl/Makefile)
