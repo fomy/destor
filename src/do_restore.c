@@ -50,6 +50,8 @@ static void* lru_restore_thread(void *arg) {
 			sync_queue_push(restore_chunk_queue, rc);
 		}
 
+		jcr.data_size += c->size;
+		jcr.chunk_num++;
 		free_chunk(c);
 	}
 
@@ -77,8 +79,6 @@ static void* read_recipe_thread(void *arg) {
 
 		sync_queue_push(restore_recipe_queue, c);
 
-		jcr.file_num++;
-
 		for (j = 0; j < r->chunknum; j++) {
 			TIMER_DECLARE(1);
 			TIMER_BEGIN(1);
@@ -91,8 +91,6 @@ static void* read_recipe_thread(void *arg) {
 			c->id = cp->id;
 
 			TIMER_END(1, jcr.read_recipe_time);
-			jcr.data_size += c->size;
-			jcr.chunk_num++;
 
 			sync_queue_push(restore_recipe_queue, c);
 			free(cp);
@@ -109,7 +107,7 @@ static void* read_recipe_thread(void *arg) {
 	return NULL;
 }
 
-void write_restore_data() {
+void* write_restore_data(void* arg) {
 
 	char *p, *q;
 	q = jcr.path + 1;/* ignore the first char*/
@@ -138,7 +136,7 @@ void write_restore_data() {
 		TIMER_BEGIN(1);
 
 		if (CHECK_CHUNK(c, CHUNK_FILE_START)) {
-			NOTICE("Restoring: %s", c->data);
+			VERBOSE("Restoring: %s", c->data);
 
 			sds filepath = sdsdup(jcr.path);
 			filepath = sdscat(filepath, c->data);
@@ -167,6 +165,8 @@ void write_restore_data() {
 			sdsfree(filepath);
 
 		} else if (CHECK_CHUNK(c, CHUNK_FILE_END)) {
+		    jcr.file_num++;
+
 			if (fp)
 				fclose(fp);
 			fp = NULL;
@@ -181,6 +181,8 @@ void write_restore_data() {
 		TIMER_END(1, jcr.write_chunk_time);
 	}
 
+    jcr.status = JCR_STATUS_DONE;
+    return NULL;
 }
 
 void do_restore(int revision, char *path) {
@@ -202,7 +204,8 @@ void do_restore(int revision, char *path) {
 
 	puts("==== restore begin ====");
 
-	pthread_t recipe_t, read_t;
+    jcr.status = JCR_STATUS_RUNNING;
+	pthread_t recipe_t, read_t, write_t;
 	pthread_create(&recipe_t, NULL, read_recipe_thread, NULL);
 
 	if (destor.restore_cache[0] == RESTORE_CACHE_LRU) {
@@ -219,7 +222,14 @@ void do_restore(int revision, char *path) {
 		exit(1);
 	}
 
-	write_restore_data();
+	pthread_create(&write_t, NULL, write_restore_data, NULL);
+
+    do{
+        sleep(1);
+        time_t now = time(NULL);
+        NOTICE("%s %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
+                ctime(&now), jcr.data_size, jcr.chunk_num, jcr.file_num);
+    }while(jcr.status == JCR_STATUS_RUNNING || jcr.status != JCR_STATUS_DONE);
 
 	assert(sync_queue_size(restore_chunk_queue) == 0);
 	assert(sync_queue_size(restore_recipe_queue) == 0);

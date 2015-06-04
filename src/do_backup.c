@@ -42,7 +42,7 @@ void do_backup(char *path) {
     do{
         sleep(1);
         time_t now = time(NULL);
-        NOTICE("%s : %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
+        NOTICE("%s %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
                 ctime(&now), jcr.data_size, jcr.chunk_num, jcr.file_num);
     }while(jcr.status == JCR_STATUS_RUNNING || jcr.status != JCR_STATUS_DONE);
 
