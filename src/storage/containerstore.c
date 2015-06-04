@@ -63,6 +63,8 @@ void init_container_store() {
 	pthread_mutex_init(&mutex, NULL);
 
 	pthread_create(&append_t, NULL, append_thread, NULL);
+
+    NOTICE("Init container store successfully");
 }
 
 void close_container_store() {

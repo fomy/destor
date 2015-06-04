@@ -137,6 +137,7 @@ void init_index() {
     index_overhead.lookup_requests_for_unique = 0;
     index_overhead.read_prefetching_units = 0;
 
+    NOTICE("Init index module successfully");
 }
 
 void close_index() {

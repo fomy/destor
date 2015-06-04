@@ -26,6 +26,8 @@ void init_recipe_store() {
 	}
 
 	sdsfree(count_fname);
+
+    NOTICE("Init recipe store successfully");
 }
 
 void close_recipe_store() {
