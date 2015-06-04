@@ -85,7 +85,7 @@ void* read_fsl_trace(void *argv)
 	printf("Hashing method: %s\n", buf);
 
 	/* Go over the files in a hashfile */
-	printf("== List of files and hashes ==\n");
+	/*printf("== List of files and hashes ==\n");*/
 	while (1) {
 
 		TIMER_DECLARE(1);
