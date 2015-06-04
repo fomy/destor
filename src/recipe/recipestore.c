@@ -351,7 +351,7 @@ segmentid append_segment_flag(struct backupVersion* b, int flag, int segment_siz
 	b->segmentbufoff += sizeof(int32_t);
 
 	if(flag == CHUNK_SEGMENT_END){
-		NOTICE("Filter phase: write a segment start at offset %lld!", off);
+		VERBOSE("Filter phase: write a segment start at offset %lld!", off);
 		fwrite(b->segmentbuf, b->segmentlen, 1, b->recipe_fp);
 		free(b->segmentbuf);
 		b->segmentbuf = NULL;
@@ -546,7 +546,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 
 	fseek(opened_bv->recipe_fp, off, SEEK_SET);
 
-	NOTICE("Dedup phase: Read segment %lld in backup %lld of %lld offset and %lld size",
+	VERBOSE("Dedup phase: Read segment %lld in backup %lld of %lld offset and %lld size",
 			id, bnum, off, size);
 
 	struct chunkPointer flag;
@@ -559,7 +559,7 @@ GQueue* prefetch_segments(segmentid id, int prefetch_num) {
 		fread(&flag.id, sizeof(flag.id), 1, opened_bv->recipe_fp);
 		fread(&flag.size, sizeof(flag.size), 1, opened_bv->recipe_fp);
 		if(flag.id != -CHUNK_SEGMENT_START){
-			NOTICE("Dedup phase: no more segment can be prefetched at offset %lld!", current_off);
+			VERBOSE("Dedup phase: no more segment can be prefetched at offset %lld!", current_off);
 			assert(j!=0);
 			break;
 		}
@@ -597,7 +597,7 @@ struct segmentRecipe* read_next_segment(struct backupVersion *bv){
 		return NULL;
 
 	int64_t current_off = ftell(bv->recipe_fp);
-	NOTICE("read_next_segment: current off is %lld", current_off);
+	VERBOSE("read_next_segment: current off is %lld", current_off);
 
 	struct chunkPointer flag;
 	int ret = fread(&flag.fp, sizeof(flag.fp), 1, bv->recipe_fp);
@@ -605,7 +605,7 @@ struct segmentRecipe* read_next_segment(struct backupVersion *bv){
 	ret += fread(&flag.size, sizeof(flag.size), 1, bv->recipe_fp);
 	if(ret != 3 || flag.id != -CHUNK_SEGMENT_START){
 		/* In the end of the backup recipe */
-		NOTICE("Dedup phase: no more segment can be read at offset %lld!", current_off);
+		VERBOSE("Dedup phase: no more segment can be read at offset %lld!", current_off);
 		return NULL;
 	}
 

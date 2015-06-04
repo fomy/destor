@@ -80,7 +80,7 @@ void *dedup_thread(void *arg) {
 			continue;
 		/* segmenting success */
 		if (s->chunk_num > 0) {
-			NOTICE("Dedup phase: the %lldth segment of %lld chunks", segment_num++,
+			VERBOSE("Dedup phase: the %lldth segment of %lld chunks", segment_num++,
 					s->chunk_num);
 			/* Each duplicate chunk will be marked. */
 			pthread_mutex_lock(&index_lock.mutex);
@@ -89,7 +89,7 @@ void *dedup_thread(void *arg) {
 			}
 			pthread_mutex_unlock(&index_lock.mutex);
 		} else {
-			NOTICE("Dedup phase: an empty segment");
+			VERBOSE("Dedup phase: an empty segment");
 		}
 		/* Send chunks in the segment to the next phase.
 		 * The segment will be cleared. */

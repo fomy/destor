@@ -274,7 +274,7 @@ int index_lookup(struct segment* s) {
  * Input features with an ID.
  */
 void index_update(GHashTable *features, int64_t id){
-    NOTICE("Filter phase: update %d features", g_hash_table_size(features));
+    VERBOSE("Filter phase: update %d features", g_hash_table_size(features));
     GHashTableIter iter;
     gpointer key, value;
     g_hash_table_iter_init(&iter, features);
