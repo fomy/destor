@@ -41,8 +41,9 @@ void do_backup(char *path) {
 
     do{
         sleep(1);
-        NOTICE("%s : %d bytes, %d chunks, %d files processed", 
-                ctime(time(NULL)), jcr.data_size, jcr.chunk_num, jcr.file_num);
+        time_t now = time(NULL);
+        NOTICE("%s : %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
+                ctime(&now), jcr.data_size, jcr.chunk_num, jcr.file_num);
     }while(jcr.status == JCR_STATUS_RUNNING || jcr.status != JCR_STATUS_DONE);
 
 	if (destor.simulation_level == SIMULATION_ALL) {

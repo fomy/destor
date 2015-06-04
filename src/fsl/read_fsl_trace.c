@@ -106,7 +106,7 @@ void* read_fsl_trace(void *argv)
 		if (ret == 0)
 			break;
 
-		printf("File path: %s\n", hashfile_curfile_path(handle));
+		/*printf("File path: %s\n", hashfile_curfile_path(handle));*/
 		/*printf("File size: %"PRIu64 " B\n",*/
 				/*hashfile_curfile_size(handle));*/
 		/*printf("Chunks number: %" PRIu64 "\n",*/
