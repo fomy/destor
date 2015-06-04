@@ -225,7 +225,7 @@ void do_restore(int revision, char *path) {
 	pthread_create(&write_t, NULL, write_restore_data, NULL);
 
     do{
-        sleep(1);
+        sleep(5);
         time_t now = time(NULL);
         NOTICE("%s %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
                 ctime(&now), jcr.data_size, jcr.chunk_num, jcr.file_num);

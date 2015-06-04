@@ -144,7 +144,7 @@ void close_har() {
 		 * */
 		GSequenceIter* iter = g_sequence_iter_prev(g_sequence_get_end_iter(seq));
 		struct containerRecord* r = g_sequence_get(iter);
-		NOTICE("Trim sparse container %lld", r->cid);
+		VERBOSE("Trim sparse container %lld", r->cid);
 		sparse_size -= r->size;
 		g_sequence_remove(iter);
 	}

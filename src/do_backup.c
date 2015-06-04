@@ -40,7 +40,7 @@ void do_backup(char *path) {
 	start_filter_phase();
 
     do{
-        sleep(1);
+        sleep(5);
         time_t now = time(NULL);
         NOTICE("%s %" PRId64 " bytes, %" PRId32 " chunks, %d files processed", 
                 ctime(&now), jcr.data_size, jcr.chunk_num, jcr.file_num);
