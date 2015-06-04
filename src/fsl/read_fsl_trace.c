@@ -115,7 +115,7 @@ void* read_fsl_trace(void *argv)
         struct chunk* c = new_chunk(strlen(hashfile_curfile_path(handle))+1);
         strcpy(c->data, hashfile_curfile_path(handle));
 
-		VERBOSE("Reading: %s", c->data);
+		NOTICE("Read trace phase: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
 

@@ -171,7 +171,7 @@ static void* read_trace_thread(void *argv) {
 		c = new_chunk(filenamelen + 2);
 		fgets(c->data, filenamelen + 2, trace_file);
 		c->data[filenamelen] = 0;
-		VERBOSE("Reading: %s", c->data);
+		NOTICE("Read trace phase: %s", c->data);
 
 		SET_CHUNK(c, CHUNK_FILE_START);
 
@@ -211,7 +211,7 @@ static void* read_trace_thread(void *argv) {
 }
 
 /* fsl/read_fsl_trace.c */
-extern void read_fsl_trace(void *argv);
+extern void* read_fsl_trace(void *argv);
 
 void start_read_trace_phase() {
 	trace_queue = sync_queue_new(100);
