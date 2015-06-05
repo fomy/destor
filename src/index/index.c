@@ -1,29 +1,14 @@
 #include "index.h"
 #include "kvstore.h"
 #include "fingerprint_cache.h"
+#include "index_buffer.h"
 #include "../storage/containerstore.h"
 #include "../recipe/recipestore.h"
 #include "../jcr.h"
 
-/* The buffer size > 2 * destor.rewrite_buffer_size */
-/* All fingerprints that have been looked up in the index
- * but not been updated. */
-struct {
-    /* map a fingerprint to a queue of indexElem */
-    /* Index all fingerprints in the index buffer. */
-    GHashTable *buffered_fingerprints;
-    /* The number of buffered chunks */
-    int chunk_num;
-} index_buffer;
+struct index_overhead index_overhead;
 
-struct {
-    /* Requests to the key-value store */
-    int lookup_requests;
-    int update_requests;
-    int lookup_requests_for_unique;
-    /* Overheads of prefetching module */
-    int read_prefetching_units;
-}index_overhead;
+struct index_buffer index_buffer;
 
 gboolean g_feature_equal(char* a, char* b){
 	return !memcmp(a, b, destor.index_key_size);
@@ -272,7 +257,9 @@ int index_lookup(struct segment* s) {
 }
 
 /*
- * Input features with an ID.
+ * Input features with a container/segment ID.
+ * For physical locality, this function is called for each written container.
+ * For logical locality, this function is called for each written segment.
  */
 void index_update(GHashTable *features, int64_t id){
     VERBOSE("Filter phase: update %d features", g_hash_table_size(features));

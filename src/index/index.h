@@ -11,11 +11,6 @@
 
 #include "../destor.h"
 
-struct indexElem {
-	containerid id;
-	fingerprint fp;
-};
-
 /*
  * The function is used to initialize memory structures of a fingerprint index.
  */

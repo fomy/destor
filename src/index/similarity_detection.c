@@ -4,31 +4,16 @@
  *  Created on: Mar 25, 2014
  *      Author: fumin
  */
-#include "index.h"
+#include "index_buffer.h"
 #include "kvstore.h"
 #include "fingerprint_cache.h"
 #include "../recipe/recipestore.h"
 #include "../storage/containerstore.h"
 #include "../jcr.h"
 
-/* defined in index.c */
-extern struct {
-	/* map a fingerprint to a queue of indexElem */
-	/* Index all fingerprints in the index buffer. */
-	GHashTable *buffered_fingerprints;
-	/* The number of buffered chunks */
-	int num;
-} index_buffer;
+extern struct index_overhead index_overhead;
 
-/* defined in index.c */
-extern struct {
-	/* Requests to the key-value store */
-	int lookup_requests;
-	int update_requests;
-	int lookup_requests_for_unique;
-	/* Overheads of prefetching module */
-	int read_prefetching_units;
-}index_overhead;
+extern struct index_buffer index_buffer;
 
 /*
  * Larger one comes before smaller one.
@@ -226,7 +211,7 @@ void index_lookup_similarity_detection(struct segment *s){
 		g_queue_push_tail(tq, ne);
 		g_hash_table_replace(index_buffer.buffered_fingerprints, &ne->fp, tq);
 
-		index_buffer.num++;
+		index_buffer.chunk_num++;
 	}
 
 }
