@@ -227,10 +227,10 @@ void do_restore(int revision, char *path) {
     do{
         sleep(5);
         /*time_t now = time(NULL);*/
-        printf("%" PRId64 " bytes, %" PRId32 " chunks, %d files processed\r", 
+        fprintf(stderr, "%" PRId64 " bytes, %" PRId32 " chunks, %d files processed\r", 
                 jcr.data_size, jcr.chunk_num, jcr.file_num);
     }while(jcr.status == JCR_STATUS_RUNNING || jcr.status != JCR_STATUS_DONE);
-    printf("\n");
+    fprintf(stderr, "\n");
 
 	assert(sync_queue_size(restore_chunk_queue) == 0);
 	assert(sync_queue_size(restore_recipe_queue) == 0);
