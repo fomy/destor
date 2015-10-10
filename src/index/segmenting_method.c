@@ -1,9 +1,8 @@
 #include "../destor.h"
 /*
- * c == NULL indicates the end.
- * If a segment boundary is found, return 1;
- * else return 0.
- * If c == NULL, return 1.
+ * c == NULL indicates the end and return the segment.
+ * If a segment boundary is found, return the segment;
+ * else return NULL.
  */
 struct segment* (*segmenting)(struct chunk *c);
 
