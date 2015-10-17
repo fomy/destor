@@ -52,7 +52,7 @@ void init_container_store() {
 		fread(&container_count, 8, 1, fp);
 	} else if (!(fp = fopen(containerfile, "w+"))) {
 		perror(
-				"Can not create containers/container.pool for read and write because");
+				"Can not create container.pool for read and write because");
 		exit(1);
 	}
 
