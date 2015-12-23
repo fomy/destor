@@ -127,5 +127,7 @@ void lru_cache_kicks(struct lruCache* c, void* user_data,
 }
 
 int lru_cache_is_full(struct lruCache* c) {
+	if (c->max_size < 0)
+		return 0;
 	return c->size >= c->max_size ? 1 : 0;
 }

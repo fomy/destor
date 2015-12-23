@@ -7,7 +7,7 @@
 
 #ifndef Cache_H_
 #define Cache_H_
-#define INFI_Cache -1
+#define INFI_CACHE -1
 
 #include <glib.h>
 
