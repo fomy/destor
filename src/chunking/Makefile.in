@@ -95,7 +95,7 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libchunk_a_AR = $(AR) $(ARFLAGS)
 libchunk_a_LIBADD =
-am_libchunk_a_OBJECTS = rabin_chunking.$(OBJEXT)
+am_libchunk_a_OBJECTS = rabin_chunking.$(OBJEXT) ae_chunking.$(OBJEXT)
 libchunk_a_OBJECTS = $(am_libchunk_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -241,7 +241,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libchunk.a
-libchunk_a_SOURCES = rabin_chunking.c
+libchunk_a_SOURCES = rabin_chunking.c ae_chunking.c
 all: all-am
 
 .SUFFIXES:
@@ -291,6 +291,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ae_chunking.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rabin_chunking.Po@am__quote@
 
 .c.o:
