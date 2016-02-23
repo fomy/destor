@@ -275,6 +275,8 @@ void* optimal_restore_thread(void *arg) {
 			TIMER_END(1, jcr.read_chunk_time);
 		}
 
+		jcr.data_size += c->size;
+		jcr.chunk_num++;
 		free_chunk(c);
 	}
 
