@@ -137,14 +137,14 @@ void* assembly_restore_thread(void *arg) {
 					sync_queue_push(restore_chunk_queue, rc);
 					continue;
 				}
+				jcr.data_size += rc->size;
+				jcr.chunk_num++;
 				if (destor.simulation_level >= SIMULATION_RESTORE) {
 					/* Simulating restore. */
 					free_chunk(rc);
 				} else {
 					sync_queue_push(restore_chunk_queue, rc);
 				}
-				jcr.data_size += c->size;
-				jcr.chunk_num++;
 			}
 
 			g_queue_free(q);
@@ -169,15 +169,15 @@ void* assembly_restore_thread(void *arg) {
 				sync_queue_push(restore_chunk_queue, rc);
 				continue;
 			}
+
+			jcr.data_size += rc->size;
+			jcr.chunk_num++;
 			if (destor.simulation_level >= SIMULATION_RESTORE) {
 				/* Simulating restore. */
 				free_chunk(rc);
 			} else {
 				sync_queue_push(restore_chunk_queue, rc);
 			}
-
-			jcr.data_size += c->size;
-			jcr.chunk_num++;
 		}
 		TIMER_BEGIN(1);
 		g_queue_free(q);
