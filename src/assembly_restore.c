@@ -132,15 +132,19 @@ void* assembly_restore_thread(void *arg) {
 
 			struct chunk* rc;
 			while ((rc = g_queue_pop_head(q))) {
+				if (CHECK_CHUNK(rc, CHUNK_FILE_START) 
+						|| CHECK_CHUNK(rc, CHUNK_FILE_END)) {
+					sync_queue_push(restore_chunk_queue, rc);
+					continue;
+				}
 				if (destor.simulation_level >= SIMULATION_RESTORE) {
 					/* Simulating restore. */
-					if (!CHECK_CHUNK(rc,
-							CHUNK_FILE_START) && !CHECK_CHUNK(rc, CHUNK_FILE_END)) {
-						free_chunk(rc);
-						continue;
-					}
+					free_chunk(rc);
+				} else {
+					sync_queue_push(restore_chunk_queue, rc);
 				}
-				sync_queue_push(restore_chunk_queue, rc);
+				jcr.data_size += c->size;
+				jcr.chunk_num++;
 			}
 
 			g_queue_free(q);
@@ -159,15 +163,21 @@ void* assembly_restore_thread(void *arg) {
 		TIMER_END(1, jcr.read_chunk_time);
 		struct chunk* rc;
 		while ((rc = g_queue_pop_head(q))) {
+
+			if (CHECK_CHUNK(rc,CHUNK_FILE_START) 
+					|| CHECK_CHUNK(rc, CHUNK_FILE_END)) {
+				sync_queue_push(restore_chunk_queue, rc);
+				continue;
+			}
 			if (destor.simulation_level >= SIMULATION_RESTORE) {
 				/* Simulating restore. */
-				if (!CHECK_CHUNK(rc,
-						CHUNK_FILE_START) && !CHECK_CHUNK(rc, CHUNK_FILE_END)) {
-					free_chunk(rc);
-					continue;
-				}
+				free_chunk(rc);
+			} else {
+				sync_queue_push(restore_chunk_queue, rc);
 			}
-			sync_queue_push(restore_chunk_queue, rc);
+
+			jcr.data_size += c->size;
+			jcr.chunk_num++;
 		}
 		TIMER_BEGIN(1);
 		g_queue_free(q);
