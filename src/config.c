@@ -46,6 +46,7 @@ void load_config_from_string(sds config) {
 		if (strcasecmp(argv[0], "working-directory") == 0 && argc == 2) {
 			destor.working_directory = sdscpy(destor.working_directory,
 					argv[1]);
+			destor.working_directory = sdscat(destor.working_directory, "/");
 		} else if (strcasecmp(argv[0], "simulation-level") == 0 && argc == 2) {
 			if (strcasecmp(argv[1], "all") == 0) {
 				destor.simulation_level = SIMULATION_ALL;
