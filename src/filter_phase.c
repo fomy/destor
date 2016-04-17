@@ -119,7 +119,8 @@ static void* filter_thread(void *arg) {
             }
 
             /* A fragmented chunk will be denied if it has been rewritten recently */
-            if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) || (!CHECK_CHUNK(c, CHUNK_REWRITE_DENIED)
+            if (!CHECK_CHUNK(c, CHUNK_DUPLICATE) 
+					|| (!CHECK_CHUNK(c, CHUNK_REWRITE_DENIED)
             		&& (CHECK_CHUNK(c, CHUNK_SPARSE)
                     || (enable_rewrite && CHECK_CHUNK(c, CHUNK_OUT_OF_ORDER)
                         && !CHECK_CHUNK(c, CHUNK_IN_CACHE))))) {

@@ -105,7 +105,7 @@ struct container* create_container() {
 	return c;
 }
 
-containerid get_container_id(struct container* c) {
+inline containerid get_container_id(struct container* c) {
 	return c->meta.id;
 }
 

@@ -110,6 +110,7 @@ void lru_cache_insert(struct lruCache *c, void* data,
 	}
 }
 
+/* kick out the first elem satisfying func */
 void lru_cache_kicks(struct lruCache* c, void* user_data,
 		int (*func)(void* elem, void* user_data)) {
 	GList* elem = g_list_last(c->elem_queue);

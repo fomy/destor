@@ -60,8 +60,11 @@ void *cap_rewrite(void* arg) {
 		cap_segment_get_top();
 
 		while ((c = rewrite_buffer_pop())) {
-			if (!CHECK_CHUNK(c,	CHUNK_FILE_START) && !CHECK_CHUNK(c, CHUNK_FILE_END)
-					&& !CHECK_CHUNK(c, CHUNK_SEGMENT_START) && !CHECK_CHUNK(c, CHUNK_SEGMENT_END)) {
+			if (!CHECK_CHUNK(c,	CHUNK_FILE_START) 
+					&& !CHECK_CHUNK(c, CHUNK_FILE_END)
+					&& !CHECK_CHUNK(c, CHUNK_SEGMENT_START) 
+					&& !CHECK_CHUNK(c, CHUNK_SEGMENT_END)
+					&& CHECK_CHUNK(c, CHUNK_DUPLICATE)) {
 				if (g_hash_table_lookup(top, &c->id) == NULL) {
 					/* not in TOP */
 					SET_CHUNK(c, CHUNK_OUT_OF_ORDER);
